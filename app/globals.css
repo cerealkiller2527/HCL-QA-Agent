@@ -2,12 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -16,7 +10,6 @@
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.9%;
-    /* OpenNote's teal primary color */
     --primary: 158 64% 52%;
     --primary-foreground: 0 0% 98%;
     --secondary: 0 0% 96.1%;
@@ -30,12 +23,10 @@
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
     --ring: 158 64% 52%;
-    /* Layered background system inspired by OpenNote */
-    --layer-0: 0 0% 100%; /* Base background */
-    --layer-1: 0 0% 98%; /* Cards, sidebar */
-    --layer-2: 0 0% 96%; /* Elevated elements */
-    --layer-3: 0 0% 94%; /* Highest elevation */
-    /* Simplified chart colors - mostly teal with minimal accents */
+    --layer-0: 0 0% 100%;
+    --layer-1: 0 0% 98%;
+    --layer-2: 0 0% 96%;
+    --layer-3: 0 0% 94%;
     --chart-1: 158 64% 52%;
     --chart-2: 220 13% 18%;
     --chart-3: 0 84% 60%;
@@ -50,13 +41,12 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 158 64% 52%;
-    /* LeRobot colors - clean and minimal */
     --lerobot-primary: 158 64% 52%;
     --lerobot-secondary: 220 13% 18%;
     --lerobot-accent: 0 84% 60%;
-    /* Subtle glow effects */
     --glow-primary: 158 64% 52%;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -77,11 +67,10 @@
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
     --ring: 158 64% 52%;
-    /* Dark mode layered backgrounds */
-    --layer-0: 0 0% 3.9%; /* Base background */
-    --layer-1: 0 0% 6%; /* Cards, sidebar */
-    --layer-2: 0 0% 8%; /* Elevated elements */
-    --layer-3: 0 0% 10%; /* Highest elevation */
+    --layer-0: 0 0% 3.9%;
+    --layer-1: 0 0% 6%;
+    --layer-2: 0 0% 8%;
+    --layer-3: 0 0% 10%;
     --chart-1: 158 64% 52%;
     --chart-2: 220 13% 91%;
     --chart-3: 0 84% 60%;
@@ -95,7 +84,6 @@
     --sidebar-accent-foreground: 0 0% 95%;
     --sidebar-border: 0 0% 14.9%;
     --sidebar-ring: 158 64% 52%;
-    /* Dark mode LeRobot colors */
     --lerobot-primary: 158 64% 52%;
     --lerobot-secondary: 220 13% 91%;
     --lerobot-accent: 0 0% 10%;
@@ -112,7 +100,7 @@
   }
 }
 
-/* OpenNote-inspired layered system */
+/* Cleaned up utility classes and removed unused styles */
 @layer utilities {
   .bg-layer-0 {
     background-color: hsl(var(--layer-0));
@@ -133,47 +121,16 @@
   .text-lerobot-secondary {
     color: hsl(var(--lerobot-secondary));
   }
-  .text-lerobot-accent {
-    color: hsl(var(--lerobot-accent));
-  }
   .bg-lerobot-primary {
     background-color: hsl(var(--lerobot-primary));
   }
-  .bg-lerobot-secondary {
-    background-color: hsl(var(--lerobot-secondary));
-  }
-  .bg-lerobot-accent {
-    background-color: hsl(var(--lerobot-accent));
-  }
-  .border-lerobot-primary {
-    border-color: hsl(var(--lerobot-primary));
-  }
 
-  /* Subtle glow effect for personality */
   .glow-primary {
     box-shadow: 0 0 20px hsla(var(--glow-primary), 0.1);
   }
 
-  /* Clean hover transitions */
-  .hover-lift {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  .hover-lift:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px hsla(var(--foreground), 0.1), 0 2px 4px hsla(var(--foreground), 0.06);
-  }
-
-  /* Status pulse animation */
-  .status-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  /* OpenNote-style layered depth */
   .layer-depth {
     box-shadow: 0 1px 3px hsla(var(--foreground), 0.1), 0 1px 2px hsla(var(--foreground), 0.06);
-  }
-  .layer-depth-hover:hover {
-    box-shadow: 0 4px 6px hsla(var(--foreground), 0.1), 0 2px 4px hsla(var(--foreground), 0.06);
   }
 }
 
@@ -188,17 +145,12 @@
   z-index: 9999;
 }
 
-/* Updated font classes for cleaner look */
+/* Simplified font classes */
 @layer base {
   .font-heading {
     font-family: var(--font-inter), system-ui, sans-serif;
     font-weight: 600;
   }
-  .font-mono-tech {
-    font-family: var(--font-jetbrains-mono), "Fira Code", monospace;
-    font-variant-numeric: tabular-nums;
-  }
-  /* Added more mono font usage classes */
   .font-mono-data {
     font-family: var(--font-jetbrains-mono), "Fira Code", monospace;
     font-variant-numeric: tabular-nums;
