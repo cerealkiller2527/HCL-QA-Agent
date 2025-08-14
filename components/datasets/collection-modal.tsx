@@ -1,120 +1,146 @@
 "use client"
 
 import { useState } from "react"
-import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { X } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface CollectionModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSave: (name: string, color: string) => void
-  initialName?: string
-  initialColor?: string
-  title?: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onCreateCollection: (data: { name: string; description: string; color: string }) => void
 }
 
 const colors = [
-  { name: "Blue", value: "blue", class: "bg-blue-500" },
-  { name: "Green", value: "green", class: "bg-green-500" },
-  { name: "Purple", value: "purple", class: "bg-purple-500" },
-  { name: "Orange", value: "orange", class: "bg-orange-500" },
-  { name: "Red", value: "red", class: "bg-red-500" },
-  { name: "Cyan", value: "cyan", class: "bg-cyan-500" },
+  { name: "Blue", value: "bg-blue-500", ring: "ring-blue-500" },
+  { name: "Green", value: "bg-green-500", ring: "ring-green-500" },
+  { name: "Purple", value: "bg-purple-500", ring: "ring-purple-500" },
+  { name: "Orange", value: "bg-orange-500", ring: "ring-orange-500" },
+  { name: "Red", value: "bg-red-500", ring: "ring-red-500" },
+  { name: "Cyan", value: "bg-cyan-500", ring: "ring-cyan-500" },
+  { name: "Pink", value: "bg-pink-500", ring: "ring-pink-500" },
+  { name: "Indigo", value: "bg-indigo-500", ring: "ring-indigo-500" },
 ]
 
-export function CollectionModal({
-  isOpen,
-  onClose,
-  onSave,
-  initialName = "",
-  initialColor = "blue",
-  title = "Create Collection",
-}: CollectionModalProps) {
-  const [name, setName] = useState(initialName)
-  const [selectedColor, setSelectedColor] = useState(initialColor)
+export function CollectionModal({ open, onOpenChange, onCreateCollection }: CollectionModalProps) {
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+  const [selectedColor, setSelectedColor] = useState(colors[0].value)
 
-  const handleSave = () => {
+  const handleCreate = () => {
     if (name.trim()) {
-      onSave(name.trim(), selectedColor)
+      onCreateCollection({
+        name: name.trim(),
+        description: description.trim(),
+        color: selectedColor,
+      })
+      // Reset form
       setName("")
-      setSelectedColor("blue")
-      onClose()
+      setDescription("")
+      setSelectedColor(colors[0].value)
+      onOpenChange(false)
     }
   }
 
-  const handleClose = () => {
-    setName(initialName)
-    setSelectedColor(initialColor)
-    onClose()
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      // Reset form when closing
+      setName("")
+      setDescription("")
+      setSelectedColor(colors[0].value)
+    }
+    onOpenChange(newOpen)
   }
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <motion.div
-        className="bg-background border border-border rounded-lg p-6 w-full max-w-md mx-4"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold font-sans">{title}</h2>
-          <Button variant="ghost" size="sm" onClick={handleClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-sans">Create New Collection</DialogTitle>
+          <DialogDescription className="font-sans">
+            Create a collection to organize your datasets. You can drag and drop datasets into collections.
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="collection-name" className="font-sans">
+        <div className="space-y-6 py-4">
+          {/* Name Input */}
+          <div className="space-y-2">
+            <Label htmlFor="collection-name" className="font-sans font-medium">
               Collection Name
             </Label>
             <Input
               id="collection-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter collection name"
-              className="mt-1"
-              onKeyDown={(e) => e.key === "Enter" && handleSave()}
+              placeholder="Enter collection name..."
+              className="font-sans"
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleCreate()}
             />
           </div>
 
-          <div>
-            <Label className="font-sans">Color</Label>
-            <div className="grid grid-cols-6 gap-2 mt-2">
+          {/* Description Input */}
+          <div className="space-y-2">
+            <Label htmlFor="collection-description" className="font-sans font-medium">
+              Description <span className="text-muted-foreground font-normal">(optional)</span>
+            </Label>
+            <Textarea
+              id="collection-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe what this collection contains..."
+              className="font-sans resize-none"
+              rows={3}
+            />
+          </div>
+
+          {/* Color Picker */}
+          <div className="space-y-3">
+            <Label className="font-sans font-medium">Collection Color</Label>
+            <div className="grid grid-cols-4 gap-3">
               {colors.map((color) => (
                 <button
                   key={color.value}
                   className={`
-                    w-10 h-10 rounded-lg border-2 transition-all
-                    ${color.class}
+                    relative w-full h-12 rounded-lg transition-all duration-200
+                    ${color.value}
                     ${
                       selectedColor === color.value
-                        ? "border-foreground scale-110"
-                        : "border-border hover:border-foreground/50"
+                        ? `ring-2 ${color.ring} ring-offset-2 ring-offset-background scale-105`
+                        : "hover:scale-105 hover:shadow-md"
                     }
                   `}
                   onClick={() => setSelectedColor(color.value)}
                   title={color.name}
-                />
+                >
+                  {selectedColor === color.value && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-3 h-3 bg-white rounded-full shadow-sm" />
+                    </div>
+                  )}
+                </button>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3 mt-6">
-          <Button variant="outline" onClick={handleClose}>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} className="font-sans">
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!name.trim()}>
-            {title.includes("Create") ? "Create" : "Save"}
+          <Button onClick={handleCreate} disabled={!name.trim()} className="font-sans">
+            Create Collection
           </Button>
-        </div>
-      </motion.div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

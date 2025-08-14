@@ -1,17 +1,21 @@
 "use client"
 import { useState } from "react"
+import type React from "react"
+
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Plus, FolderPlus, Folder } from "lucide-react"
 import { mockDatasets } from "@/lib/data/mock-datasets"
 import { DatasetCard } from "@/components/datasets/dataset-card"
 import { DatasetFilters } from "@/components/datasets/dataset-filters"
+import { CollectionModal } from "@/components/datasets/collection-modal"
 import { ANIMATION } from "@/lib/constants"
 import { createStaggerAnimation } from "@/lib/utils/animations"
 
 interface Collection {
   id: string
   name: string
+  description: string
   color: string
   datasetIds: string[]
 }
@@ -22,8 +26,8 @@ export function DatasetsList() {
   const [robotTypeFilter, setRobotTypeFilter] = useState<string>("all")
   const [collections, setCollections] = useState<Collection[]>([])
   const [draggedDataset, setDraggedDataset] = useState<string | null>(null)
-  const [showNewCollectionForm, setShowNewCollectionForm] = useState(false)
-  const [newCollectionName, setNewCollectionName] = useState("")
+  const [dragOverCollection, setDragOverCollection] = useState<string | null>(null)
+  const [showCollectionModal, setShowCollectionModal] = useState(false)
 
   const datasets = mockDatasets || []
 
@@ -58,20 +62,14 @@ export function DatasetsList() {
 
   const containerVariants = createStaggerAnimation(0.1)
 
-  const createCollection = () => {
-    if (!newCollectionName.trim()) return
-
-    const colors = ["bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-pink-500"]
+  const createCollection = (collectionData: Omit<Collection, "id" | "datasetIds">) => {
     const newCollection: Collection = {
       id: Date.now().toString(),
-      name: newCollectionName,
-      color: colors[collections.length % colors.length],
+      ...collectionData,
       datasetIds: [],
     }
 
     setCollections([...collections, newCollection])
-    setNewCollectionName("")
-    setShowNewCollectionForm(false)
   }
 
   const handleDragStart = (datasetId: string) => {
@@ -80,6 +78,16 @@ export function DatasetsList() {
 
   const handleDragEnd = () => {
     setDraggedDataset(null)
+    setDragOverCollection(null)
+  }
+
+  const handleDragOver = (e: React.DragEvent, collectionId: string) => {
+    e.preventDefault()
+    setDragOverCollection(collectionId)
+  }
+
+  const handleDragLeave = () => {
+    setDragOverCollection(null)
   }
 
   const handleDropOnCollection = (collectionId: string) => {
@@ -93,6 +101,7 @@ export function DatasetsList() {
       ),
     )
     setDraggedDataset(null)
+    setDragOverCollection(null)
   }
 
   const removeFromCollection = (collectionId: string, datasetId: string) => {
@@ -114,7 +123,7 @@ export function DatasetsList() {
           <p className="text-muted-foreground font-sans">Manage your robotics training data</p>
         </div>
         <div className="flex space-x-3">
-          <Button variant="outline" className="bg-transparent" onClick={() => setShowNewCollectionForm(true)}>
+          <Button variant="outline" className="bg-transparent" onClick={() => setShowCollectionModal(true)}>
             <FolderPlus className="h-4 w-4 mr-2" />
             New Collection
           </Button>
@@ -125,40 +134,6 @@ export function DatasetsList() {
         </div>
       </motion.div>
 
-      {/* New Collection Form */}
-      {showNewCollectionForm && (
-        <motion.div
-          className="bg-layer-2 p-4 rounded-lg border"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="flex items-center space-x-3">
-            <input
-              type="text"
-              placeholder="Collection name..."
-              value={newCollectionName}
-              onChange={(e) => setNewCollectionName(e.target.value)}
-              className="flex-1 px-3 py-2 bg-background border rounded-md"
-              onKeyDown={(e) => e.key === "Enter" && createCollection()}
-              autoFocus
-            />
-            <Button onClick={createCollection} size="sm">
-              Create
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setShowNewCollectionForm(false)
-                setNewCollectionName("")
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        </motion.div>
-      )}
-
       {/* Collections */}
       {collections.length > 0 && (
         <motion.div variants={ANIMATION.variants.staggerItem}>
@@ -167,50 +142,77 @@ export function DatasetsList() {
             {collections.map((collection) => (
               <motion.div
                 key={collection.id}
-                className={`relative p-4 rounded-lg border-2 border-dashed transition-all duration-200 ${
-                  draggedDataset ? "border-primary bg-primary/5 scale-105" : "border-border bg-layer-2"
+                className={`relative p-6 rounded-xl border-2 transition-all duration-300 ${
+                  dragOverCollection === collection.id
+                    ? "border-primary bg-primary/10 scale-105 shadow-lg"
+                    : draggedDataset
+                      ? "border-dashed border-primary/50 bg-primary/5"
+                      : "border-border bg-layer-2 hover:bg-layer-3"
                 }`}
-                onDragOver={(e) => e.preventDefault()}
+                onDragOver={(e) => handleDragOver(e, collection.id)}
+                onDragLeave={handleDragLeave}
                 onDrop={() => handleDropOnCollection(collection.id)}
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: draggedDataset ? 1.05 : 1.02 }}
+                layout
               >
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className={`w-8 h-8 rounded-lg ${collection.color} flex items-center justify-center`}>
-                    <Folder className="h-4 w-4 text-white" />
+                <div className="flex items-center space-x-3 mb-4">
+                  <div
+                    className={`w-10 h-10 rounded-xl ${collection.color} flex items-center justify-center shadow-sm`}
+                  >
+                    <Folder className="h-5 w-5 text-white" />
                   </div>
-                  <div>
-                    <h3 className="font-semibold font-sans">{collection.name}</h3>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold font-sans truncate">{collection.name}</h3>
                     <p className="text-sm text-muted-foreground">
                       {collection.datasetIds.length} dataset{collection.datasetIds.length !== 1 ? "s" : ""}
                     </p>
                   </div>
                 </div>
 
+                {collection.description && (
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{collection.description}</p>
+                )}
+
                 {/* Preview of datasets in collection */}
-                <div className="grid grid-cols-2 gap-1">
-                  {collection.datasetIds.slice(0, 4).map((datasetId) => {
+                <div className="space-y-2">
+                  {collection.datasetIds.slice(0, 3).map((datasetId) => {
                     const dataset = datasets.find((d) => d.id === datasetId)
                     return dataset ? (
                       <div
                         key={datasetId}
-                        className="aspect-square bg-background rounded border text-xs p-1 flex items-center justify-center relative group"
+                        className="flex items-center justify-between p-2 bg-background rounded-lg border group hover:bg-layer-2 transition-colors"
                       >
-                        <span className="truncate">{dataset.name}</span>
+                        <span className="text-sm font-mono truncate flex-1">{dataset.name}</span>
                         <button
                           onClick={() => removeFromCollection(collection.id, datasetId)}
-                          className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center"
                         >
                           ×
                         </button>
                       </div>
                     ) : null
                   })}
+                  {collection.datasetIds.length > 3 && (
+                    <div className="text-xs text-muted-foreground text-center py-1">
+                      +{collection.datasetIds.length - 3} more
+                    </div>
+                  )}
                 </div>
 
-                {draggedDataset && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-primary/10 rounded-lg">
-                    <p className="text-primary font-semibold">Drop here</p>
-                  </div>
+                {/* Drop overlay */}
+                {dragOverCollection === collection.id && (
+                  <motion.div
+                    className="absolute inset-0 flex items-center justify-center bg-primary/20 rounded-xl backdrop-blur-sm"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-2">
+                        <Plus className="h-6 w-6 text-white" />
+                      </div>
+                      <p className="text-primary font-semibold">Drop to add</p>
+                    </div>
+                  </motion.div>
                 )}
               </motion.div>
             ))}
@@ -236,15 +238,19 @@ export function DatasetsList() {
         <motion.div variants={ANIMATION.variants.staggerItem}>
           <motion.div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" variants={containerVariants}>
             {filteredDatasets.map((dataset) => (
-              <div
+              <motion.div
                 key={dataset.id}
                 draggable
                 onDragStart={() => handleDragStart(dataset.id)}
                 onDragEnd={handleDragEnd}
-                className={`transition-all duration-200 ${draggedDataset === dataset.id ? "opacity-50 scale-95" : ""}`}
+                className={`transition-all duration-300 cursor-grab active:cursor-grabbing ${
+                  draggedDataset === dataset.id ? "opacity-60 scale-95 rotate-2" : "hover:scale-105"
+                }`}
+                whileDrag={{ scale: 0.95, rotate: 5 }}
+                layout
               >
                 <DatasetCard dataset={dataset} />
-              </div>
+              </motion.div>
             ))}
           </motion.div>
         </motion.div>
@@ -265,6 +271,13 @@ export function DatasetsList() {
           </Button>
         </motion.div>
       )}
+
+      {/* Collection Modal */}
+      <CollectionModal
+        open={showCollectionModal}
+        onOpenChange={setShowCollectionModal}
+        onCreateCollection={createCollection}
+      />
     </motion.div>
   )
 }
