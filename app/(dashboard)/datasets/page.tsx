@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Search,
   Plus,
@@ -18,6 +17,7 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
+  X,
 } from "lucide-react"
 import { mockDatasets } from "@/lib/data/mock-datasets"
 import { cn } from "@/lib/utils"
@@ -52,20 +52,22 @@ function formatDuration(seconds: number): string {
 
 export default function DatasetsPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [robotTypeFilter, setRobotTypeFilter] = useState<string>("all")
 
   const filteredDatasets = mockDatasets.filter((dataset) => {
-    const matchesSearch =
-      dataset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      dataset.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      dataset.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    if (!searchQuery.trim()) return true
 
-    const matchesStatus = statusFilter === "all" || dataset.status === statusFilter
-    const matchesRobotType = robotTypeFilter === "all" || dataset.robotType === robotTypeFilter
-
-    return matchesSearch && matchesStatus && matchesRobotType
+    const query = searchQuery.toLowerCase()
+    return (
+      dataset.name.toLowerCase().includes(query) ||
+      dataset.description.toLowerCase().includes(query) ||
+      dataset.tags.some((tag) => tag.toLowerCase().includes(query)) ||
+      statusConfig[dataset.status].label.toLowerCase().includes(query) ||
+      robotTypeConfig[dataset.robotType].label.toLowerCase().includes(query) ||
+      dataset.createdAt.toLocaleDateString().toLowerCase().includes(query)
+    )
   })
+
+  const clearSearch = () => setSearchQuery("")
 
   return (
     <div className="p-6 space-y-6">
@@ -80,42 +82,31 @@ export default function DatasetsPage() {
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search datasets..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-layer-1 border-border"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-40 bg-layer-1 border-border">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="ready">Ready</SelectItem>
-            <SelectItem value="processing">Processing</SelectItem>
-            <SelectItem value="recording">Recording</SelectItem>
-            <SelectItem value="error">Error</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={robotTypeFilter} onValueChange={setRobotTypeFilter}>
-          <SelectTrigger className="w-full sm:w-40 bg-layer-1 border-border">
-            <SelectValue placeholder="Robot Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="arm">Robotic Arm</SelectItem>
-            <SelectItem value="mobile">Mobile Robot</SelectItem>
-            <SelectItem value="humanoid">Humanoid</SelectItem>
-            <SelectItem value="custom">Custom</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search datasets, status, type, tags..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 pr-10 bg-layer-1 border-border"
+        />
+        {searchQuery && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearSearch}
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </div>
+
+      {searchQuery && (
+        <div className="text-sm text-muted-foreground">
+          Found {filteredDatasets.length} dataset{filteredDatasets.length !== 1 ? "s" : ""} matching "{searchQuery}"
+        </div>
+      )}
 
       {/* Dataset Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -201,19 +192,25 @@ export default function DatasetsPage() {
       {/* Empty State */}
       {filteredDatasets.length === 0 && (
         <div className="text-center py-12">
-          <div className="mx-auto w-24 h-24 bg-layer-2 rounded-full flex items-center justify-center mb-4">
+          <div className="mx-auto w-24 h-24 bg-layer-2 rounded-full flex items-center justify-between mb-4">
             <Search className="h-8 w-8 text-muted-foreground" />
           </div>
           <h3 className="text-lg font-semibold font-sans mb-2">No datasets found</h3>
           <p className="text-muted-foreground mb-4 font-sans">
-            {searchQuery || statusFilter !== "all" || robotTypeFilter !== "all"
-              ? "Try adjusting your search or filters"
+            {searchQuery
+              ? `No datasets match "${searchQuery}". Try a different search term.`
               : "Get started by creating your first dataset"}
           </p>
-          <Button className="bg-primary hover:bg-primary/90">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Dataset
-          </Button>
+          {searchQuery ? (
+            <Button variant="outline" onClick={clearSearch}>
+              Clear Search
+            </Button>
+          ) : (
+            <Button className="bg-primary hover:bg-primary/90">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Dataset
+            </Button>
+          )}
         </div>
       )}
     </div>
