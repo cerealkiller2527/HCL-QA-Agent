@@ -80,8 +80,7 @@ function DraggableDataset({
 
   const style = transform
     ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0) rotate(2deg)`,
-        zIndex: 1000,
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
       }
     : undefined
 
@@ -89,9 +88,9 @@ function DraggableDataset({
     <motion.div
       ref={setNodeRef}
       style={style}
-      className={`relative transition-all duration-200 ${
+      className={`relative transition-opacity duration-200 ${
         isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
-      } ${isDragging ? "opacity-50" : "hover:scale-[1.02]"}`}
+      } ${isDragging ? "opacity-30" : ""}`}
       onClick={() => isSelectionMode && toggleDatasetSelection(dataset.id)}
       {...listeners}
       {...attributes}
@@ -147,21 +146,15 @@ function DroppableCollection({
     <motion.div
       ref={setNodeRef}
       className={`relative rounded-xl border-2 transition-all duration-200 overflow-hidden ${
-        isOver ? "border-primary bg-primary/10 shadow-lg scale-[1.02]" : "border-border bg-layer-2 hover:bg-layer-3"
+        isOver ? "border-primary bg-primary/5 shadow-md" : "border-border bg-layer-2 hover:bg-layer-3"
       }`}
     >
       {/* Collection Header */}
       <div className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div
-              className={`w-12 h-12 rounded-xl ${collection.color} flex items-center justify-center shadow-sm transition-all duration-300`}
-            >
-              {isOver || isExpanded ? (
-                <FolderOpen className="h-6 w-6 text-white" />
-              ) : (
-                <Folder className="h-6 w-6 text-white" />
-              )}
+            <div className={`w-12 h-12 rounded-xl ${collection.color} flex items-center justify-center shadow-sm`}>
+              {isExpanded ? <FolderOpen className="h-6 w-6 text-white" /> : <Folder className="h-6 w-6 text-white" />}
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold font-sans text-lg">{collection.name}</h3>
@@ -235,12 +228,32 @@ function DroppableCollection({
                       exit={{ opacity: 0, y: -20 }}
                     >
                       <div className="space-y-3">
+                        {/* Header with status icon and dropdown */}
                         <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold font-mono text-sm truncate">{dataset.name}</h4>
-                            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mt-1">
-                              {dataset.description}
-                            </p>
+                          <div className="flex items-start space-x-3 flex-1 min-w-0">
+                            <div
+                              className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                                dataset.status === "active"
+                                  ? "bg-green-100 text-green-600"
+                                  : dataset.status === "processing"
+                                    ? "bg-yellow-100 text-yellow-600"
+                                    : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {dataset.status === "active" ? (
+                                <Eye className="h-5 w-5" />
+                              ) : dataset.status === "processing" ? (
+                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Folder className="h-5 w-5" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold font-mono text-sm truncate">{dataset.name}</h4>
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mt-1">
+                                {dataset.description}
+                              </p>
+                            </div>
                           </div>
                           <CustomDropdown
                             trigger={
@@ -274,6 +287,7 @@ function DroppableCollection({
                           />
                         </div>
 
+                        {/* Status and metadata */}
                         <div className="flex items-center justify-between text-xs">
                           <div className="flex items-center space-x-2">
                             <span
@@ -287,28 +301,38 @@ function DroppableCollection({
                             >
                               {dataset.status}
                             </span>
-                            <span className="text-muted-foreground font-mono">{dataset.size}</span>
+                            <span className="text-muted-foreground font-mono font-semibold">{dataset.size}</span>
                           </div>
-                          <span className="text-muted-foreground font-mono">{dataset.robotType}</span>
+                          <div className="flex items-center space-x-1 text-muted-foreground">
+                            <div className="w-3 h-3 rounded bg-blue-500"></div>
+                            <span className="font-mono text-xs">{dataset.robotType}</span>
+                          </div>
                         </div>
 
+                        {/* Episodes and date */}
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>Created: {dataset.createdAt.toLocaleDateString()}</span>
-                          <span>{dataset.frameCount.toLocaleString()} episodes</span>
+                          <div className="flex items-center space-x-1">
+                            <div className="w-3 h-3 rounded bg-primary/60"></div>
+                            <span className="font-mono">{dataset.frameCount.toLocaleString()} episodes</span>
+                          </div>
+                          <span className="font-mono">{dataset.createdAt.toLocaleDateString()}</span>
                         </div>
 
+                        {/* Tags */}
                         {dataset.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1">
                             {dataset.tags.slice(0, 3).map((tag) => (
                               <span
                                 key={tag}
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-primary/10 text-primary font-medium"
+                                className="inline-flex items-center px-2 py-0.5 rounded-md text-xs bg-primary/10 text-primary font-medium border border-primary/20"
                               >
                                 {tag}
                               </span>
                             ))}
                             {dataset.tags.length > 3 && (
-                              <span className="text-xs text-muted-foreground">+{dataset.tags.length - 3}</span>
+                              <span className="text-xs text-muted-foreground font-mono">
+                                +{dataset.tags.length - 3}
+                              </span>
                             )}
                           </div>
                         )}
@@ -329,21 +353,16 @@ function DroppableCollection({
         )}
       </AnimatePresence>
 
-      {/* Drop overlay */}
+      {/* Simplified drop overlay */}
       {isOver && (
-        <motion.div
-          className="absolute inset-0 flex items-center justify-center bg-primary/20 backdrop-blur-sm z-10 pointer-events-none"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.2 }}
-        >
+        <div className="absolute inset-0 flex items-center justify-center bg-primary/10 backdrop-blur-sm z-10 pointer-events-none">
           <div className="text-center">
-            <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
-              <Plus className="h-8 w-8 text-white" />
+            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-2">
+              <Plus className="h-6 w-6 text-white" />
             </div>
-            <p className="text-primary font-semibold text-lg">Drop to add to collection</p>
+            <p className="text-primary font-semibold">Drop to add</p>
           </div>
-        </motion.div>
+        </div>
       )}
     </motion.div>
   )
@@ -505,13 +524,6 @@ export function DatasetsList() {
   const handleDragOver = (event: DragOverEvent) => {
     const { over } = event
     setOverId(over ? (over.id as string) : null)
-
-    // Auto-expand collection on drag over
-    if (over && collections.find((c) => c.id === over.id) && !expandedCollections.has(over.id as string)) {
-      setTimeout(() => {
-        setExpandedCollections((prev) => new Set([...prev, over.id as string]))
-      }, 800)
-    }
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -724,10 +736,10 @@ export function DatasetsList() {
         </AlertDialog>
       </motion.div>
 
-      {/* Drag Overlay */}
+      {/* Simplified Drag Overlay */}
       <DragOverlay>
         {draggedDataset ? (
-          <div className="opacity-90 rotate-2 scale-105">
+          <div className="opacity-80">
             <DatasetCard dataset={draggedDataset} showDeleteButton={false} />
           </div>
         ) : null}
