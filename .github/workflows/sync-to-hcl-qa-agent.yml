@@ -1,10 +1,11 @@
 name: Sync to HCL-QA-Agent
 
 on:
-  # Trigger on any push to any branch
+  # Trigger on any push to any branch EXCEPT main
   push:
     branches:
       - '**'
+      - '!main'  # Exclude main branch
   
   # Allow manual trigger
   workflow_dispatch:
@@ -17,6 +18,8 @@ env:
 jobs:
   sync-to-target:
     runs-on: ubuntu-latest
+    # Skip if branch is main (extra safety check)
+    if: github.ref != 'refs/heads/main'
     
     steps:
     - name: Checkout source repository
@@ -37,11 +40,15 @@ jobs:
         echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
         echo "Processing branch: $BRANCH_NAME"
         
+        # Skip if main branch (shouldn't happen but extra check)
+        if [ "$BRANCH_NAME" = "main" ]; then
+          echo "Skipping main branch"
+          exit 0
+        fi
+        
         # Determine target branch name
         if [ "$BRANCH_NAME" = "prototype-frontend-template" ]; then
           TARGET_BRANCH="frontend-prototype"
-        elif [ "$BRANCH_NAME" = "main" ]; then
-          TARGET_BRANCH="frontend-main"
         else
           TARGET_BRANCH="frontend-$BRANCH_NAME"
         fi
@@ -85,20 +92,49 @@ jobs:
     
     - name: Push to HCL-QA-Agent
       env:
-        # You need to add a Personal Access Token as a secret in your repository
-        # Go to Settings > Secrets and variables > Actions > New repository secret
-        # Name: TARGET_REPO_TOKEN
-        # Value: Your GitHub Personal Access Token with repo permissions
         TARGET_TOKEN: ${{ secrets.TARGET_REPO_TOKEN }}
       run: |
         cd temp-sync
         
+        # Check if we have a token
+        if [ -z "$TARGET_TOKEN" ]; then
+          echo "::error::Missing TARGET_REPO_TOKEN secret!"
+          echo "ERROR: No TARGET_REPO_TOKEN secret found!"
+          echo ""
+          echo "To fix this:"
+          echo "1. Create a Personal Access Token at: https://github.com/settings/tokens"
+          echo "2. Give it 'repo' permissions"
+          echo "3. Add it as a secret named TARGET_REPO_TOKEN at:"
+          echo "   https://github.com/${{ github.repository }}/settings/secrets/actions"
+          exit 1
+        fi
+        
         # Add target repository as remote
         git remote add target https://x-access-token:${TARGET_TOKEN}@github.com/${{ env.TARGET_REPO }}.git
         
+        # Test connection first
+        echo "Testing connection to target repository..."
+        git ls-remote target &>/dev/null || {
+          echo "::error::Cannot connect to target repository!"
+          echo "ERROR: Cannot connect to target repository"
+          echo "Please ensure:"
+          echo "1. TARGET_REPO_TOKEN has 'repo' permissions"
+          echo "2. The token hasn't expired"
+          echo "3. You have access to ${{ env.TARGET_REPO }}"
+          exit 1
+        }
+        
         # Force push the rewritten branch to target
         echo "Pushing to ${{ env.TARGET_REPO }} branch: ${{ steps.branch-name.outputs.target_branch }}"
-        git push target temp-rewrite-${{ github.run_id }}:${{ steps.branch-name.outputs.target_branch }} --force
+        git push target temp-rewrite-${{ github.run_id }}:${{ steps.branch-name.outputs.target_branch }} --force || {
+          echo "::error::Push failed!"
+          echo "ERROR: Failed to push to target repository"
+          echo "This might be due to:"
+          echo "1. Insufficient permissions on the token"
+          echo "2. Branch protection rules"
+          echo "3. Network issues"
+          exit 1
+        }
         
         echo "✅ Successfully synced to ${{ env.TARGET_REPO }}"
     
