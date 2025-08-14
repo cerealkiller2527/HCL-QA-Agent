@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 20 90% 58%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 20 90% 58%;
+    --chart-1: 20 90% 58%;
+    --chart-2: 210 100% 56%;
+    --chart-3: 142 76% 36%;
+    --chart-4: 0 84% 60%;
+    --chart-5: 270 70% 60%;
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 20 90% 58%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 20 90% 58%;
+    /* Added custom LeRobot color variables */
+    --lerobot-orange: 20 90% 58%;
+    --lerobot-blue: 210 100% 56%;
+    --lerobot-green: 142 76% 36%;
+    --lerobot-red: 0 84% 60%;
+  }
+  .dark {
+    --background: 0 0% 6%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 20 90% 58%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 64%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 20 90% 58%;
+    --chart-1: 20 90% 58%;
+    --chart-2: 210 100% 56%;
+    --chart-3: 142 76% 36%;
+    --chart-4: 0 84% 60%;
+    --chart-5: 270 70% 60%;
+    --sidebar-background: 0 0% 10%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 20 90% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 15%;
+    --sidebar-ring: 20 90% 58%;
+    /* Added custom LeRobot color variables for dark mode */
+    --lerobot-orange: 20 90% 58%;
+    --lerobot-blue: 210 100% 56%;
+    --lerobot-green: 142 76% 36%;
+    --lerobot-red: 0 84% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Added custom utility classes for LeRobot colors */
+@layer utilities {
+  .text-lerobot-orange {
+    color: hsl(var(--lerobot-orange));
+  }
+  .text-lerobot-blue {
+    color: hsl(var(--lerobot-blue));
+  }
+  .text-lerobot-green {
+    color: hsl(var(--lerobot-green));
+  }
+  .text-lerobot-red {
+    color: hsl(var(--lerobot-red));
+  }
+  .bg-lerobot-orange {
+    background-color: hsl(var(--lerobot-orange));
+  }
+  .bg-lerobot-blue {
+    background-color: hsl(var(--lerobot-blue));
+  }
+  .bg-lerobot-green {
+    background-color: hsl(var(--lerobot-green));
+  }
+  .bg-lerobot-red {
+    background-color: hsl(var(--lerobot-red));
+  }
+  .border-lerobot-orange {
+    border-color: hsl(var(--lerobot-orange));
+  }
+  .border-lerobot-blue {
+    border-color: hsl(var(--lerobot-blue));
+  }
+  .border-lerobot-green {
+    border-color: hsl(var(--lerobot-green));
+  }
+  .border-lerobot-red {
+    border-color: hsl(var(--lerobot-red));
+  }
+}
