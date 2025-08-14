@@ -1,4 +1,4 @@
-import type { Dataset } from "@/lib/types/dataset"
+import type { Dataset, Robot, Mission } from "@/lib/types/dataset"
 
 export const mockDatasets: Dataset[] = [
   {
@@ -20,13 +20,58 @@ export const mockDatasets: Dataset[] = [
       taskDescription: "Object manipulation in kitchen environment",
       recordingQuality: "high",
       annotations: ["object_labels", "grasp_points", "trajectories"],
+      recordingConditions: {
+        lighting: "artificial",
+        temperature: 22,
+        humidity: 45,
+      },
+      collaborators: ["Dr. Smith", "Lab Assistant A"],
+      version: "2.1.0",
     },
     sensors: [
-      { id: "cam_1", name: "RGB Camera", type: "camera", frequency: 30, enabled: true },
-      { id: "cam_2", name: "Depth Camera", type: "camera", frequency: 30, enabled: true },
-      { id: "joint_pos", name: "Joint Positions", type: "joint_position", frequency: 100, enabled: true },
-      { id: "force_sensor", name: "Force/Torque", type: "force", frequency: 100, enabled: true },
+      {
+        id: "cam_1",
+        name: "RGB Camera",
+        type: "camera",
+        frequency: 30,
+        enabled: true,
+        resolution: "1920x1080",
+        accuracy: 95,
+      },
+      {
+        id: "cam_2",
+        name: "Depth Camera",
+        type: "camera",
+        frequency: 30,
+        enabled: true,
+        resolution: "640x480",
+        accuracy: 92,
+      },
+      {
+        id: "joint_pos",
+        name: "Joint Positions",
+        type: "joint_position",
+        frequency: 100,
+        enabled: true,
+        accuracy: 99.5,
+      },
+      { id: "force_sensor", name: "Force/Torque", type: "force", frequency: 100, enabled: true, accuracy: 98 },
     ],
+    metrics: {
+      averageFrameRate: 29.8,
+      droppedFrames: 127,
+      dataIntegrity: 99.2,
+      compressionRatio: 0.65,
+      processingTime: 1847,
+      qualityScore: 94,
+    },
+    validation: {
+      isValid: true,
+      errors: [],
+      warnings: ["Minor lighting variations detected"],
+      completeness: 99.8,
+      lastValidated: new Date("2024-01-21"),
+    },
   },
   {
     id: "2",
@@ -45,12 +90,26 @@ export const mockDatasets: Dataset[] = [
       robotModel: "TurtleBot3",
       taskDescription: "Autonomous navigation with dynamic obstacles",
       recordingQuality: "high",
+      recordingConditions: {
+        lighting: "mixed",
+        temperature: 24,
+        humidity: 38,
+      },
+      version: "1.0.0",
     },
     sensors: [
-      { id: "lidar", name: "LiDAR", type: "lidar", frequency: 10, enabled: true },
-      { id: "rgb_cam", name: "RGB Camera", type: "camera", frequency: 15, enabled: true },
-      { id: "imu", name: "IMU", type: "imu", frequency: 50, enabled: true },
+      { id: "lidar", name: "LiDAR", type: "lidar", frequency: 10, enabled: true, accuracy: 99 },
+      { id: "rgb_cam", name: "RGB Camera", type: "camera", frequency: 15, enabled: true, resolution: "1280x720" },
+      { id: "imu", name: "IMU", type: "imu", frequency: 50, enabled: true, accuracy: 96 },
     ],
+    metrics: {
+      averageFrameRate: 14.9,
+      droppedFrames: 45,
+      dataIntegrity: 99.7,
+      compressionRatio: 0.72,
+      processingTime: 3421,
+      qualityScore: 96,
+    },
   },
   {
     id: "3",
@@ -69,6 +128,7 @@ export const mockDatasets: Dataset[] = [
       robotModel: "KUKA KR6",
       taskDescription: "Automated assembly of electronic components",
       recordingQuality: "medium",
+      version: "1.0.0",
     },
     sensors: [
       { id: "cam_overhead", name: "Overhead Camera", type: "camera", frequency: 25, enabled: true },
@@ -93,11 +153,12 @@ export const mockDatasets: Dataset[] = [
       taskDescription: "Collaborative task execution with human partners",
       recordingQuality: "high",
       annotations: ["human_poses", "interaction_events", "speech_transcripts"],
+      version: "1.2.0",
     },
     sensors: [
       { id: "rgb_head", name: "Head Camera", type: "camera", frequency: 30, enabled: true },
       { id: "depth_chest", name: "Chest Depth Sensor", type: "camera", frequency: 30, enabled: true },
-      { id: "microphone", name: "Audio", type: "custom", frequency: 44100, enabled: true },
+      { id: "microphone", name: "Audio", type: "audio", frequency: 44100, enabled: true },
     ],
   },
   {
@@ -117,10 +178,113 @@ export const mockDatasets: Dataset[] = [
       robotModel: "ABB IRB 1200",
       taskDescription: "Automated item picking and bin sorting",
       recordingQuality: "medium",
+      version: "1.0.0",
     },
     sensors: [
       { id: "wrist_cam", name: "Wrist Camera", type: "camera", frequency: 20, enabled: true },
       { id: "force_wrist", name: "Wrist Force Sensor", type: "force", frequency: 100, enabled: true },
+    ],
+    validation: {
+      isValid: false,
+      errors: ["Sensor calibration failure", "Data corruption detected"],
+      warnings: [],
+      completeness: 67.3,
+      lastValidated: new Date("2024-01-04"),
+    },
+  },
+]
+
+export const mockRobots: Robot[] = [
+  {
+    id: "robot_001",
+    name: "ARM-001",
+    type: "arm",
+    model: "UR5e",
+    status: "online",
+    location: "Kitchen Lab A",
+    lastSeen: new Date(),
+    capabilities: ["manipulation", "grasping", "precision_tasks"],
+    currentTask: "Kitchen Tasks Recording",
+  },
+  {
+    id: "robot_002",
+    name: "MOBILE-001",
+    type: "mobile",
+    model: "TurtleBot3",
+    status: "online",
+    location: "Office Floor 3",
+    lastSeen: new Date(Date.now() - 300000), // 5 minutes ago
+    capabilities: ["navigation", "mapping", "obstacle_avoidance"],
+    batteryLevel: 87,
+  },
+  {
+    id: "robot_003",
+    name: "PEPPER-001",
+    type: "humanoid",
+    model: "Pepper",
+    status: "maintenance",
+    location: "HRI Lab",
+    lastSeen: new Date(Date.now() - 3600000), // 1 hour ago
+    capabilities: ["interaction", "speech", "gesture_recognition"],
+    batteryLevel: 45,
+  },
+]
+
+export const mockMissions: Mission[] = [
+  {
+    id: "mission_001",
+    name: "Kitchen Data Collection",
+    description: "Collect manipulation data for kitchen tasks",
+    robotId: "robot_001",
+    status: "running",
+    priority: "high",
+    createdAt: new Date(Date.now() - 7200000), // 2 hours ago
+    startedAt: new Date(Date.now() - 3600000), // 1 hour ago
+    progress: 67,
+    estimatedDuration: 5400, // 1.5 hours
+    tasks: [
+      {
+        id: "task_001",
+        name: "Setup Recording",
+        type: "setup",
+        parameters: { template: "kitchen_manipulation" },
+        status: "completed",
+        startTime: new Date(Date.now() - 3600000),
+        endTime: new Date(Date.now() - 3300000),
+        duration: 300,
+      },
+      {
+        id: "task_002",
+        name: "Record Grasping Tasks",
+        type: "recording",
+        parameters: { duration: 1800 },
+        status: "running",
+        startTime: new Date(Date.now() - 3300000),
+      },
+    ],
+  },
+  {
+    id: "mission_002",
+    name: "Office Navigation Mapping",
+    description: "Create detailed map of office environment",
+    robotId: "robot_002",
+    status: "completed",
+    priority: "medium",
+    createdAt: new Date(Date.now() - 86400000), // 1 day ago
+    startedAt: new Date(Date.now() - 82800000),
+    completedAt: new Date(Date.now() - 79200000),
+    progress: 100,
+    estimatedDuration: 3600,
+    actualDuration: 3600,
+    tasks: [
+      {
+        id: "task_003",
+        name: "Initial Mapping",
+        type: "mapping",
+        parameters: { area: "office_floor_3" },
+        status: "completed",
+        duration: 3600,
+      },
     ],
   },
 ]

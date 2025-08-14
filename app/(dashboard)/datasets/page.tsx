@@ -19,7 +19,7 @@ import {
   CheckCircle,
   Loader2,
 } from "lucide-react"
-import { mockDatasets } from "@/lib/data"
+import { mockDatasets } from "@/lib/data/mock-datasets"
 import { cn } from "@/lib/utils"
 
 const statusConfig = {
@@ -69,11 +69,10 @@ export default function DatasetsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-3xl font-semibold">Datasets</h1>
-          <p className="text-muted-foreground font-body">Manage your robotics training data</p>
+          <h1 className="text-3xl font-semibold font-sans">Datasets</h1>
+          <p className="text-muted-foreground font-sans">Manage your robotics training data</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90">
           <Plus className="h-4 w-4 mr-2" />
@@ -125,18 +124,18 @@ export default function DatasetsPage() {
           const isProcessing = dataset.status === "processing"
 
           return (
-            <Card key={dataset.id} className="layer-card layer-card-hover group transition-all duration-150">
+            <Card key={dataset.id} className="layer-interactive group">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1 flex-1">
-                    <CardTitle className="text-lg font-heading group-hover:text-primary transition-colors">
+                    <CardTitle className="text-lg font-semibold font-sans group-hover:text-primary transition-colors">
                       {dataset.name}
                     </CardTitle>
-                    <CardDescription className="line-clamp-2 font-body">{dataset.description}</CardDescription>
+                    <CardDescription className="line-clamp-2 font-sans">{dataset.description}</CardDescription>
                   </div>
                   <div
                     className={cn(
-                      "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium font-mono-sm",
+                      "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-mono",
                       statusConfig[dataset.status].bg,
                     )}
                   >
@@ -151,16 +150,16 @@ export default function DatasetsPage() {
               <CardContent className="space-y-4">
                 {/* Robot Type & Tags */}
                 <div className="flex flex-wrap gap-2">
-                  <Badge className={cn("font-mono-sm", robotTypeConfig[dataset.robotType].color)}>
+                  <Badge className={cn("text-xs font-mono", robotTypeConfig[dataset.robotType].color)}>
                     {robotTypeConfig[dataset.robotType].label}
                   </Badge>
                   {dataset.tags.slice(0, 2).map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs font-mono-sm">
+                    <Badge key={tag} variant="secondary" className="text-xs font-mono">
                       {tag}
                     </Badge>
                   ))}
                   {dataset.tags.length > 2 && (
-                    <Badge variant="secondary" className="text-xs font-mono-sm">
+                    <Badge variant="secondary" className="text-xs font-mono">
                       +{dataset.tags.length - 2}
                     </Badge>
                   )}
@@ -185,7 +184,7 @@ export default function DatasetsPage() {
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-2">
-                  <Button size="sm" variant="outline" className="flex-1 bg-transparent font-mono-sm">
+                  <Button size="sm" variant="outline" className="flex-1 bg-transparent text-xs font-mono">
                     <Eye className="h-4 w-4 mr-1" />
                     View
                   </Button>
@@ -205,8 +204,8 @@ export default function DatasetsPage() {
           <div className="mx-auto w-24 h-24 bg-layer-2 rounded-full flex items-center justify-center mb-4">
             <Search className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="font-heading text-lg font-semibold mb-2">No datasets found</h3>
-          <p className="text-muted-foreground mb-4 font-body">
+          <h3 className="text-lg font-semibold font-sans mb-2">No datasets found</h3>
+          <p className="text-muted-foreground mb-4 font-sans">
             {searchQuery || statusFilter !== "all" || robotTypeFilter !== "all"
               ? "Try adjusting your search or filters"
               : "Get started by creating your first dataset"}

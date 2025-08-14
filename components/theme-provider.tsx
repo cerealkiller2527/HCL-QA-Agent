@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { createContext, useContext, useEffect, useState } from "react"
 
 type Theme = "dark" | "light" | "system"
@@ -26,38 +25,60 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
 export function ThemeProvider({
   children,
-  defaultTheme = "system",
+  defaultTheme = "dark",
   storageKey = "ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(defaultTheme)
+  const [theme, setTheme] = useState<Theme>(() => {
+    // Initialize with default theme to prevent hydration mismatch
+    return defaultTheme
+  })
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem(storageKey) as Theme
-    if (savedTheme) {
-      setTheme(savedTheme)
+    setMounted(true)
+
+    // Get saved theme from localStorage
+    try {
+      const savedTheme = localStorage.getItem(storageKey) as Theme
+      if (savedTheme && (savedTheme === "dark" || savedTheme === "light" || savedTheme === "system")) {
+        setTheme(savedTheme)
+      }
+    } catch (error) {
+      console.warn("Failed to read theme from localStorage:", error)
     }
   }, [storageKey])
 
   useEffect(() => {
+    if (!mounted) return
+
     const root = window.document.documentElement
     root.classList.remove("light", "dark")
 
     if (theme === "system") {
       const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
       root.classList.add(systemTheme)
-      return
+    } else {
+      root.classList.add(theme)
     }
-
-    root.classList.add(theme)
-  }, [theme])
+  }, [theme, mounted])
 
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
-      setTheme(theme)
+    setTheme: (newTheme: Theme) => {
+      try {
+        localStorage.setItem(storageKey, newTheme)
+        setTheme(newTheme)
+      } catch (error) {
+        console.warn("Failed to save theme to localStorage:", error)
+        setTheme(newTheme)
+      }
     },
+  }
+
+  // Prevent flash of wrong theme during hydration
+  if (!mounted) {
+    return <div className={defaultTheme}>{children}</div>
   }
 
   return (
