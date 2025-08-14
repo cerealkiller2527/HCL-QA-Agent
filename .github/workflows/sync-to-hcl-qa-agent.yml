@@ -62,19 +62,19 @@ jobs:
         TEMP_DIR=$(mktemp -d -t sync-XXXXXX)
         echo "Using temp directory: $TEMP_DIR"
         
-        # Copy everything to temp directory
-        cp -r .git "$TEMP_DIR/"
-        cp -r * "$TEMP_DIR/" 2>/dev/null || true
+        # Clone the repository to temp directory (cleaner than copying)
+        git clone . "$TEMP_DIR"
         
         # Move to temp directory
         cd "$TEMP_DIR"
         
-        # Remove any lock files
-        rm -f .git/index.lock
+        # Checkout the correct branch
+        git checkout ${{ steps.branch-name.outputs.branch }}
         
         # Store path for next steps
         echo "TEMP_WORKSPACE=$TEMP_DIR" >> $GITHUB_ENV
         
+        echo "Repository cloned to temp workspace"
         git status
     
     - name: Rewrite commit history
