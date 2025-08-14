@@ -36,14 +36,12 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
-  KeyboardSensor,
   type DragStartEvent,
   type DragEndEvent,
   type DragOverEvent,
   closestCenter,
 } from "@dnd-kit/core"
 import { useDraggable, useDroppable } from "@dnd-kit/core"
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable"
 import { mockDatasets } from "@/lib/data/mock-datasets"
 import { DatasetCard } from "@/components/datasets/dataset-card"
 import { DatasetFilters } from "@/components/datasets/dataset-filters"
@@ -78,13 +76,11 @@ const DraggableDataset = memo(function DraggableDataset({
     disabled: isSelectionMode,
   })
 
-  const style = useMemo(() => {
-    if (!transform) return { willChange: "transform" }
-    return {
-      transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-      willChange: "transform",
-    }
-  }, [transform])
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      }
+    : undefined
 
   const handleClick = useCallback(() => {
     if (isSelectionMode) {
@@ -100,7 +96,7 @@ const DraggableDataset = memo(function DraggableDataset({
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative transition-opacity duration-150 ${
+      className={`${
         isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
       } ${isDragging ? "opacity-50" : ""}`}
       onClick={handleClick}
@@ -164,16 +160,15 @@ const DroppableCollection = memo(function DroppableCollection({
   return (
     <div
       ref={setNodeRef}
-      className={`relative rounded-xl border-2 transition-all duration-150 overflow-hidden ${
-        isOver ? "border-primary bg-primary/5 shadow-md scale-[1.02]" : "border-border bg-layer-2 hover:bg-layer-3"
+      className={`rounded-xl border-2 overflow-hidden ${
+        isOver ? "border-primary bg-primary/10" : "border-border bg-layer-2"
       }`}
-      style={{ willChange: "transform, background-color, border-color" }}
     >
       {/* Collection Header */}
       <div className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className={`w-12 h-12 rounded-xl ${collection.color} flex items-center justify-center shadow-sm`}>
+            <div className={`w-12 h-12 rounded-xl ${collection.color} flex items-center justify-center`}>
               {isExpanded ? <FolderOpen className="h-6 w-6 text-white" /> : <Folder className="h-6 w-6 text-white" />}
             </div>
             <div className="flex-1 min-w-0">
@@ -184,14 +179,12 @@ const DroppableCollection = memo(function DroppableCollection({
             </div>
           </div>
 
-          <Button variant="ghost" size="sm" onClick={handleToggleExpansion} className="hover:bg-layer-3">
+          <Button variant="ghost" size="sm" onClick={handleToggleExpansion}>
             {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
         </div>
 
-        {collection.description && (
-          <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{collection.description}</p>
-        )}
+        {collection.description && <p className="text-sm text-muted-foreground mt-3">{collection.description}</p>}
 
         {/* Collection Preview (when collapsed) */}
         {!isExpanded && collection.datasetIds.length > 0 && (
@@ -201,9 +194,9 @@ const DroppableCollection = memo(function DroppableCollection({
               return dataset ? (
                 <div
                   key={datasetId}
-                  className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-primary/10 to-primary/20 border border-primary/20 hover:from-primary/20 hover:to-primary/30 transition-all duration-200"
+                  className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20"
                 >
-                  <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary/30 to-primary/50 flex items-center justify-center text-xs font-mono font-semibold text-primary-foreground">
+                  <div className="w-6 h-6 rounded-md bg-primary/30 flex items-center justify-center text-xs font-mono font-semibold text-primary-foreground">
                     {dataset.name.charAt(0).toUpperCase()}
                   </div>
                   <span className="text-xs font-medium text-primary truncate max-w-20">{dataset.name}</span>
@@ -360,12 +353,10 @@ const DroppableCollection = memo(function DroppableCollection({
       </AnimatePresence>
 
       {isOver && (
-        <div className="absolute inset-0 flex items-center justify-center bg-primary/10 backdrop-blur-sm z-10 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center bg-primary/20 z-10 pointer-events-none">
           <div className="text-center">
-            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-2">
-              <Plus className="h-6 w-6 text-white" />
-            </div>
-            <p className="text-primary font-semibold">Drop to add</p>
+            <Plus className="h-8 w-8 text-primary mx-auto mb-2" />
+            <p className="text-primary font-semibold">Drop here</p>
           </div>
         </div>
       )}
@@ -417,13 +408,8 @@ export function DatasetsList() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 10, // Increased from 8 for more stable activation
-        delay: 100, // Added delay to prevent accidental drags
-        tolerance: 5,
+        distance: 5, // Reduced distance for easier activation
       },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
     }),
   )
 
@@ -750,9 +736,10 @@ export function DatasetsList() {
         </AlertDialog>
       </motion.div>
 
+      {/* Simplified drag overlay */}
       <DragOverlay>
         {draggedDataset ? (
-          <div className="opacity-60 rotate-3 scale-105" style={{ willChange: "transform" }}>
+          <div className="opacity-80">
             <DatasetCard dataset={draggedDataset} showDeleteButton={false} />
           </div>
         ) : null}

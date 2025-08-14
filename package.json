@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@dnd-kit/core": "latest",
-    "@dnd-kit/sortable": "latest",
     "@emotion/is-prop-valid": "latest",
     "@radix-ui/react-label": "latest",
     "@radix-ui/react-progress": "latest",
