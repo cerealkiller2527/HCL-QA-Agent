@@ -26,25 +26,31 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 export function ThemeProvider({
   children,
   defaultTheme = "dark",
-  storageKey = "lerobot-theme", // Use consistent storage key
+  storageKey = "lerobot-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(defaultTheme)
+  const [theme, setTheme] = useState<Theme | null>(null)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    let initialTheme = defaultTheme
+
     try {
       const savedTheme = localStorage.getItem(storageKey) as Theme
       if (savedTheme && (savedTheme === "dark" || savedTheme === "light" || savedTheme === "system")) {
-        setTheme(savedTheme)
+        initialTheme = savedTheme
       }
     } catch (error) {
       console.warn("Failed to read theme from localStorage:", error)
     }
+
+    setTheme(initialTheme)
     setMounted(true)
-  }, [storageKey])
+  }, [storageKey, defaultTheme])
 
   useEffect(() => {
+    if (!theme) return
+
     const root = window.document.documentElement
     root.classList.remove("light", "dark")
 
@@ -57,7 +63,7 @@ export function ThemeProvider({
   }, [theme])
 
   const value = {
-    theme,
+    theme: theme || defaultTheme,
     setTheme: (newTheme: Theme) => {
       try {
         localStorage.setItem(storageKey, newTheme)
@@ -68,8 +74,8 @@ export function ThemeProvider({
     },
   }
 
-  if (!mounted) {
-    return <div style={{ visibility: "hidden" }}>{children}</div>
+  if (!mounted || !theme) {
+    return null
   }
 
   return (
