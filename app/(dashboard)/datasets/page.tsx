@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Search,
   Plus,
@@ -18,6 +19,7 @@ import {
   CheckCircle,
   Loader2,
   X,
+  Filter,
 } from "lucide-react"
 import { mockDatasets } from "@/lib/data/mock-datasets"
 import { cn } from "@/lib/utils"
@@ -52,8 +54,15 @@ function formatDuration(seconds: number): string {
 
 export default function DatasetsPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [robotTypeFilter, setRobotTypeFilter] = useState<string>("all")
 
   const filteredDatasets = mockDatasets.filter((dataset) => {
+    const matchesStatus = statusFilter === "all" || dataset.status === statusFilter
+    const matchesRobotType = robotTypeFilter === "all" || dataset.robotType === robotTypeFilter
+
+    if (!matchesStatus || !matchesRobotType) return false
+
     if (!searchQuery.trim()) return true
 
     const query = searchQuery.toLowerCase()
@@ -68,6 +77,13 @@ export default function DatasetsPage() {
   })
 
   const clearSearch = () => setSearchQuery("")
+  const clearFilters = () => {
+    setStatusFilter("all")
+    setRobotTypeFilter("all")
+    setSearchQuery("")
+  }
+
+  const hasActiveFilters = statusFilter !== "all" || robotTypeFilter !== "all" || searchQuery
 
   return (
     <div className="p-6 space-y-6">
@@ -82,29 +98,68 @@ export default function DatasetsPage() {
         </Button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search datasets, status, type, tags..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 pr-10 bg-layer-1 border-border"
-        />
-        {searchQuery && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearSearch}
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search datasets, tags, descriptions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-10 bg-layer-1 border-border"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearSearch}
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px] bg-layer-1 border-border">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="ready">Ready</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
+              <SelectItem value="recording">Recording</SelectItem>
+              <SelectItem value="error">Error</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={robotTypeFilter} onValueChange={setRobotTypeFilter}>
+            <SelectTrigger className="w-[140px] bg-layer-1 border-border">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="arm">Robotic Arm</SelectItem>
+              <SelectItem value="mobile">Mobile Robot</SelectItem>
+              <SelectItem value="humanoid">Humanoid</SelectItem>
+              <SelectItem value="custom">Custom</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {hasActiveFilters && (
+            <Button variant="outline" onClick={clearFilters} className="bg-transparent">
+              <Filter className="h-4 w-4 mr-2" />
+              Clear
+            </Button>
+          )}
+        </div>
       </div>
 
-      {searchQuery && (
+      {hasActiveFilters && (
         <div className="text-sm text-muted-foreground">
-          Found {filteredDatasets.length} dataset{filteredDatasets.length !== 1 ? "s" : ""} matching "{searchQuery}"
+          Found {filteredDatasets.length} dataset{filteredDatasets.length !== 1 ? "s" : ""}
+          {searchQuery && ` matching "${searchQuery}"`}
+          {(statusFilter !== "all" || robotTypeFilter !== "all") && " with current filters"}
         </div>
       )}
 
@@ -192,18 +247,18 @@ export default function DatasetsPage() {
       {/* Empty State */}
       {filteredDatasets.length === 0 && (
         <div className="text-center py-12">
-          <div className="mx-auto w-24 h-24 bg-layer-2 rounded-full flex items-center justify-between mb-4">
+          <div className="mx-auto w-24 h-24 bg-layer-2 rounded-full flex items-center justify-center mb-4">
             <Search className="h-8 w-8 text-muted-foreground" />
           </div>
           <h3 className="text-lg font-semibold font-sans mb-2">No datasets found</h3>
           <p className="text-muted-foreground mb-4 font-sans">
-            {searchQuery
-              ? `No datasets match "${searchQuery}". Try a different search term.`
+            {hasActiveFilters
+              ? "No datasets match your current search and filters. Try adjusting your criteria."
               : "Get started by creating your first dataset"}
           </p>
-          {searchQuery ? (
-            <Button variant="outline" onClick={clearSearch}>
-              Clear Search
+          {hasActiveFilters ? (
+            <Button variant="outline" onClick={clearFilters}>
+              Clear All Filters
             </Button>
           ) : (
             <Button className="bg-primary hover:bg-primary/90">
