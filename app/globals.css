@@ -100,20 +100,24 @@
     transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
   }
 
-  /* Added smooth transitions for all theme-aware elements */
+  /* Simplified and unified transitions for all elements */
   * {
-    transition:
-      background-color 0.3s ease-in-out,
-      border-color 0.3s ease-in-out,
-      color 0.3s ease-in-out,
-      box-shadow 0.3s ease-in-out,
-      opacity 0.3s ease-in-out;
+    transition: all 0.3s ease-in-out !important;
   }
 
-  /* Ensure buttons and interactive elements transition together */
-  button,
-  [role="button"],
-  .clickable {
+  /* Specific card transition override to ensure consistency */
+  .card,
+  [data-card],
+  .bg-card,
+  .border-card {
+    transition: all 0.3s ease-in-out !important;
+  }
+
+  /* Ensure shadcn components transition consistently */
+  [data-radix-collection-item],
+  [data-state],
+  .radix-state-open,
+  .radix-state-closed {
     transition: all 0.3s ease-in-out !important;
   }
 
