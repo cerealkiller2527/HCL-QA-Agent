@@ -120,11 +120,14 @@ export function DatasetsList() {
     setExpandedCollections(newExpanded)
   }
 
-  const handleDragStart = (datasetId: string) => {
+  const handleDragStart = (e: React.DragEvent, datasetId: string) => {
+    e.dataTransfer.effectAllowed = "move"
+    e.dataTransfer.setData("text/plain", datasetId)
     setDraggedDataset(datasetId)
   }
 
-  const handleDragEnd = () => {
+  const handleDragEnd = (e: React.DragEvent) => {
+    e.preventDefault()
     setDraggedDataset(null)
     setDragOverCollection(null)
     if (dragHoverTimeout) {
@@ -135,46 +138,58 @@ export function DatasetsList() {
 
   const handleDragOver = (e: React.DragEvent, collectionId: string) => {
     e.preventDefault()
-    const rect = e.currentTarget.getBoundingClientRect()
-    const dragX = e.clientX
-    const dragY = e.clientY
+    e.dataTransfer.dropEffect = "move"
 
-    const isOverCollection =
-      dragX >= rect.left - 20 && dragX <= rect.right + 20 && dragY >= rect.top - 20 && dragY <= rect.bottom + 20
-
-    if (isOverCollection) {
+    if (draggedDataset && dragOverCollection !== collectionId) {
       setDragOverCollection(collectionId)
 
+      // Auto-expand collection after hover delay
       if (!expandedCollections.has(collectionId)) {
         if (dragHoverTimeout) clearTimeout(dragHoverTimeout)
         const timeout = setTimeout(() => {
           setExpandedCollections((prev) => new Set([...prev, collectionId]))
-        }, 600)
+        }, 800) // Increased delay for more stability
         setDragHoverTimeout(timeout)
       }
     }
   }
 
-  const handleDragLeave = () => {
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX
+    const y = e.clientY
+
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setDragOverCollection(null)
+      if (dragHoverTimeout) {
+        clearTimeout(dragHoverTimeout)
+        setDragHoverTimeout(null)
+      }
+    }
+  }
+
+  const handleDropOnCollection = (e: React.DragEvent, collectionId: string) => {
+    e.preventDefault()
+    const datasetId = e.dataTransfer.getData("text/plain")
+
+    if (!datasetId || !draggedDataset) return
+
+    setCollections((prevCollections) =>
+      prevCollections.map((collection) =>
+        collection.id === collectionId
+          ? { ...collection, datasetIds: [...new Set([...collection.datasetIds, datasetId])] }
+          : collection,
+      ),
+    )
+
+    // Clean up drag state
+    setDraggedDataset(null)
     setDragOverCollection(null)
     if (dragHoverTimeout) {
       clearTimeout(dragHoverTimeout)
       setDragHoverTimeout(null)
     }
-  }
-
-  const handleDropOnCollection = (collectionId: string) => {
-    if (!draggedDataset) return
-
-    setCollections(
-      collections.map((collection) =>
-        collection.id === collectionId
-          ? { ...collection, datasetIds: [...collection.datasetIds, draggedDataset] }
-          : collection,
-      ),
-    )
-    setDraggedDataset(null)
-    setDragOverCollection(null)
   }
 
   const removeFromCollection = (collectionId: string, datasetId: string) => {
@@ -321,17 +336,16 @@ export function DatasetsList() {
               return (
                 <motion.div
                   key={collection.id}
-                  className={`relative rounded-xl border-2 transition-all duration-300 overflow-hidden ${
+                  className={`relative rounded-xl border-2 transition-all duration-200 overflow-hidden ${
                     dragOverCollection === collection.id
-                      ? "border-primary bg-primary/10 shadow-lg"
+                      ? "border-primary bg-primary/10 shadow-lg scale-[1.02]"
                       : draggedDataset
                         ? "border-dashed border-primary/50 bg-primary/5"
                         : "border-border bg-layer-2 hover:bg-layer-3"
                   }`}
                   onDragOver={(e) => handleDragOver(e, collection.id)}
                   onDragLeave={handleDragLeave}
-                  onDrop={() => handleDropOnCollection(collection.id)}
-                  layout
+                  onDrop={(e) => handleDropOnCollection(e, collection.id)}
                 >
                   {/* Collection Header */}
                   <div className="p-6">
@@ -515,11 +529,12 @@ export function DatasetsList() {
                   </AnimatePresence>
 
                   {/* Drop overlay */}
-                  {dragOverCollection === collection.id && (
+                  {dragOverCollection === collection.id && draggedDataset && (
                     <motion.div
-                      className="absolute inset-0 flex items-center justify-center bg-primary/20 backdrop-blur-sm z-10"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
+                      className="absolute inset-0 flex items-center justify-center bg-primary/20 backdrop-blur-sm z-10 pointer-events-none"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.2 }}
                     >
                       <div className="text-center">
                         <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
@@ -557,13 +572,17 @@ export function DatasetsList() {
               <motion.div
                 key={dataset.id}
                 draggable={!isSelectionMode}
-                onDragStart={() => handleDragStart(dataset.id)}
+                onDragStart={(e) => handleDragStart(e, dataset.id)}
                 onDragEnd={handleDragEnd}
-                className={`relative transition-all duration-300 ${
+                className={`relative transition-all duration-200 ${
                   isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
-                } ${draggedDataset === dataset.id ? "opacity-60 scale-95 rotate-2 z-50" : "hover:scale-[1.02]"}`}
-                whileDrag={!isSelectionMode ? { scale: 0.95, rotate: 5, zIndex: 50 } : {}}
-                layout
+                } ${
+                  draggedDataset === dataset.id
+                    ? "opacity-50 scale-95 rotate-2 z-50 pointer-events-none"
+                    : "hover:scale-[1.02]"
+                }`}
+                animate={draggedDataset === dataset.id ? { scale: 0.95, rotate: 2 } : { scale: 1, rotate: 0 }}
+                transition={{ duration: 0.2 }}
                 onClick={() => isSelectionMode && toggleDatasetSelection(dataset.id)}
               >
                 {isSelectionMode && (
