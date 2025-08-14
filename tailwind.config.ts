@@ -21,7 +21,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
-        heading: ["var(--font-space-grotesk)", "system-ui", "sans-serif"],
+        mono: ["var(--font-jetbrains-mono)", "Menlo", "Monaco", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -68,10 +68,9 @@ const config: Config = {
           ring: "hsl(var(--sidebar-ring))",
         },
         lerobot: {
-          orange: "hsl(var(--lerobot-orange))",
-          blue: "hsl(var(--lerobot-blue))",
-          green: "hsl(var(--lerobot-green))",
-          red: "hsl(var(--lerobot-red))",
+          primary: "hsl(var(--lerobot-primary))",
+          secondary: "hsl(var(--lerobot-secondary))",
+          accent: "hsl(var(--lerobot-accent))",
         },
       },
       borderRadius: {
