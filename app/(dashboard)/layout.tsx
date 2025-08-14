@@ -208,12 +208,12 @@ export default function DashboardLayout({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-4 right-4 z-20 pointer-events-none">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className={cn(
-              "flex items-center gap-3 px-4 py-2 rounded-lg",
+              "flex items-center gap-3 px-4 py-2 rounded-lg pointer-events-auto",
               "bg-layer-1 border border-border",
               "hover:bg-layer-hover transition-all duration-200",
             )}
@@ -224,7 +224,7 @@ export default function DashboardLayout({
           </motion.div>
         </div>
 
-        <main className="flex-1 overflow-auto bg-layer-0 pt-4">
+        <main className="flex-1 overflow-auto bg-layer-0 pt-4 pr-40">
           <AnimatePresence mode="wait">
             <motion.div
               key={pathname}

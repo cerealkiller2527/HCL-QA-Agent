@@ -26,19 +26,13 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 export function ThemeProvider({
   children,
   defaultTheme = "dark",
-  storageKey = "ui-theme",
+  storageKey = "lerobot-theme", // Use consistent storage key
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Initialize with default theme to prevent hydration mismatch
-    return defaultTheme
-  })
+  const [theme, setTheme] = useState<Theme>(defaultTheme)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-
-    // Get saved theme from localStorage
     try {
       const savedTheme = localStorage.getItem(storageKey) as Theme
       if (savedTheme && (savedTheme === "dark" || savedTheme === "light" || savedTheme === "system")) {
@@ -47,11 +41,10 @@ export function ThemeProvider({
     } catch (error) {
       console.warn("Failed to read theme from localStorage:", error)
     }
+    setMounted(true)
   }, [storageKey])
 
   useEffect(() => {
-    if (!mounted) return
-
     const root = window.document.documentElement
     root.classList.remove("light", "dark")
 
@@ -61,24 +54,22 @@ export function ThemeProvider({
     } else {
       root.classList.add(theme)
     }
-  }, [theme, mounted])
+  }, [theme])
 
   const value = {
     theme,
     setTheme: (newTheme: Theme) => {
       try {
         localStorage.setItem(storageKey, newTheme)
-        setTheme(newTheme)
       } catch (error) {
         console.warn("Failed to save theme to localStorage:", error)
-        setTheme(newTheme)
       }
+      setTheme(newTheme)
     },
   }
 
-  // Prevent flash of wrong theme during hydration
   if (!mounted) {
-    return <div className={defaultTheme}>{children}</div>
+    return <div style={{ visibility: "hidden" }}>{children}</div>
   }
 
   return (
