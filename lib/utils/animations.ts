@@ -3,7 +3,48 @@
 import type { Variants } from "framer-motion"
 import { ANIMATION } from "@/lib/constants"
 
-export function createStaggerAnimation(staggerDelay = 0.1, duration: number = ANIMATION.duration.medium): Variants {
+export const standardAnimations = {
+  // Card animations
+  card: {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 },
+    hover: { y: -4, scale: 1.02 },
+    tap: { scale: 0.98 },
+  },
+
+  // Stagger container
+  staggerContainer: {
+    animate: {
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.1,
+      },
+    },
+  },
+
+  // Stagger items
+  staggerItem: {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 },
+  },
+
+  // Slide animations
+  slideUp: {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: 20 },
+  },
+
+  // Progress animations
+  progress: {
+    initial: { width: 0 },
+    animate: (percentage: number) => ({ width: `${percentage}%` }),
+  },
+} as const
+
+export function createStaggerAnimation(staggerDelay = 0.1): Variants {
   return {
     animate: {
       transition: {

@@ -24,7 +24,6 @@ export interface RecordingSettings {
   maxFileSize: number // MB
   backupEnabled: boolean
   encryptionEnabled: boolean
-  triggerConditions?: TriggerCondition[]
 }
 
 export interface TriggerCondition {
@@ -41,13 +40,14 @@ export interface RecordingMetrics {
   dataRate: number // MB/s
   storageUsed: number // bytes
   qualityScore: number // 0-100
-  sensorHealth: Record<string, "good" | "warning" | "error">
   uptime: number // seconds
   errorCount: number
   warningCount: number
   lastError?: string
   performanceScore: number // 0-100
 }
+
+export type SensorHealth = Record<string, "good" | "warning" | "error">
 
 export interface LiveSensorReading {
   sensorId: string

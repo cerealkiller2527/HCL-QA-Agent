@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { LucideIcon } from "lucide-react"
 import { motion } from "framer-motion"
 import { ANIMATION } from "@/lib/constants"
+import { standardAnimations } from "@/lib/utils/animations"
 
 const MotionCard = motion(Card)
 
@@ -34,8 +35,8 @@ export function MetricCard({
   return (
     <MotionCard
       className={`layer-interactive ${className || ""}`}
-      variants={ANIMATION.variants.staggerItem}
-      whileHover={{ y: -2, scale: 1.01 }}
+      variants={standardAnimations.staggerItem}
+      whileHover={standardAnimations.card.hover}
       transition={{ duration: ANIMATION.duration.fast }}
     >
       {title && (

@@ -22,11 +22,9 @@ export interface DatasetMetadata {
   taskDescription: string
   recordingQuality: "low" | "medium" | "high"
   annotations?: string[]
-  recordingConditions?: {
-    lighting: "natural" | "artificial" | "mixed"
-    temperature: number
-    humidity: number
-  }
+  lighting?: "natural" | "artificial" | "mixed"
+  temperature?: number
+  humidity?: number
   collaborators?: string[]
   version: string
 }
@@ -67,12 +65,14 @@ export interface DataPoint {
   actions: RobotAction[]
 }
 
+export interface Pose {
+  position: [number, number, number]
+  orientation: [number, number, number, number] // quaternion
+}
+
 export interface RobotState {
   jointPositions: number[]
-  endEffectorPose: {
-    position: [number, number, number]
-    orientation: [number, number, number, number] // quaternion
-  }
+  endEffectorPose: Pose
   velocity: number[]
   torque: number[]
   temperature?: number[]

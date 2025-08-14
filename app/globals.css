@@ -10,23 +10,18 @@
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.9%;
-    /* Updated primary color to lighter, more vibrant green for light mode */
     --primary: 158 70% 45%;
     --primary-foreground: 0 0% 98%;
-    /* Updated secondary to a complementary green shade */
     --secondary: 158 25% 92%;
     --secondary-foreground: 158 30% 25%;
     --muted: 0 0% 96.1%;
     --muted-foreground: 0 0% 45.1%;
-    /* Updated accent to a different shade of green instead of orange */
     --accent: 158 40% 88%;
     --accent-foreground: 158 50% 25%;
-    /* Made destructive color much lighter for better visibility */
     --destructive: 0 70% 65%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
-    /* Updated ring color to match new primary */
     --ring: 158 70% 45%;
     --radius: 0.5rem;
     --layer-0: 0 0% 100%;
@@ -35,44 +30,39 @@
     --layer-3: 158 10% 94%;
     --layer-hover: 158 20% 96%;
     --layer-active: 158 25% 94%;
-    /* Made success color much lighter and more vibrant */
     --success: 158 60% 85%;
     --success-foreground: 0 0% 20%;
-    /* Made warning color slightly lighter */
     --warning: 38 95% 75%;
     --warning-foreground: 0 0% 50%;
   }
 
   .dark {
     --background: 0 0% 3.9%;
-    /* Reverted foreground to original without warm tints */
     --foreground: 0 0% 98%;
     --card: 0 0% 6%;
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 6%;
     --popover-foreground: 0 0% 98%;
-    --primary: 158 64% 52%; /* Keep original bright teal for dark mode */
+    --primary: 158 64% 52%;
     --primary-foreground: 0 0% 98%;
-    /* Updated secondary to a darker green shade for dark mode */
     --secondary: 158 20% 12%;
     --secondary-foreground: 158 40% 85%;
     --muted: 0 0% 10%;
     --muted-foreground: 0 0% 64%;
-    /* Updated accent to a darker green shade for dark mode */
     --accent: 158 30% 15%;
     --accent-foreground: 158 50% 85%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
-    --ring: 158 64% 52%; /* Keep original bright teal for dark mode */
+    --ring: 158 64% 52%;
     --layer-0: 0 0% 3.9%;
     --layer-1: 158 15% 6%;
     --layer-2: 158 12% 8%;
     --layer-3: 158 10% 10%;
     --layer-hover: 158 20% 8%;
     --layer-active: 158 25% 12%;
-    --success: 158 64% 52%; /* Keep original bright teal for dark mode */
+    --success: 158 64% 52%;
     --success-foreground: 0 0% 98%;
     --warning: 38 92% 55%;
     --warning-foreground: 0 0% 9%;
@@ -86,7 +76,6 @@
 
   body {
     @apply bg-layer-0 text-foreground font-body;
-    /* Added letter spacing to body text */
     letter-spacing: 0.05rem;
     transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
   }
@@ -99,6 +88,7 @@
 }
 
 @layer utilities {
+  /* Consolidated layer utilities */
   .bg-layer-0 {
     background-color: hsl(var(--layer-0));
   }
@@ -117,6 +107,8 @@
   .bg-layer-active {
     background-color: hsl(var(--layer-active));
   }
+
+  /* Consolidated status utilities */
   .bg-success {
     background-color: hsl(var(--success));
   }
@@ -136,22 +128,11 @@
     color: hsl(var(--warning));
   }
 
+  /* Simplified interactive layer classes */
   .layer-card {
     background-color: hsl(var(--layer-1));
     border: 1px solid hsl(var(--border));
     box-shadow: 0 1px 3px hsla(var(--foreground), 0.04);
-  }
-
-  .layer-card-hover:hover {
-    background-color: hsl(var(--layer-hover));
-    box-shadow: 0 4px 12px hsla(var(--foreground), 0.06);
-    transform: translateY(-1px);
-  }
-
-  .layer-card-active {
-    background-color: hsl(var(--layer-active));
-    border-color: hsl(var(--primary));
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2);
   }
 
   .layer-interactive {
@@ -159,40 +140,45 @@
   }
 
   .layer-interactive:hover {
-    @apply layer-card-hover;
+    background-color: hsl(var(--layer-hover));
+    box-shadow: 0 4px 12px hsla(var(--foreground), 0.06);
+    transform: translateY(-1px);
   }
 
   .layer-interactive:active {
-    @apply layer-card-active;
+    background-color: hsl(var(--layer-active));
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2);
   }
 }
 
 @layer components {
+  /* Consolidated font classes with consistent letter spacing */
   .font-heading {
     font-family: var(--font-inter);
     font-weight: 600;
-    letter-spacing: 0.025em; /* Added letter spacing */
+    letter-spacing: 0.025em;
     line-height: 1.2;
   }
 
   .font-heading-lg {
     font-family: var(--font-inter);
     font-weight: 700;
-    letter-spacing: 0.02em; /* Added letter spacing */
+    letter-spacing: 0.02em;
     line-height: 1.1;
   }
 
   .font-body {
     font-family: var(--font-inter);
     font-weight: 400;
-    letter-spacing: 0.05rem; /* Added letter spacing */
+    letter-spacing: 0.05rem;
     line-height: 1.5;
   }
 
   .font-body-medium {
     font-family: var(--font-inter);
     font-weight: 500;
-    letter-spacing: 0.05rem; /* Added letter spacing */
+    letter-spacing: 0.05rem;
     line-height: 1.5;
   }
 
@@ -200,44 +186,40 @@
     font-family: var(--font-jetbrains-mono);
     font-variant-numeric: tabular-nums;
     font-weight: 400;
-    letter-spacing: 0.05rem; /* Added letter spacing */
+    letter-spacing: 0.05rem;
   }
 
   .font-mono-medium {
     font-family: var(--font-jetbrains-mono);
     font-variant-numeric: tabular-nums;
     font-weight: 500;
-    letter-spacing: 0.05rem; /* Added letter spacing */
+    letter-spacing: 0.05rem;
   }
 
   .font-mono-sm {
     font-family: var(--font-jetbrains-mono);
     font-size: 0.75rem;
     font-weight: 500;
-    letter-spacing: 0.075em; /* Increased letter spacing for small mono text */
+    letter-spacing: 0.075em;
     font-variant-numeric: tabular-nums;
   }
 
+  /* Simplified text utility classes */
   .text-display {
     @apply font-heading-lg text-3xl md:text-4xl;
   }
-
   .text-title {
     @apply font-heading text-xl md:text-2xl;
   }
-
   .text-subtitle {
     @apply font-heading text-lg;
   }
-
   .text-label {
     @apply font-body-medium text-sm;
   }
-
   .text-caption {
     @apply font-body text-xs text-muted-foreground;
   }
-
   .text-code {
     @apply font-mono-sm;
   }
