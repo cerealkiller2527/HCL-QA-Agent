@@ -98,7 +98,7 @@ const DraggableDataset = memo(function DraggableDataset({
       style={style}
       className={`${
         isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
-      } ${isDragging ? "opacity-50" : ""}`}
+      } ${isDragging ? "opacity-60" : ""} transition-opacity duration-200`}
       onClick={handleClick}
       {...listeners}
       {...attributes}
@@ -160,8 +160,8 @@ const DroppableCollection = memo(function DroppableCollection({
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-xl border-2 overflow-hidden ${
-        isOver ? "border-primary bg-primary/10" : "border-border bg-layer-2"
+      className={`rounded-xl border-2 overflow-hidden transition-all duration-200 ${
+        isOver ? "border-primary bg-primary/5 shadow-lg" : "border-border bg-layer-2"
       }`}
     >
       {/* Collection Header */}
@@ -353,10 +353,10 @@ const DroppableCollection = memo(function DroppableCollection({
       </AnimatePresence>
 
       {isOver && (
-        <div className="absolute inset-0 flex items-center justify-center bg-primary/20 z-10 pointer-events-none">
-          <div className="text-center">
-            <Plus className="h-8 w-8 text-primary mx-auto mb-2" />
-            <p className="text-primary font-semibold">Drop here</p>
+        <div className="absolute inset-0 flex items-center justify-center bg-primary/10 backdrop-blur-sm z-10 pointer-events-none rounded-xl">
+          <div className="text-center p-4">
+            <Plus className="h-6 w-6 text-primary mx-auto mb-1" />
+            <p className="text-primary font-semibold text-sm">Add to collection</p>
           </div>
         </div>
       )}
@@ -408,7 +408,7 @@ export function DatasetsList() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5, // Reduced distance for easier activation
+        distance: 3, // Even easier activation
       },
     }),
   )
@@ -736,10 +736,9 @@ export function DatasetsList() {
         </AlertDialog>
       </motion.div>
 
-      {/* Simplified drag overlay */}
       <DragOverlay>
         {draggedDataset ? (
-          <div className="opacity-80">
+          <div className="opacity-90 rotate-2 scale-105 transition-transform">
             <DatasetCard dataset={draggedDataset} showDeleteButton={false} />
           </div>
         ) : null}

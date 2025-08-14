@@ -83,8 +83,8 @@ export function CustomDropdown({ trigger, items, align = "end", className }: Cus
                       "hover:bg-layer-hover focus:bg-layer-hover focus:outline-none",
                       "active:bg-layer-active active:scale-[0.98]",
                       item.destructive
-                        ? "text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive"
-                        : "text-foreground hover:text-foreground focus:text-foreground",
+                        ? "text-destructive hover:bg-destructive/20 hover:text-destructive-foreground focus:bg-destructive/20 focus:text-destructive-foreground"
+                        : "text-foreground hover:text-foreground-hover focus:text-foreground-hover",
                     )}
                   >
                     {item.icon && (
