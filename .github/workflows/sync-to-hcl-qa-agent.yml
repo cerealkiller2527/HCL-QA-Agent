@@ -58,17 +58,28 @@ jobs:
     
     - name: Create temporary workspace
       run: |
-        # Create a temp directory for processing
-        mkdir -p temp-sync
-        cp -r . temp-sync/
-        cd temp-sync
-        # Remove the .git/index.lock if it exists
+        # Create a temp directory outside current directory
+        TEMP_DIR=$(mktemp -d -t sync-XXXXXX)
+        echo "Using temp directory: $TEMP_DIR"
+        
+        # Copy everything to temp directory
+        cp -r .git "$TEMP_DIR/"
+        cp -r * "$TEMP_DIR/" 2>/dev/null || true
+        
+        # Move to temp directory
+        cd "$TEMP_DIR"
+        
+        # Remove any lock files
         rm -f .git/index.lock
+        
+        # Store path for next steps
+        echo "TEMP_WORKSPACE=$TEMP_DIR" >> $GITHUB_ENV
+        
         git status
     
     - name: Rewrite commit history
       run: |
-        cd temp-sync
+        cd "$TEMP_WORKSPACE"
         
         # Get current branch
         CURRENT_BRANCH=${{ steps.branch-name.outputs.branch }}
@@ -115,7 +126,7 @@ jobs:
       env:
         TARGET_TOKEN: ${{ secrets.TARGET_REPO_TOKEN }}
       run: |
-        cd temp-sync
+        cd "$TEMP_WORKSPACE"
         
         # Check if we have a token
         if [ -z "$TARGET_TOKEN" ]; then
@@ -174,4 +185,6 @@ jobs:
     - name: Cleanup
       if: always()
       run: |
-        rm -rf temp-sync
+        if [ -n "$TEMP_WORKSPACE" ]; then
+          rm -rf "$TEMP_WORKSPACE"
+        fi
