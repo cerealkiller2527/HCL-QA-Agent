@@ -470,8 +470,8 @@ export function DatasetsList() {
                                     </div>
 
                                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                      <span>Created: {dataset.createdAt}</span>
-                                      <span>{dataset.episodes} episodes</span>
+                                      <span>Created: {dataset.createdAt.toLocaleDateString()}</span>
+                                      <span>{dataset.frameCount.toLocaleString()} episodes</span>
                                     </div>
 
                                     {dataset.tags.length > 0 && (
