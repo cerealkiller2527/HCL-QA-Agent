@@ -195,13 +195,12 @@ export default function DashboardLayout({
 
         {/* Content */}
         <main className="flex-1 overflow-auto bg-layer-0">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="sync">
             <motion.div
               key={pathname}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
               className="h-full"
             >
               {children}
