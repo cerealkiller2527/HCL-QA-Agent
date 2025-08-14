@@ -1,25 +1,37 @@
 "use client"
 import { Moon, Sun } from "lucide-react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   const handleThemeToggle = () => {
-    if (!buttonRef.current) return
+    if (!buttonRef.current || isTransitioning) return
 
     const rect = buttonRef.current.getBoundingClientRect()
     const x = rect.left + rect.width / 2
     const y = rect.top + rect.height / 2
 
+    setIsTransitioning(true)
+
     const overlay = document.createElement("div")
-    overlay.className = "theme-transition"
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 9999;
+    `
 
     const circle = document.createElement("div")
+    const newTheme = theme === "light" ? "dark" : "light"
     circle.style.cssText = `
       position: absolute;
       left: ${x}px;
@@ -27,11 +39,13 @@ export function ThemeToggle() {
       width: 0;
       height: 0;
       border-radius: 50%;
-      background: ${theme === "light" ? "#0a0a0a" : "#ffffff"};
+      background: ${newTheme === "dark" ? "hsl(var(--background))" : "hsl(var(--background))"};
       transform: translate(-50%, -50%);
-      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
       z-index: 10000;
     `
+
+    circle.className = newTheme
 
     overlay.appendChild(circle)
     document.body.appendChild(overlay)
@@ -40,17 +54,18 @@ export function ThemeToggle() {
       const size = Math.max(window.innerWidth, window.innerHeight) * 2.5
       circle.style.width = `${size}px`
       circle.style.height = `${size}px`
-    })
 
-    setTimeout(() => {
-      setTheme(theme === "light" ? "dark" : "light")
-    }, 300)
+      setTimeout(() => {
+        setTheme(newTheme)
+      }, 200)
+    })
 
     setTimeout(() => {
       if (document.body.contains(overlay)) {
         document.body.removeChild(overlay)
       }
-    }, 650)
+      setIsTransitioning(false)
+    }, 850)
   }
 
   return (
@@ -59,22 +74,21 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={handleThemeToggle}
-      className="relative overflow-hidden h-8 w-8 hover:bg-accent/50 transition-colors"
+      disabled={isTransitioning}
+      className="relative overflow-hidden h-8 w-8 hover:bg-accent/50 transition-colors font-mono"
     >
-      <motion.div
-        animate={{ rotate: theme === "dark" ? -90 : 0, scale: theme === "dark" ? 0 : 1 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="absolute"
-      >
-        <Sun className="h-4 w-4" />
-      </motion.div>
-      <motion.div
-        animate={{ rotate: theme === "dark" ? 0 : 90, scale: theme === "dark" ? 1 : 0 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="absolute"
-      >
-        <Moon className="h-4 w-4" />
-      </motion.div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={theme}
+          initial={{ rotate: -90, scale: 0 }}
+          animate={{ rotate: 0, scale: 1 }}
+          exit={{ rotate: 90, scale: 0 }}
+          transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+          className="absolute"
+        >
+          {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+        </motion.div>
+      </AnimatePresence>
       <span className="sr-only">Toggle theme</span>
     </Button>
   )
