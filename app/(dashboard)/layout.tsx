@@ -11,11 +11,11 @@ import { ChevronLeft, Database, Bot, Play, BarChart3, Settings, Home, Zap } from
 import { cn } from "@/lib/utils"
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: Home, color: "text-lerobot-primary" },
-  { name: "Datasets", href: "/datasets", icon: Database, color: "text-lerobot-primary" },
-  { name: "Robots", href: "/robots", icon: Bot, color: "text-lerobot-primary" },
-  { name: "Missions", href: "/missions", icon: Play, color: "text-lerobot-primary" },
-  { name: "Analytics", href: "/analytics", icon: BarChart3, color: "text-lerobot-primary" },
+  { name: "Dashboard", href: "/", icon: Home, color: "text-primary" },
+  { name: "Datasets", href: "/datasets", icon: Database, color: "text-primary" },
+  { name: "Robots", href: "/robots", icon: Bot, color: "text-primary" },
+  { name: "Missions", href: "/missions", icon: Play, color: "text-primary" },
+  { name: "Analytics", href: "/analytics", icon: BarChart3, color: "text-primary" },
   { name: "Settings", href: "/settings", icon: Settings, color: "text-muted-foreground" },
 ]
 
@@ -63,8 +63,8 @@ export default function DashboardLayout({
                   className="space-y-1"
                 >
                   <div className="flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-lerobot-primary" />
-                    <h1 className="font-heading text-lg font-semibold text-lerobot-primary">LeRobot</h1>
+                    <Zap className="h-5 w-5 text-primary" />
+                    <h1 className="font-heading text-lg font-semibold text-primary">LeRobot</h1>
                   </div>
                   <p className="text-xs text-muted-foreground font-mono-label">AI Robotics Platform</p>
                 </motion.div>
@@ -100,12 +100,14 @@ export default function DashboardLayout({
                     className={cn(
                       "w-full justify-start gap-3 h-10 text-left transition-all duration-200",
                       isActive
-                        ? "bg-lerobot-primary hover:bg-lerobot-primary/90 text-white glow-primary"
+                        ? "bg-primary hover:bg-primary/90 text-primary-foreground glow-primary"
                         : "hover:bg-layer-2 text-muted-foreground hover:text-foreground",
                       sidebarCollapsed && "justify-center px-2",
                     )}
                   >
-                    <item.icon className={cn("h-4 w-4 flex-shrink-0", isActive ? "text-white" : item.color)} />
+                    <item.icon
+                      className={cn("h-4 w-4 flex-shrink-0", isActive ? "text-primary-foreground" : item.color)}
+                    />
                     <AnimatePresence>
                       {!sidebarCollapsed && (
                         <motion.span
@@ -141,18 +143,18 @@ export default function DashboardLayout({
                   <motion.div
                     animate={{ scale: [1, 1.2, 1] }}
                     transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                    className="w-2 h-2 bg-lerobot-primary rounded-full"
+                    className="w-2 h-2 bg-primary rounded-full"
                   />
                   <span className="text-xs font-medium font-mono-label">System Online</span>
                 </div>
                 <div className="text-xs text-muted-foreground space-y-1 font-mono-data">
                   <div className="flex justify-between">
                     <span>Robots:</span>
-                    <span className="text-lerobot-primary font-medium">12</span>
+                    <span className="text-primary font-medium">12</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Datasets:</span>
-                    <span className="text-lerobot-primary font-medium">847</span>
+                    <span className="text-primary font-medium">847</span>
                   </div>
                 </div>
               </div>

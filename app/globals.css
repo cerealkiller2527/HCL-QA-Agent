@@ -41,9 +41,10 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 158 64% 52%;
-    --lerobot-primary: 158 64% 52%;
-    --lerobot-secondary: 220 13% 18%;
-    --lerobot-accent: 0 84% 60%;
+    /* Standardized color variables - removed inconsistent lerobot colors, using primary consistently */
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 221 83% 53%;
     --glow-primary: 158 64% 52%;
   }
 
@@ -84,9 +85,10 @@
     --sidebar-accent-foreground: 0 0% 95%;
     --sidebar-border: 0 0% 14.9%;
     --sidebar-ring: 158 64% 52%;
-    --lerobot-primary: 158 64% 52%;
-    --lerobot-secondary: 220 13% 91%;
-    --lerobot-accent: 0 0% 10%;
+    /* Standardized dark mode colors */
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 221 83% 53%;
   }
 }
 
@@ -144,14 +146,23 @@
     background-color: hsl(var(--layer-3));
   }
 
-  .text-lerobot-primary {
-    color: hsl(var(--lerobot-primary));
+  .text-success {
+    color: hsl(var(--success));
   }
-  .text-lerobot-secondary {
-    color: hsl(var(--lerobot-secondary));
+  .text-warning {
+    color: hsl(var(--warning));
   }
-  .bg-lerobot-primary {
-    background-color: hsl(var(--lerobot-primary));
+  .text-info {
+    color: hsl(var(--info));
+  }
+  .bg-success {
+    background-color: hsl(var(--success));
+  }
+  .bg-warning {
+    background-color: hsl(var(--warning));
+  }
+  .bg-info {
+    background-color: hsl(var(--info));
   }
 
   .glow-primary {
@@ -160,6 +171,18 @@
 
   .layer-depth {
     box-shadow: 0 1px 3px hsla(var(--foreground), 0.1), 0 1px 2px hsla(var(--foreground), 0.06);
+  }
+
+  .hover-lift {
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+
+  .layer-depth-hover:hover {
+    box-shadow: 0 4px 6px hsla(var(--foreground), 0.1), 0 2px 4px hsla(var(--foreground), 0.06);
   }
 }
 

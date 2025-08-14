@@ -23,10 +23,10 @@ import { mockDatasets } from "@/lib/data/mock-datasets"
 import { cn } from "@/lib/utils"
 
 const statusConfig = {
-  ready: { icon: CheckCircle, color: "text-lerobot-green", bg: "bg-lerobot-green/10", label: "Ready" },
-  processing: { icon: Loader2, color: "text-lerobot-blue", bg: "bg-lerobot-blue/10", label: "Processing" },
-  recording: { icon: Play, color: "text-lerobot-orange", bg: "bg-lerobot-orange/10", label: "Recording" },
-  error: { icon: AlertCircle, color: "text-lerobot-red", bg: "bg-lerobot-red/10", label: "Error" },
+  ready: { icon: CheckCircle, color: "text-success", bg: "bg-success/10", label: "Ready" },
+  processing: { icon: Loader2, color: "text-info", bg: "bg-info/10", label: "Processing" },
+  recording: { icon: Play, color: "text-warning", bg: "bg-warning/10", label: "Recording" },
+  error: { icon: AlertCircle, color: "text-destructive", bg: "bg-destructive/10", label: "Error" },
 }
 
 const robotTypeConfig = {
@@ -75,7 +75,7 @@ export default function DatasetsPage() {
           <h1 className="font-heading text-3xl font-bold">Datasets</h1>
           <p className="text-muted-foreground">Manage your robotics training data</p>
         </div>
-        <Button className="bg-lerobot-orange hover:bg-lerobot-orange/90">
+        <Button className="bg-primary hover:bg-primary/90">
           <Plus className="h-4 w-4 mr-2" />
           New Dataset
         </Button>
@@ -125,11 +125,11 @@ export default function DatasetsPage() {
           const isProcessing = dataset.status === "processing"
 
           return (
-            <Card key={dataset.id} className="hover:shadow-lg transition-all duration-200 group">
+            <Card key={dataset.id} className="hover:shadow-lg transition-all duration-200 group hover-lift">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1 flex-1">
-                    <CardTitle className="text-lg font-heading group-hover:text-lerobot-orange transition-colors">
+                    <CardTitle className="text-lg font-heading group-hover:text-primary transition-colors">
                       {dataset.name}
                     </CardTitle>
                     <CardDescription className="line-clamp-2">{dataset.description}</CardDescription>
@@ -170,17 +170,19 @@ export default function DatasetsPage() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="h-4 w-4" />
-                    {formatDuration(dataset.duration)}
+                    <span className="font-mono-data">{formatDuration(dataset.duration)}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <HardDrive className="h-4 w-4" />
-                    {formatFileSize(dataset.fileSize)}
+                    <span className="font-mono-data">{formatFileSize(dataset.fileSize)}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-4 w-4" />
-                    {dataset.createdAt.toLocaleDateString()}
+                    <span className="font-mono-data">{dataset.createdAt.toLocaleDateString()}</span>
                   </div>
-                  <div className="text-muted-foreground">{dataset.frameCount.toLocaleString()} frames</div>
+                  <div className="text-muted-foreground font-mono-data">
+                    {dataset.frameCount.toLocaleString()} frames
+                  </div>
                 </div>
 
                 {/* Actions */}
@@ -211,7 +213,7 @@ export default function DatasetsPage() {
               ? "Try adjusting your search or filters"
               : "Get started by creating your first dataset"}
           </p>
-          <Button className="bg-lerobot-orange hover:bg-lerobot-orange/90">
+          <Button className="bg-primary hover:bg-primary/90">
             <Plus className="h-4 w-4 mr-2" />
             Create Dataset
           </Button>

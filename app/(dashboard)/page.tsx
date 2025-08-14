@@ -8,18 +8,18 @@ export default function DashboardPage() {
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="space-y-2">
         <h1 className="font-heading text-3xl font-semibold">
-          Welcome to <span className="text-lerobot-primary">LeRobot</span>
+          Welcome to <span className="text-primary">LeRobot</span>
         </h1>
         <p className="text-muted-foreground text-lg">Build and scale robotic agents with our AI-powered platform</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link href="/datasets">
-          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-lerobot-primary/30 hover-lift layer-depth layer-depth-hover">
+          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-primary/30 hover-lift layer-depth layer-depth-hover">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-lerobot-primary/10">
-                  <Database className="h-5 w-5 text-lerobot-primary" />
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Database className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <CardTitle className="text-base font-heading">Datasets</CardTitle>
@@ -40,11 +40,11 @@ export default function DashboardPage() {
         </Link>
 
         <Link href="/robots">
-          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-lerobot-primary/30 hover-lift layer-depth layer-depth-hover">
+          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-primary/30 hover-lift layer-depth layer-depth-hover">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-lerobot-primary/10">
-                  <Bot className="h-5 w-5 text-lerobot-primary" />
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Bot className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <CardTitle className="text-base font-heading">Robots</CardTitle>
@@ -55,7 +55,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div className="text-2xl font-semibold font-mono-data">12</div>
-                <div className="text-xs text-lerobot-primary font-medium bg-lerobot-primary/10 px-2 py-1 rounded font-mono-label">
+                <div className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded font-mono-label">
                   Online
                 </div>
               </div>
@@ -64,11 +64,11 @@ export default function DashboardPage() {
         </Link>
 
         <Link href="/missions">
-          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-lerobot-primary/30 hover-lift layer-depth layer-depth-hover">
+          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-primary/30 hover-lift layer-depth layer-depth-hover">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-lerobot-primary/10">
-                  <Play className="h-5 w-5 text-lerobot-primary" />
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Play className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <CardTitle className="text-base font-heading">Missions</CardTitle>
@@ -79,7 +79,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div className="text-2xl font-semibold font-mono-data">23</div>
-                <div className="text-xs text-lerobot-primary font-medium bg-lerobot-primary/10 px-2 py-1 rounded font-mono-label">
+                <div className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded font-mono-label">
                   Running
                 </div>
               </div>
@@ -88,11 +88,11 @@ export default function DashboardPage() {
         </Link>
 
         <Link href="/analytics">
-          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-lerobot-primary/30 hover-lift layer-depth layer-depth-hover">
+          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-primary/30 hover-lift layer-depth layer-depth-hover">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-lerobot-primary/10">
-                  <BarChart3 className="h-5 w-5 text-lerobot-primary" />
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <BarChart3 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <CardTitle className="text-base font-heading">Analytics</CardTitle>
@@ -103,7 +103,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div className="text-2xl font-semibold font-mono-data">99.9%</div>
-                <div className="text-xs text-lerobot-primary font-medium bg-lerobot-primary/10 px-2 py-1 rounded font-mono-label">
+                <div className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded font-mono-label">
                   Uptime
                 </div>
               </div>
@@ -116,16 +116,16 @@ export default function DashboardPage() {
         <Card className="bg-layer-1 layer-depth">
           <CardHeader className="pb-4">
             <CardTitle className="font-heading text-lg flex items-center gap-2">
-              <Activity className="h-5 w-5 text-lerobot-primary" />
+              <Activity className="h-5 w-5 text-primary" />
               System Status
             </CardTitle>
             <CardDescription className="font-mono-label">Platform health and performance</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {[
-              { label: "Platform Status", value: "Operational", color: "text-lerobot-primary" },
-              { label: "Active Robots", value: "12/15", color: "text-lerobot-primary" },
-              { label: "Running Missions", value: "23", color: "text-lerobot-primary" },
+              { label: "Platform Status", value: "Operational", color: "text-primary" },
+              { label: "Active Robots", value: "12/15", color: "text-primary" },
+              { label: "Running Missions", value: "23", color: "text-primary" },
               { label: "Data Storage", value: "2.4TB used", color: "text-muted-foreground" },
             ].map((item, index) => (
               <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-layer-2">
@@ -139,7 +139,7 @@ export default function DashboardPage() {
         <Card className="bg-layer-1 layer-depth">
           <CardHeader className="pb-4">
             <CardTitle className="font-heading text-lg flex items-center gap-2">
-              <Clock className="h-5 w-5 text-lerobot-primary" />
+              <Clock className="h-5 w-5 text-primary" />
               Recent Activity
             </CardTitle>
             <CardDescription className="font-mono-label">Latest updates from your robotic agents</CardDescription>
@@ -153,10 +153,10 @@ export default function DashboardPage() {
                 { message: "System backup completed", time: "1 hour ago" },
               ].map((activity, index) => (
                 <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-layer-2">
-                  <div className="w-2 h-2 rounded-full bg-lerobot-primary" />
+                  <div className="w-2 h-2 rounded-full bg-primary" />
                   <div className="flex-1">
                     <p className="text-sm font-medium">{activity.message}</p>
-                    <p className="text-xs text-muted-foreground font-mono-tech">{activity.time}</p>
+                    <p className="text-xs text-muted-foreground font-mono-data">{activity.time}</p>
                   </div>
                 </div>
               ))}
@@ -168,7 +168,7 @@ export default function DashboardPage() {
       <Card className="bg-layer-1 layer-depth">
         <CardHeader className="pb-4">
           <CardTitle className="font-heading text-lg flex items-center gap-2">
-            <Zap className="h-5 w-5 text-lerobot-primary" />
+            <Zap className="h-5 w-5 text-primary" />
             Quick Start
           </CardTitle>
           <CardDescription>Get started with common tasks</CardDescription>
@@ -188,10 +188,10 @@ export default function DashboardPage() {
               <Link key={index} href={item.href}>
                 <Button
                   variant="outline"
-                  className="w-full h-auto p-4 flex flex-col items-center gap-3 hover:bg-layer-2 hover:border-lerobot-primary/30 transition-all hover-lift bg-layer-1 layer-depth-hover"
+                  className="w-full h-auto p-4 flex flex-col items-center gap-3 hover:bg-layer-2 hover:border-primary/30 transition-all hover-lift bg-layer-1 layer-depth-hover"
                 >
-                  <div className="p-2 rounded-lg bg-lerobot-primary/10">
-                    <item.icon className="h-5 w-5 text-lerobot-primary" />
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <item.icon className="h-5 w-5 text-primary" />
                   </div>
                   <div className="text-center">
                     <p className="font-heading font-medium text-sm">{item.title}</p>
