@@ -48,7 +48,7 @@ export default function DashboardLayout({
                   <Zap className="h-5 w-5 text-lerobot-primary" />
                   <h1 className="font-heading text-lg font-semibold text-lerobot-primary">LeRobot</h1>
                 </div>
-                <p className="text-xs text-muted-foreground">AI Robotics Platform</p>
+                <p className="text-xs text-muted-foreground font-mono-label">AI Robotics Platform</p>
               </div>
             )}
             <Button
@@ -80,7 +80,7 @@ export default function DashboardLayout({
                   )}
                 >
                   <item.icon className={cn("h-4 w-4 flex-shrink-0", isActive ? "text-white" : item.color)} />
-                  {!sidebarCollapsed && <span className="font-medium text-sm">{item.name}</span>}
+                  {!sidebarCollapsed && <span className="font-medium text-sm font-mono-label">{item.name}</span>}
                 </Button>
               </Link>
             )
@@ -92,9 +92,9 @@ export default function DashboardLayout({
             <div className="bg-layer-2 rounded-lg p-3 space-y-2 layer-depth">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-lerobot-primary rounded-full status-pulse" />
-                <span className="text-xs font-medium">System Online</span>
+                <span className="text-xs font-medium font-mono-label">System Online</span>
               </div>
-              <div className="text-xs text-muted-foreground space-y-1 font-mono-tech">
+              <div className="text-xs text-muted-foreground space-y-1 font-mono-data">
                 <div className="flex justify-between">
                   <span>Robots:</span>
                   <span className="text-lerobot-primary font-medium">12</span>
@@ -119,7 +119,7 @@ export default function DashboardLayout({
               </h2>
             </div>
             <div className="flex items-center gap-3">
-              <div className="text-xs text-muted-foreground font-mono-tech">{new Date().toLocaleTimeString()}</div>
+              <div className="text-xs text-muted-foreground font-mono-data">{new Date().toLocaleTimeString()}</div>
               <ThemeToggle />
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 <Bell className="h-4 w-4" />

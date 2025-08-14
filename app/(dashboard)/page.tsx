@@ -23,14 +23,14 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <CardTitle className="text-base font-heading">Datasets</CardTitle>
-                  <CardDescription className="text-sm">Training data</CardDescription>
+                  <CardDescription className="text-sm font-mono-label">Training data</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-semibold font-mono-tech">847</div>
-                <Button size="sm" variant="outline" className="h-7 text-xs bg-layer-2 hover:bg-layer-3">
+                <div className="text-2xl font-semibold font-mono-data">847</div>
+                <Button size="sm" variant="outline" className="h-7 text-xs bg-layer-2 hover:bg-layer-3 font-mono-label">
                   <Plus className="h-3 w-3 mr-1" />
                   New
                 </Button>
@@ -48,14 +48,14 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <CardTitle className="text-base font-heading">Robots</CardTitle>
-                  <CardDescription className="text-sm">Connected agents</CardDescription>
+                  <CardDescription className="text-sm font-mono-label">Connected agents</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-semibold font-mono-tech">12</div>
-                <div className="text-xs text-lerobot-primary font-medium bg-lerobot-primary/10 px-2 py-1 rounded">
+                <div className="text-2xl font-semibold font-mono-data">12</div>
+                <div className="text-xs text-lerobot-primary font-medium bg-lerobot-primary/10 px-2 py-1 rounded font-mono-label">
                   Online
                 </div>
               </div>
@@ -72,14 +72,14 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <CardTitle className="text-base font-heading">Missions</CardTitle>
-                  <CardDescription className="text-sm">Active operations</CardDescription>
+                  <CardDescription className="text-sm font-mono-label">Active operations</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-semibold font-mono-tech">23</div>
-                <div className="text-xs text-lerobot-primary font-medium bg-lerobot-primary/10 px-2 py-1 rounded">
+                <div className="text-2xl font-semibold font-mono-data">23</div>
+                <div className="text-xs text-lerobot-primary font-medium bg-lerobot-primary/10 px-2 py-1 rounded font-mono-label">
                   Running
                 </div>
               </div>
@@ -96,14 +96,14 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <CardTitle className="text-base font-heading">Analytics</CardTitle>
-                  <CardDescription className="text-sm">Performance metrics</CardDescription>
+                  <CardDescription className="text-sm font-mono-label">Performance metrics</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-semibold font-mono-tech">99.9%</div>
-                <div className="text-xs text-lerobot-primary font-medium bg-lerobot-primary/10 px-2 py-1 rounded">
+                <div className="text-2xl font-semibold font-mono-data">99.9%</div>
+                <div className="text-xs text-lerobot-primary font-medium bg-lerobot-primary/10 px-2 py-1 rounded font-mono-label">
                   Uptime
                 </div>
               </div>
@@ -119,7 +119,7 @@ export default function DashboardPage() {
               <Activity className="h-5 w-5 text-lerobot-primary" />
               System Status
             </CardTitle>
-            <CardDescription>Platform health and performance</CardDescription>
+            <CardDescription className="font-mono-label">Platform health and performance</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {[
@@ -129,8 +129,8 @@ export default function DashboardPage() {
               { label: "Data Storage", value: "2.4TB used", color: "text-muted-foreground" },
             ].map((item, index) => (
               <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-layer-2">
-                <span className="text-sm font-medium">{item.label}</span>
-                <span className={`font-mono-tech text-sm font-medium ${item.color}`}>{item.value}</span>
+                <span className="text-sm font-medium font-mono-label">{item.label}</span>
+                <span className={`font-mono-data text-sm font-medium ${item.color}`}>{item.value}</span>
               </div>
             ))}
           </CardContent>
@@ -142,7 +142,7 @@ export default function DashboardPage() {
               <Clock className="h-5 w-5 text-lerobot-primary" />
               Recent Activity
             </CardTitle>
-            <CardDescription>Latest updates from your robotic agents</CardDescription>
+            <CardDescription className="font-mono-label">Latest updates from your robotic agents</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">

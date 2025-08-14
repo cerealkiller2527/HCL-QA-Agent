@@ -98,7 +98,7 @@
     /* Dark mode LeRobot colors */
     --lerobot-primary: 158 64% 52%;
     --lerobot-secondary: 220 13% 91%;
-    --lerobot-accent: 0 84% 60%;
+    --lerobot-accent: 0 0% 10%;
   }
 }
 
@@ -160,7 +160,7 @@
   }
   .hover-lift:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px hsla(var(--foreground), 0.1);
+    box-shadow: 0 4px 12px hsla(var(--foreground), 0.1), 0 2px 4px hsla(var(--foreground), 0.06);
   }
 
   /* Status pulse animation */
@@ -177,6 +177,17 @@
   }
 }
 
+/* Theme transition overlay */
+.theme-transition {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+}
+
 /* Updated font classes for cleaner look */
 @layer base {
   .font-heading {
@@ -186,5 +197,17 @@
   .font-mono-tech {
     font-family: var(--font-jetbrains-mono), "Fira Code", monospace;
     font-variant-numeric: tabular-nums;
+  }
+  /* Added more mono font usage classes */
+  .font-mono-data {
+    font-family: var(--font-jetbrains-mono), "Fira Code", monospace;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+  .font-mono-label {
+    font-family: var(--font-jetbrains-mono), "Fira Code", monospace;
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0.025em;
   }
 }
