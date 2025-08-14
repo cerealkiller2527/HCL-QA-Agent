@@ -3,15 +3,22 @@
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Bot, Battery, Plus, Settings } from "lucide-react"
+import { Bot, Battery, Plus, Settings, Wifi, WifiOff, Wrench } from "lucide-react"
 import { mockRobots } from "@/lib/data/mock-datasets"
 import { PageHeader } from "@/components/ui/page-header"
 import { MetricCard } from "@/components/ui/metric-card"
 import { StatusBadge } from "@/components/ui/status-badge"
-import { ANIMATION, STATUS_CONFIG } from "@/lib/constants"
+import { ANIMATION } from "@/lib/constants"
 import { createStaggerAnimation } from "@/lib/utils/animations"
 
 const MotionCard = motion(Card)
+
+const STATUS_CONFIG = {
+  online: { color: "bg-primary", label: "Online", icon: Wifi },
+  offline: { color: "bg-muted-foreground", label: "Offline", icon: WifiOff },
+  maintenance: { color: "bg-destructive", label: "Maintenance", icon: Wrench },
+  busy: { color: "bg-secondary", label: "Busy", icon: Bot },
+} as const
 
 const robotTypeConfig = {
   arm: { label: "Robotic Arm", color: "bg-primary/10 text-primary" },
@@ -26,7 +33,7 @@ export default function RobotsPage() {
   const maintenanceRobots = mockRobots.filter((r) => r.status === "maintenance").length
   const avgBattery = Math.round(mockRobots.reduce((acc, r) => acc + (r.batteryLevel || 0), 0) / mockRobots.length)
 
-  const containerVariants = createStaggerAnimation(0.1, ANIMATION.DURATION.medium)
+  const containerVariants = createStaggerAnimation(0.1, ANIMATION.duration.medium)
 
   return (
     <motion.div
@@ -57,12 +64,12 @@ export default function RobotsPage() {
         {mockRobots.map((robot, index) => {
           const StatusIcon = STATUS_CONFIG[robot.status as keyof typeof STATUS_CONFIG].icon
           return (
-            <motion.div key={robot.id} variants={ANIMATION.VARIANTS.staggerItem}>
+            <motion.div key={robot.id} variants={ANIMATION.variants.staggerItem}>
               <MotionCard
                 className="layer-interactive group"
                 whileHover={{ y: -4, scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                transition={{ duration: ANIMATION.DURATION.fast }}
+                transition={{ duration: ANIMATION.duration.fast }}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
@@ -117,7 +124,7 @@ export default function RobotsPage() {
                           }`}
                           initial={{ width: 0 }}
                           animate={{ width: `${robot.batteryLevel}%` }}
-                          transition={{ delay: index * 0.1 + 0.5, duration: ANIMATION.DURATION.medium }}
+                          transition={{ delay: index * 0.1 + 0.5, duration: ANIMATION.duration.medium }}
                         />
                       </div>
                     </div>
