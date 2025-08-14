@@ -103,14 +103,23 @@ export function DatasetsList() {
 
   const handleDragOver = (e: React.DragEvent, collectionId: string) => {
     e.preventDefault()
-    setDragOverCollection(collectionId)
+    const rect = e.currentTarget.getBoundingClientRect()
+    const dragX = e.clientX
+    const dragY = e.clientY
 
-    if (!expandedCollections.has(collectionId)) {
-      if (dragHoverTimeout) clearTimeout(dragHoverTimeout)
-      const timeout = setTimeout(() => {
-        setExpandedCollections((prev) => new Set([...prev, collectionId]))
-      }, 800) // Delay before auto-expanding
-      setDragHoverTimeout(timeout)
+    const isOverCollection =
+      dragX >= rect.left - 20 && dragX <= rect.right + 20 && dragY >= rect.top - 20 && dragY <= rect.bottom + 20
+
+    if (isOverCollection) {
+      setDragOverCollection(collectionId)
+
+      if (!expandedCollections.has(collectionId)) {
+        if (dragHoverTimeout) clearTimeout(dragHoverTimeout)
+        const timeout = setTimeout(() => {
+          setExpandedCollections((prev) => new Set([...prev, collectionId]))
+        }, 600)
+        setDragHoverTimeout(timeout)
+      }
     }
   }
 
@@ -244,22 +253,26 @@ export function DatasetsList() {
 
                     {/* Collection Preview (when collapsed) */}
                     {!isExpanded && collection.datasetIds.length > 0 && (
-                      <div className="mt-4 flex -space-x-2">
-                        {collection.datasetIds.slice(0, 4).map((datasetId, index) => {
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {collection.datasetIds.slice(0, 6).map((datasetId, index) => {
                           const dataset = datasets.find((d) => d.id === datasetId)
                           return dataset ? (
                             <div
                               key={datasetId}
-                              className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/40 border-2 border-background flex items-center justify-center text-xs font-mono font-semibold"
-                              style={{ zIndex: 4 - index }}
+                              className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-primary/10 to-primary/20 border border-primary/20 hover:from-primary/20 hover:to-primary/30 transition-all duration-200"
                             >
-                              {dataset.name.charAt(0).toUpperCase()}
+                              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary/30 to-primary/50 flex items-center justify-center text-xs font-mono font-semibold text-primary-foreground">
+                                {dataset.name.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="text-xs font-medium text-primary truncate max-w-20">{dataset.name}</span>
                             </div>
                           ) : null
                         })}
-                        {collection.datasetIds.length > 4 && (
-                          <div className="w-8 h-8 rounded-lg bg-muted border-2 border-background flex items-center justify-center text-xs text-muted-foreground font-semibold">
-                            +{collection.datasetIds.length - 4}
+                        {collection.datasetIds.length > 6 && (
+                          <div className="flex items-center px-3 py-1.5 rounded-lg bg-muted border border-border">
+                            <span className="text-xs text-muted-foreground font-semibold">
+                              +{collection.datasetIds.length - 6} more
+                            </span>
                           </div>
                         )}
                       </div>
@@ -295,22 +308,48 @@ export function DatasetsList() {
 
                           {/* Datasets in collection */}
                           {filteredDatasets.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                               {filteredDatasets.map((dataset) => (
                                 <motion.div
                                   key={dataset.id}
-                                  className="group relative p-4 bg-background rounded-lg border border-border hover:bg-layer-2 transition-all duration-200"
+                                  className="group relative p-3 bg-background rounded-lg border border-border hover:bg-layer-2 hover:border-primary/30 transition-all duration-200 hover:shadow-sm"
                                   initial={{ opacity: 0, y: 20 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   exit={{ opacity: 0, y: -20 }}
                                 >
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex-1 min-w-0">
-                                      <h4 className="font-semibold font-mono text-sm truncate">{dataset.name}</h4>
-                                      <p className="text-xs text-muted-foreground truncate">{dataset.description}</p>
-                                      <div className="flex items-center space-x-2 mt-2">
+                                  <div className="space-y-2">
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="font-semibold font-mono text-sm truncate">{dataset.name}</h4>
+                                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                          {dataset.description}
+                                        </p>
+                                      </div>
+                                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => router.push(`/datasets/${dataset.id}`)}
+                                          className="h-7 w-7 p-0 hover:bg-primary/10 hover:border-primary/30"
+                                        >
+                                          <Eye className="h-3 w-3" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => removeFromCollection(collection.id, dataset.id)}
+                                          className="h-7 w-7 p-0 hover:bg-red-50 hover:border-red-200"
+                                          title="Remove from collection"
+                                        >
+                                          <ArrowLeft className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-xs">
+                                      <div className="flex items-center space-x-2">
                                         <span
-                                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                                             dataset.status === "active"
                                               ? "bg-green-100 text-green-800"
                                               : dataset.status === "processing"
@@ -320,27 +359,28 @@ export function DatasetsList() {
                                         >
                                           {dataset.status}
                                         </span>
-                                        <span className="text-xs text-muted-foreground">{dataset.size}</span>
+                                        <span className="text-muted-foreground font-mono">{dataset.size}</span>
                                       </div>
+                                      <span className="text-muted-foreground font-mono">{dataset.robotType}</span>
                                     </div>
-                                    <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => router.push(`/datasets/${dataset.id}`)}
-                                        className="h-8 w-8 p-0"
-                                      >
-                                        <Eye className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => removeFromCollection(collection.id, dataset.id)}
-                                        className="h-8 w-8 p-0 hover:bg-red-50 hover:border-red-200"
-                                      >
-                                        <ArrowLeft className="h-3 w-3" />
-                                      </Button>
-                                    </div>
+
+                                    {dataset.tags.length > 0 && (
+                                      <div className="flex flex-wrap gap-1">
+                                        {dataset.tags.slice(0, 3).map((tag) => (
+                                          <span
+                                            key={tag}
+                                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-primary/10 text-primary font-medium"
+                                          >
+                                            {tag}
+                                          </span>
+                                        ))}
+                                        {dataset.tags.length > 3 && (
+                                          <span className="text-xs text-muted-foreground">
+                                            +{dataset.tags.length - 3}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 </motion.div>
                               ))}
