@@ -16,19 +16,15 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={handleThemeToggle}
-      className="relative overflow-hidden h-8 w-8 hover:bg-accent/50 transition-colors font-mono"
+      className="relative overflow-hidden h-8 w-8 hover:bg-layer-hover transition-colors"
     >
       <AnimatePresence mode="wait">
         <motion.div
           key={theme}
-          initial={{ rotate: -90, scale: 0, opacity: 0 }}
-          animate={{ rotate: 0, scale: 1, opacity: 1 }}
-          exit={{ rotate: 90, scale: 0, opacity: 0 }}
-          transition={{
-            duration: 0.3,
-            ease: [0.23, 1, 0.32, 1],
-            opacity: { duration: 0.2 },
-          }}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.8, opacity: 0 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
           className="absolute"
         >
           {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}

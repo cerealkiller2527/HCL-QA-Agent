@@ -19,21 +19,21 @@ import {
   CheckCircle,
   Loader2,
 } from "lucide-react"
-import { mockDatasets } from "@/lib/data/mock-datasets"
+import { mockDatasets } from "@/lib/data"
 import { cn } from "@/lib/utils"
 
 const statusConfig = {
-  ready: { icon: CheckCircle, color: "text-success", bg: "bg-success/10", label: "Ready" },
-  processing: { icon: Loader2, color: "text-info", bg: "bg-info/10", label: "Processing" },
-  recording: { icon: Play, color: "text-warning", bg: "bg-warning/10", label: "Recording" },
+  ready: { icon: CheckCircle, color: "text-primary", bg: "bg-primary/10", label: "Ready" },
+  processing: { icon: Loader2, color: "text-primary", bg: "bg-primary/10", label: "Processing" },
+  recording: { icon: Play, color: "text-primary", bg: "bg-primary/10", label: "Recording" },
   error: { icon: AlertCircle, color: "text-destructive", bg: "bg-destructive/10", label: "Error" },
 }
 
 const robotTypeConfig = {
-  arm: { label: "Robotic Arm", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400" },
-  mobile: { label: "Mobile Robot", color: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400" },
-  humanoid: { label: "Humanoid", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400" },
-  custom: { label: "Custom", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400" },
+  arm: { label: "Robotic Arm", color: "bg-primary/10 text-primary" },
+  mobile: { label: "Mobile Robot", color: "bg-primary/10 text-primary" },
+  humanoid: { label: "Humanoid", color: "bg-primary/10 text-primary" },
+  custom: { label: "Custom", color: "bg-muted text-muted-foreground" },
 }
 
 function formatFileSize(bytes: number): string {
@@ -72,8 +72,8 @@ export default function DatasetsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-3xl font-bold">Datasets</h1>
-          <p className="text-muted-foreground">Manage your robotics training data</p>
+          <h1 className="font-heading text-3xl font-semibold">Datasets</h1>
+          <p className="text-muted-foreground font-body">Manage your robotics training data</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90">
           <Plus className="h-4 w-4 mr-2" />
@@ -89,11 +89,11 @@ export default function DatasetsPage() {
             placeholder="Search datasets..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-layer-1 border-border"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-40">
+          <SelectTrigger className="w-full sm:w-40 bg-layer-1 border-border">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -105,7 +105,7 @@ export default function DatasetsPage() {
           </SelectContent>
         </Select>
         <Select value={robotTypeFilter} onValueChange={setRobotTypeFilter}>
-          <SelectTrigger className="w-full sm:w-40">
+          <SelectTrigger className="w-full sm:w-40 bg-layer-1 border-border">
             <SelectValue placeholder="Robot Type" />
           </SelectTrigger>
           <SelectContent>
@@ -125,18 +125,18 @@ export default function DatasetsPage() {
           const isProcessing = dataset.status === "processing"
 
           return (
-            <Card key={dataset.id} className="hover:shadow-lg transition-all duration-200 group hover-lift">
+            <Card key={dataset.id} className="layer-card layer-card-hover group transition-all duration-150">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1 flex-1">
                     <CardTitle className="text-lg font-heading group-hover:text-primary transition-colors">
                       {dataset.name}
                     </CardTitle>
-                    <CardDescription className="line-clamp-2">{dataset.description}</CardDescription>
+                    <CardDescription className="line-clamp-2 font-body">{dataset.description}</CardDescription>
                   </div>
                   <div
                     className={cn(
-                      "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
+                      "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium font-mono-sm",
                       statusConfig[dataset.status].bg,
                     )}
                   >
@@ -151,16 +151,16 @@ export default function DatasetsPage() {
               <CardContent className="space-y-4">
                 {/* Robot Type & Tags */}
                 <div className="flex flex-wrap gap-2">
-                  <Badge className={robotTypeConfig[dataset.robotType].color}>
+                  <Badge className={cn("font-mono-sm", robotTypeConfig[dataset.robotType].color)}>
                     {robotTypeConfig[dataset.robotType].label}
                   </Badge>
                   {dataset.tags.slice(0, 2).map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
+                    <Badge key={tag} variant="secondary" className="text-xs font-mono-sm">
                       {tag}
                     </Badge>
                   ))}
                   {dataset.tags.length > 2 && (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="text-xs font-mono-sm">
                       +{dataset.tags.length - 2}
                     </Badge>
                   )}
@@ -170,28 +170,26 @@ export default function DatasetsPage() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="h-4 w-4" />
-                    <span className="font-mono-data">{formatDuration(dataset.duration)}</span>
+                    <span className="font-mono">{formatDuration(dataset.duration)}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <HardDrive className="h-4 w-4" />
-                    <span className="font-mono-data">{formatFileSize(dataset.fileSize)}</span>
+                    <span className="font-mono">{formatFileSize(dataset.fileSize)}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-4 w-4" />
-                    <span className="font-mono-data">{dataset.createdAt.toLocaleDateString()}</span>
+                    <span className="font-mono">{dataset.createdAt.toLocaleDateString()}</span>
                   </div>
-                  <div className="text-muted-foreground font-mono-data">
-                    {dataset.frameCount.toLocaleString()} frames
-                  </div>
+                  <div className="text-muted-foreground font-mono">{dataset.frameCount.toLocaleString()} frames</div>
                 </div>
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-2">
-                  <Button size="sm" variant="outline" className="flex-1 bg-transparent">
+                  <Button size="sm" variant="outline" className="flex-1 bg-transparent font-mono-sm">
                     <Eye className="h-4 w-4 mr-1" />
                     View
                   </Button>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" className="bg-transparent">
                     <Download className="h-4 w-4" />
                   </Button>
                 </div>
@@ -204,11 +202,11 @@ export default function DatasetsPage() {
       {/* Empty State */}
       {filteredDatasets.length === 0 && (
         <div className="text-center py-12">
-          <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
+          <div className="mx-auto w-24 h-24 bg-layer-2 rounded-full flex items-center justify-center mb-4">
             <Search className="h-8 w-8 text-muted-foreground" />
           </div>
           <h3 className="font-heading text-lg font-semibold mb-2">No datasets found</h3>
-          <p className="text-muted-foreground mb-4">
+          <p className="text-muted-foreground mb-4 font-body">
             {searchQuery || statusFilter !== "all" || robotTypeFilter !== "all"
               ? "Try adjusting your search or filters"
               : "Get started by creating your first dataset"}

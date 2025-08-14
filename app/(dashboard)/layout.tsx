@@ -11,12 +11,12 @@ import { ChevronLeft, Database, Bot, Play, BarChart3, Settings, Home, Zap } from
 import { cn } from "@/lib/utils"
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: Home, color: "text-primary" },
-  { name: "Datasets", href: "/datasets", icon: Database, color: "text-primary" },
-  { name: "Robots", href: "/robots", icon: Bot, color: "text-primary" },
-  { name: "Missions", href: "/missions", icon: Play, color: "text-primary" },
-  { name: "Analytics", href: "/analytics", icon: BarChart3, color: "text-primary" },
-  { name: "Settings", href: "/settings", icon: Settings, color: "text-muted-foreground" },
+  { name: "Dashboard", href: "/", icon: Home },
+  { name: "Datasets", href: "/datasets", icon: Database },
+  { name: "Robots", href: "/robots", icon: Bot },
+  { name: "Missions", href: "/missions", icon: Play },
+  { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Settings", href: "/settings", icon: Settings },
 ]
 
 export default function DashboardLayout({
@@ -47,26 +47,26 @@ export default function DashboardLayout({
       {/* Sidebar */}
       <motion.div
         animate={{ width: sidebarCollapsed ? 64 : 256 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="bg-layer-1 border-r border-border flex flex-col layer-depth"
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="bg-sidebar-background border-r border-sidebar-border flex flex-col"
       >
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-border bg-layer-2">
+        <div className="p-4 border-b border-sidebar-border">
           <div className="flex items-center justify-between">
             <AnimatePresence mode="wait">
               {!sidebarCollapsed && (
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.2 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
                   className="space-y-1"
                 >
                   <div className="flex items-center gap-2">
                     <Zap className="h-5 w-5 text-primary" />
                     <h1 className="font-heading text-lg font-semibold text-primary">LeRobot</h1>
                   </div>
-                  <p className="text-xs text-muted-foreground font-mono-label">AI Robotics Platform</p>
+                  <p className="text-xs text-muted-foreground font-mono-sm">AI Robotics Platform</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -76,7 +76,7 @@ export default function DashboardLayout({
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
-              <motion.div animate={{ rotate: sidebarCollapsed ? 180 : 0 }} transition={{ duration: 0.3 }}>
+              <motion.div animate={{ rotate: sidebarCollapsed ? 180 : 0 }} transition={{ duration: 0.2 }}>
                 <ChevronLeft className="h-4 w-4" />
               </motion.div>
             </Button>
@@ -85,45 +85,36 @@ export default function DashboardLayout({
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1">
-          {navigation.map((item, index) => {
+          {navigation.map((item) => {
             const isActive = isActiveRoute(item.href)
             return (
-              <motion.div
-                key={`${item.name}-${pathname}`}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Link href={item.href}>
-                  <Button
-                    variant={isActive ? "default" : "ghost"}
-                    className={cn(
-                      "w-full justify-start gap-3 h-10 text-left transition-all duration-200",
-                      isActive
-                        ? "bg-primary hover:bg-primary/90 text-primary-foreground glow-primary"
-                        : "hover:bg-layer-2 text-muted-foreground hover:text-foreground",
-                      sidebarCollapsed && "justify-center px-2",
+              <Link key={item.name} href={item.href}>
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start gap-3 h-10 text-left transition-all duration-150",
+                    isActive
+                      ? "bg-layer-active text-primary border border-primary/20"
+                      : "hover:bg-layer-hover text-muted-foreground hover:text-foreground",
+                    sidebarCollapsed && "justify-center px-2",
+                  )}
+                >
+                  <item.icon className="h-4 w-4 flex-shrink-0" />
+                  <AnimatePresence>
+                    {!sidebarCollapsed && (
+                      <motion.span
+                        initial={{ opacity: 0, width: 0 }}
+                        animate={{ opacity: 1, width: "auto" }}
+                        exit={{ opacity: 0, width: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="font-medium text-sm font-body"
+                      >
+                        {item.name}
+                      </motion.span>
                     )}
-                  >
-                    <item.icon
-                      className={cn("h-4 w-4 flex-shrink-0", isActive ? "text-primary-foreground" : item.color)}
-                    />
-                    <AnimatePresence>
-                      {!sidebarCollapsed && (
-                        <motion.span
-                          initial={{ opacity: 0, width: 0 }}
-                          animate={{ opacity: 1, width: "auto" }}
-                          exit={{ opacity: 0, width: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="font-medium text-sm font-mono-label"
-                        >
-                          {item.name}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </Button>
-                </Link>
-              </motion.div>
+                  </AnimatePresence>
+                </Button>
+              </Link>
             )
           })}
         </nav>
@@ -135,19 +126,15 @@ export default function DashboardLayout({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="p-3 border-t border-border"
+              transition={{ duration: 0.2 }}
+              className="p-3 border-t border-sidebar-border"
             >
-              <div className="bg-layer-2 rounded-lg p-3 space-y-2 layer-depth">
+              <div className="bg-layer-2 rounded-lg p-3 space-y-2">
                 <div className="flex items-center gap-2">
-                  <motion.div
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                    className="w-2 h-2 bg-primary rounded-full"
-                  />
-                  <span className="text-xs font-medium font-mono-label">System Online</span>
+                  <div className="w-2 h-2 bg-primary rounded-full" />
+                  <span className="text-xs font-medium font-mono-sm">System Online</span>
                 </div>
-                <div className="text-xs text-muted-foreground space-y-1 font-mono-data">
+                <div className="text-xs text-muted-foreground space-y-1 font-mono">
                   <div className="flex justify-between">
                     <span>Robots:</span>
                     <span className="text-primary font-medium">12</span>
@@ -166,43 +153,25 @@ export default function DashboardLayout({
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <motion.header
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="h-16 border-b border-border bg-layer-1/80 backdrop-blur-sm layer-depth"
-        >
+        <header className="h-16 border-b border-border bg-layer-1">
           <div className="flex items-center justify-between h-full px-6">
-            <motion.h2
-              key={getPageTitle()}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.2 }}
-              className="font-heading text-xl font-semibold"
-            >
-              {getPageTitle()}
-            </motion.h2>
+            <h2 className="font-heading text-xl font-semibold">{getPageTitle()}</h2>
             <div className="flex items-center gap-3">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="text-xs text-muted-foreground font-mono-data"
-              >
-                {new Date().toLocaleTimeString()}
-              </motion.div>
+              <div className="text-xs text-muted-foreground font-mono">{new Date().toLocaleTimeString()}</div>
               <ThemeToggle />
             </div>
           </div>
-        </motion.header>
+        </header>
 
         {/* Content */}
         <main className="flex-1 overflow-auto bg-layer-0">
-          <AnimatePresence mode="sync">
+          <AnimatePresence mode="wait">
             <motion.div
               key={pathname}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
               className="h-full"
             >
               {children}

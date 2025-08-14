@@ -23,29 +23,24 @@
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
     --ring: 158 64% 52%;
-    --layer-0: 0 0% 100%;
-    --layer-1: 0 0% 98%;
-    --layer-2: 0 0% 96%;
-    --layer-3: 0 0% 94%;
-    --chart-1: 158 64% 52%;
-    --chart-2: 220 13% 18%;
-    --chart-3: 0 84% 60%;
-    --chart-4: 0 0% 45.1%;
-    --chart-5: 0 0% 64%;
     --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
+
+    /* OpenNote-inspired layering system with subtle tints */
+    --layer-0: 0 0% 100%;
+    --layer-1: 158 20% 98%;
+    --layer-2: 158 15% 96%;
+    --layer-3: 158 10% 94%;
+    --layer-hover: 158 30% 95%;
+    --layer-active: 158 40% 92%;
+
+    /* Simplified sidebar variables */
+    --sidebar-background: 158 20% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 158 64% 52%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent: 158 30% 95%;
     --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 158 64% 52%;
-    /* Standardized color variables - removed inconsistent lerobot colors, using primary consistently */
-    --success: 142 76% 36%;
-    --warning: 38 92% 50%;
-    --info: 221 83% 53%;
-    --glow-primary: 158 64% 52%;
+    --sidebar-border: 158 15% 90%;
   }
 
   .dark {
@@ -68,27 +63,22 @@
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
     --ring: 158 64% 52%;
+
+    /* Dark mode layering with teal tints */
     --layer-0: 0 0% 3.9%;
-    --layer-1: 0 0% 6%;
-    --layer-2: 0 0% 8%;
-    --layer-3: 0 0% 10%;
-    --chart-1: 158 64% 52%;
-    --chart-2: 220 13% 91%;
-    --chart-3: 0 84% 60%;
-    --chart-4: 0 0% 64%;
-    --chart-5: 0 0% 45.1%;
-    --sidebar-background: 0 0% 6%;
+    --layer-1: 158 15% 6%;
+    --layer-2: 158 12% 8%;
+    --layer-3: 158 10% 10%;
+    --layer-hover: 158 20% 8%;
+    --layer-active: 158 25% 12%;
+
+    --sidebar-background: 158 15% 6%;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 158 64% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent: 158 20% 8%;
     --sidebar-accent-foreground: 0 0% 95%;
     --sidebar-border: 0 0% 14.9%;
-    --sidebar-ring: 158 64% 52%;
-    /* Standardized dark mode colors */
-    --success: 142 76% 36%;
-    --warning: 38 92% 50%;
-    --info: 221 83% 53%;
   }
 }
 
@@ -96,42 +86,21 @@
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
-    /* Enhanced theme transition with smoother easing */
+    @apply bg-background text-foreground font-sans;
+    /* Simplified theme transition */
     transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
   }
 
-  /* Simplified and unified transitions for all elements */
+  /* Unified transition for theme switching */
   * {
-    transition: all 0.3s ease-in-out !important;
-  }
-
-  /* Specific card transition override to ensure consistency */
-  .card,
-  [data-card],
-  .bg-card,
-  .border-card {
-    transition: all 0.3s ease-in-out !important;
-  }
-
-  /* Ensure shadcn components transition consistently */
-  [data-radix-collection-item],
-  [data-state],
-  .radix-state-open,
-  .radix-state-closed {
-    transition: all 0.3s ease-in-out !important;
-  }
-
-  /* Synchronized sidebar and navigation transitions */
-  nav,
-  aside,
-  .sidebar {
-    transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out, color 0.3s ease-in-out !important;
+    transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out, color 0.3s ease-in-out, box-shadow
+      0.3s ease-in-out;
   }
 }
 
-/* Cleaned up utility classes and removed unused styles */
+/* OpenNote-inspired utility classes */
 @layer utilities {
   .bg-layer-0 {
     background-color: hsl(var(--layer-0));
@@ -145,80 +114,54 @@
   .bg-layer-3 {
     background-color: hsl(var(--layer-3));
   }
-
-  .text-success {
-    color: hsl(var(--success));
+  .bg-layer-hover {
+    background-color: hsl(var(--layer-hover));
   }
-  .text-warning {
-    color: hsl(var(--warning));
-  }
-  .text-info {
-    color: hsl(var(--info));
-  }
-  .bg-success {
-    background-color: hsl(var(--success));
-  }
-  .bg-warning {
-    background-color: hsl(var(--warning));
-  }
-  .bg-info {
-    background-color: hsl(var(--info));
+  .bg-layer-active {
+    background-color: hsl(var(--layer-active));
   }
 
-  .glow-primary {
-    box-shadow: 0 0 20px hsla(var(--glow-primary), 0.1);
+  /* Simplified depth effects */
+  .layer-card {
+    background-color: hsl(var(--layer-1));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 1px 3px hsla(var(--foreground), 0.05);
   }
 
-  .layer-depth {
-    box-shadow: 0 1px 3px hsla(var(--foreground), 0.1), 0 1px 2px hsla(var(--foreground), 0.06);
+  .layer-card-hover:hover {
+    background-color: hsl(var(--layer-hover));
+    box-shadow: 0 4px 12px hsla(var(--foreground), 0.08);
+    transform: translateY(-1px);
   }
 
-  .hover-lift {
-    transition: transform 0.2s ease-in-out;
-  }
-
-  .hover-lift:hover {
-    transform: translateY(-2px);
-  }
-
-  .layer-depth-hover:hover {
-    box-shadow: 0 4px 6px hsla(var(--foreground), 0.1), 0 2px 4px hsla(var(--foreground), 0.06);
+  .layer-active {
+    background-color: hsl(var(--layer-active));
+    border-color: hsl(var(--primary));
   }
 }
 
-/* Enhanced theme transition overlay with better positioning */
-.theme-transition {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 9999;
-  overflow: hidden;
-}
-
-/* Simplified font classes */
-@layer base {
+/* Standardized font classes */
+@layer components {
   .font-heading {
-    font-family: var(--font-inter), system-ui, sans-serif;
+    font-family: var(--font-inter);
     font-weight: 600;
     letter-spacing: -0.025em;
   }
+
   .font-body {
-    font-family: var(--font-inter), system-ui, sans-serif;
+    font-family: var(--font-inter);
     font-weight: 400;
   }
-  .font-mono-data {
-    font-family: var(--font-jetbrains-mono), "Fira Code", monospace;
+
+  .font-mono {
+    font-family: var(--font-jetbrains-mono);
     font-variant-numeric: tabular-nums;
-    font-weight: 500;
   }
-  .font-mono-label {
-    font-family: var(--font-jetbrains-mono), "Fira Code", monospace;
+
+  .font-mono-sm {
+    font-family: var(--font-jetbrains-mono);
     font-size: 0.75rem;
-    font-weight: 400;
+    font-weight: 500;
     letter-spacing: 0.025em;
-    text-transform: uppercase;
   }
 }

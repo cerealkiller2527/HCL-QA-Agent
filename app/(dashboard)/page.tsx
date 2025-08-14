@@ -10,12 +10,14 @@ export default function DashboardPage() {
         <h1 className="font-heading text-3xl font-semibold">
           Welcome to <span className="text-primary">LeRobot</span>
         </h1>
-        <p className="text-muted-foreground text-lg">Build and scale robotic agents with our AI-powered platform</p>
+        <p className="text-muted-foreground text-lg font-body">
+          Build and scale robotic agents with our AI-powered platform
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link href="/datasets">
-          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-primary/30 hover-lift layer-depth layer-depth-hover">
+          <Card className="layer-card layer-card-hover cursor-pointer transition-all duration-150">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -23,14 +25,14 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <CardTitle className="text-base font-heading">Datasets</CardTitle>
-                  <CardDescription className="text-sm font-mono-label">Training data</CardDescription>
+                  <CardDescription className="text-sm font-mono-sm">Training data</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-semibold font-mono-data">847</div>
-                <Button size="sm" variant="outline" className="h-7 text-xs bg-layer-2 hover:bg-layer-3 font-mono-label">
+                <div className="text-2xl font-semibold font-mono">847</div>
+                <Button size="sm" variant="outline" className="h-7 text-xs font-mono-sm bg-transparent">
                   <Plus className="h-3 w-3 mr-1" />
                   New
                 </Button>
@@ -40,7 +42,7 @@ export default function DashboardPage() {
         </Link>
 
         <Link href="/robots">
-          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-primary/30 hover-lift layer-depth layer-depth-hover">
+          <Card className="layer-card layer-card-hover cursor-pointer transition-all duration-150">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -48,14 +50,14 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <CardTitle className="text-base font-heading">Robots</CardTitle>
-                  <CardDescription className="text-sm font-mono-label">Connected agents</CardDescription>
+                  <CardDescription className="text-sm font-mono-sm">Connected agents</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-semibold font-mono-data">12</div>
-                <div className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded font-mono-label">
+                <div className="text-2xl font-semibold font-mono">12</div>
+                <div className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded font-mono-sm">
                   Online
                 </div>
               </div>
@@ -64,7 +66,7 @@ export default function DashboardPage() {
         </Link>
 
         <Link href="/missions">
-          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-primary/30 hover-lift layer-depth layer-depth-hover">
+          <Card className="layer-card layer-card-hover cursor-pointer transition-all duration-150">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -72,14 +74,14 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <CardTitle className="text-base font-heading">Missions</CardTitle>
-                  <CardDescription className="text-sm font-mono-label">Active operations</CardDescription>
+                  <CardDescription className="text-sm font-mono-sm">Active operations</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-semibold font-mono-data">23</div>
-                <div className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded font-mono-label">
+                <div className="text-2xl font-semibold font-mono">23</div>
+                <div className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded font-mono-sm">
                   Running
                 </div>
               </div>
@@ -88,7 +90,7 @@ export default function DashboardPage() {
         </Link>
 
         <Link href="/analytics">
-          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-primary/30 hover-lift layer-depth layer-depth-hover">
+          <Card className="layer-card layer-card-hover cursor-pointer transition-all duration-150">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -96,14 +98,14 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <CardTitle className="text-base font-heading">Analytics</CardTitle>
-                  <CardDescription className="text-sm font-mono-label">Performance metrics</CardDescription>
+                  <CardDescription className="text-sm font-mono-sm">Performance metrics</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-semibold font-mono-data">99.9%</div>
-                <div className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded font-mono-label">
+                <div className="text-2xl font-semibold font-mono">99.9%</div>
+                <div className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded font-mono-sm">
                   Uptime
                 </div>
               </div>
@@ -113,13 +115,13 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-layer-1 layer-depth">
+        <Card className="layer-card">
           <CardHeader className="pb-4">
             <CardTitle className="font-heading text-lg flex items-center gap-2">
               <Activity className="h-5 w-5 text-primary" />
               System Status
             </CardTitle>
-            <CardDescription className="font-mono-label">Platform health and performance</CardDescription>
+            <CardDescription className="font-mono-sm">Platform health and performance</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {[
@@ -129,20 +131,20 @@ export default function DashboardPage() {
               { label: "Data Storage", value: "2.4TB used", color: "text-muted-foreground" },
             ].map((item, index) => (
               <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-layer-2">
-                <span className="text-sm font-medium font-mono-label">{item.label}</span>
-                <span className={`font-mono-data text-sm font-medium ${item.color}`}>{item.value}</span>
+                <span className="text-sm font-medium font-mono-sm">{item.label}</span>
+                <span className={`font-mono text-sm font-medium ${item.color}`}>{item.value}</span>
               </div>
             ))}
           </CardContent>
         </Card>
 
-        <Card className="bg-layer-1 layer-depth">
+        <Card className="layer-card">
           <CardHeader className="pb-4">
             <CardTitle className="font-heading text-lg flex items-center gap-2">
               <Clock className="h-5 w-5 text-primary" />
               Recent Activity
             </CardTitle>
-            <CardDescription className="font-mono-label">Latest updates from your robotic agents</CardDescription>
+            <CardDescription className="font-mono-sm">Latest updates from your robotic agents</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -155,8 +157,8 @@ export default function DashboardPage() {
                 <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-layer-2">
                   <div className="w-2 h-2 rounded-full bg-primary" />
                   <div className="flex-1">
-                    <p className="text-sm font-medium">{activity.message}</p>
-                    <p className="text-xs text-muted-foreground font-mono-data">{activity.time}</p>
+                    <p className="text-sm font-medium font-body">{activity.message}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{activity.time}</p>
                   </div>
                 </div>
               ))}
@@ -165,13 +167,13 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <Card className="bg-layer-1 layer-depth">
+      <Card className="layer-card">
         <CardHeader className="pb-4">
           <CardTitle className="font-heading text-lg flex items-center gap-2">
             <Zap className="h-5 w-5 text-primary" />
             Quick Start
           </CardTitle>
-          <CardDescription>Get started with common tasks</CardDescription>
+          <CardDescription className="font-body">Get started with common tasks</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -188,14 +190,14 @@ export default function DashboardPage() {
               <Link key={index} href={item.href}>
                 <Button
                   variant="outline"
-                  className="w-full h-auto p-4 flex flex-col items-center gap-3 hover:bg-layer-2 hover:border-primary/30 transition-all hover-lift bg-layer-1 layer-depth-hover"
+                  className="w-full h-auto p-4 flex flex-col items-center gap-3 layer-card layer-card-hover transition-all duration-150 bg-transparent"
                 >
                   <div className="p-2 rounded-lg bg-primary/10">
                     <item.icon className="h-5 w-5 text-primary" />
                   </div>
                   <div className="text-center">
                     <p className="font-heading font-medium text-sm">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    <p className="text-xs text-muted-foreground font-body">{item.desc}</p>
                   </div>
                 </Button>
               </Link>
