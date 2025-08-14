@@ -1,5 +1,6 @@
 "use client"
-import { useState } from "react"
+import { useState, useCallback, useMemo } from "react"
+import { memo } from "react"
 
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -59,8 +60,7 @@ interface Collection {
   datasetIds: string[]
 }
 
-// Draggable Dataset Component
-function DraggableDataset({
+const DraggableDataset = memo(function DraggableDataset({
   dataset,
   isSelectionMode,
   selectedDatasets,
@@ -78,20 +78,32 @@ function DraggableDataset({
     disabled: isSelectionMode,
   })
 
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-      }
-    : undefined
+  const style = useMemo(() => {
+    if (!transform) return { willChange: "transform" }
+    return {
+      transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      willChange: "transform",
+    }
+  }, [transform])
+
+  const handleClick = useCallback(() => {
+    if (isSelectionMode) {
+      toggleDatasetSelection(dataset.id)
+    }
+  }, [isSelectionMode, toggleDatasetSelection, dataset.id])
+
+  const handleDelete = useCallback(() => {
+    handleDeleteDataset(dataset.id)
+  }, [handleDeleteDataset, dataset.id])
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
       style={style}
-      className={`relative transition-opacity duration-200 ${
+      className={`relative transition-opacity duration-150 ${
         isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
-      } ${isDragging ? "opacity-30" : ""}`}
-      onClick={() => isSelectionMode && toggleDatasetSelection(dataset.id)}
+      } ${isDragging ? "opacity-50" : ""}`}
+      onClick={handleClick}
       {...listeners}
       {...attributes}
     >
@@ -99,22 +111,17 @@ function DraggableDataset({
         <div className="absolute top-3 left-3 z-10">
           <Checkbox
             checked={selectedDatasets.has(dataset.id)}
-            onCheckedChange={() => toggleDatasetSelection(dataset.id)}
+            onCheckedChange={handleClick}
             className="bg-background border-2 border-primary"
           />
         </div>
       )}
-      <DatasetCard
-        dataset={dataset}
-        onDelete={() => handleDeleteDataset(dataset.id)}
-        showDeleteButton={!isSelectionMode}
-      />
-    </motion.div>
+      <DatasetCard dataset={dataset} onDelete={handleDelete} showDeleteButton={!isSelectionMode} />
+    </div>
   )
-}
+})
 
-// Droppable Collection Component
-function DroppableCollection({
+const DroppableCollection = memo(function DroppableCollection({
   collection,
   datasets,
   expandedCollections,
@@ -138,16 +145,29 @@ function DroppableCollection({
   })
 
   const isExpanded = expandedCollections.has(collection.id)
-  const collectionDatasets = collection.datasetIds
-    .map((id) => datasets.find((d) => d.id === id))
-    .filter(Boolean) as typeof datasets
+
+  const collectionDatasets = useMemo(() => {
+    return collection.datasetIds.map((id) => datasets.find((d) => d.id === id)).filter(Boolean) as typeof datasets
+  }, [collection.datasetIds, datasets])
+
+  const handleToggleExpansion = useCallback(() => {
+    toggleCollectionExpansion(collection.id)
+  }, [toggleCollectionExpansion, collection.id])
+
+  const handleRemoveFromCollection = useCallback(
+    (datasetId: string) => {
+      removeFromCollection(collection.id, datasetId)
+    },
+    [removeFromCollection, collection.id],
+  )
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
-      className={`relative rounded-xl border-2 transition-all duration-200 overflow-hidden ${
-        isOver ? "border-primary bg-primary/5 shadow-md" : "border-border bg-layer-2 hover:bg-layer-3"
+      className={`relative rounded-xl border-2 transition-all duration-150 overflow-hidden ${
+        isOver ? "border-primary bg-primary/5 shadow-md scale-[1.02]" : "border-border bg-layer-2 hover:bg-layer-3"
       }`}
+      style={{ willChange: "transform, background-color, border-color" }}
     >
       {/* Collection Header */}
       <div className="p-6">
@@ -164,12 +184,7 @@ function DroppableCollection({
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => toggleCollectionExpansion(collection.id)}
-            className="hover:bg-layer-3"
-          >
+          <Button variant="ghost" size="sm" onClick={handleToggleExpansion} className="hover:bg-layer-3">
             {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
         </div>
@@ -209,26 +224,17 @@ function DroppableCollection({
       {/* Expanded Collection Content */}
       <AnimatePresence>
         {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="border-t border-border"
-          >
+          <div className="border-t border-border">
             <div className="p-6 pt-4 space-y-4">
               {collectionDatasets.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {collectionDatasets.map((dataset) => (
-                    <motion.div
+                    <div
                       key={dataset.id}
                       className="group relative p-4 bg-background rounded-lg border border-border hover:bg-layer-2 hover:border-primary/30 transition-all duration-200 hover:shadow-sm"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
                     >
+                      {/* Header with status icon and dropdown */}
                       <div className="space-y-3">
-                        {/* Header with status icon and dropdown */}
                         <div className="flex items-start justify-between">
                           <div className="flex items-start space-x-3 flex-1 min-w-0">
                             <div
@@ -274,7 +280,7 @@ function DroppableCollection({
                               {
                                 label: "Remove from Collection",
                                 icon: <ArrowLeft className="h-4 w-4" />,
-                                onClick: () => removeFromCollection(collection.id, dataset.id),
+                                onClick: () => handleRemoveFromCollection(dataset.id),
                               },
                               {
                                 label: "Delete Dataset",
@@ -337,7 +343,7 @@ function DroppableCollection({
                           </div>
                         )}
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               ) : (
@@ -349,11 +355,10 @@ function DroppableCollection({
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
-      {/* Simplified drop overlay */}
       {isOver && (
         <div className="absolute inset-0 flex items-center justify-center bg-primary/10 backdrop-blur-sm z-10 pointer-events-none">
           <div className="text-center">
@@ -364,9 +369,9 @@ function DroppableCollection({
           </div>
         </div>
       )}
-    </motion.div>
+    </div>
   )
-}
+})
 
 export function DatasetsList() {
   const router = useRouter()
@@ -387,42 +392,34 @@ export function DatasetsList() {
 
   const datasets = mockDatasets || []
 
-  // Get datasets that aren't in any collection
-  const uncategorizedDatasets = datasets.filter(
-    (dataset) => !collections.some((collection) => collection.datasetIds.includes(dataset.id)),
-  )
+  const uncategorizedDatasets = useMemo(() => {
+    return datasets.filter((dataset) => !collections.some((collection) => collection.datasetIds.includes(dataset.id)))
+  }, [datasets, collections])
 
-  const filteredDatasets = uncategorizedDatasets.filter((dataset) => {
-    const matchesStatus = statusFilter === "all" || dataset.status === statusFilter
-    const matchesRobotType = robotTypeFilter === "all" || dataset.robotType === robotTypeFilter
+  const filteredDatasets = useMemo(() => {
+    return uncategorizedDatasets.filter((dataset) => {
+      const matchesStatus = statusFilter === "all" || dataset.status === statusFilter
+      const matchesRobotType = robotTypeFilter === "all" || dataset.robotType === robotTypeFilter
 
-    if (!matchesStatus || !matchesRobotType) return false
+      if (!matchesStatus || !matchesRobotType) return false
 
-    if (!searchQuery.trim()) return true
+      if (!searchQuery.trim()) return true
 
-    const query = searchQuery.toLowerCase()
-    return (
-      dataset.name.toLowerCase().includes(query) ||
-      dataset.description.toLowerCase().includes(query) ||
-      dataset.tags.some((tag) => tag.toLowerCase().includes(query))
-    )
-  })
+      const query = searchQuery.toLowerCase()
+      return (
+        dataset.name.toLowerCase().includes(query) ||
+        dataset.description.toLowerCase().includes(query) ||
+        dataset.tags.some((tag) => tag.toLowerCase().includes(query))
+      )
+    })
+  }, [uncategorizedDatasets, statusFilter, robotTypeFilter, searchQuery])
 
-  const clearFilters = () => {
-    setStatusFilter("all")
-    setRobotTypeFilter("all")
-    setSearchQuery("")
-  }
-
-  const hasActiveFilters = statusFilter !== "all" || robotTypeFilter !== "all" || searchQuery
-
-  const containerVariants = createStaggerAnimation(0.1)
-
-  // DnD Kit sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 10, // Increased from 8 for more stable activation
+        delay: 100, // Added delay to prevent accidental drags
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -430,27 +427,28 @@ export function DatasetsList() {
     }),
   )
 
-  const createCollection = (collectionData: Omit<Collection, "id" | "datasetIds">) => {
+  const createCollection = useCallback((collectionData: Omit<Collection, "id" | "datasetIds">) => {
     const newCollection: Collection = {
       id: Date.now().toString(),
       ...collectionData,
       datasetIds: [],
     }
+    setCollections((prev) => [...prev, newCollection])
+  }, [])
 
-    setCollections([...collections, newCollection])
-  }
+  const toggleCollectionExpansion = useCallback((collectionId: string) => {
+    setExpandedCollections((prev) => {
+      const newExpanded = new Set(prev)
+      if (newExpanded.has(collectionId)) {
+        newExpanded.delete(collectionId)
+      } else {
+        newExpanded.add(collectionId)
+      }
+      return newExpanded
+    })
+  }, [])
 
-  const toggleCollectionExpansion = (collectionId: string) => {
-    const newExpanded = new Set(expandedCollections)
-    if (newExpanded.has(collectionId)) {
-      newExpanded.delete(collectionId)
-    } else {
-      newExpanded.add(collectionId)
-    }
-    setExpandedCollections(newExpanded)
-  }
-
-  const removeFromCollection = (collectionId: string, datasetId: string) => {
+  const removeFromCollection = useCallback((collectionId: string, datasetId: string) => {
     setCollections((prevCollections) =>
       prevCollections.map((collection) =>
         collection.id === collectionId
@@ -458,37 +456,89 @@ export function DatasetsList() {
           : collection,
       ),
     )
-  }
+  }, [])
 
-  const toggleDatasetSelection = (datasetId: string) => {
-    const newSelected = new Set(selectedDatasets)
-    if (newSelected.has(datasetId)) {
-      newSelected.delete(datasetId)
-    } else {
-      newSelected.add(datasetId)
-    }
-    setSelectedDatasets(newSelected)
-  }
+  const toggleDatasetSelection = useCallback((datasetId: string) => {
+    setSelectedDatasets((prev) => {
+      const newSelected = new Set(prev)
+      if (newSelected.has(datasetId)) {
+        newSelected.delete(datasetId)
+      } else {
+        newSelected.add(datasetId)
+      }
+      return newSelected
+    })
+  }, [])
 
-  const selectAllDatasets = () => {
-    setSelectedDatasets(new Set(filteredDatasets.map((d) => d.id)))
-  }
-
-  const clearSelection = () => {
-    setSelectedDatasets(new Set())
-    setIsSelectionMode(false)
-  }
-
-  const handleDeleteDataset = (datasetId: string) => {
+  const handleDeleteDataset = useCallback((datasetId: string) => {
     setDatasetToDelete(datasetId)
     setShowDeleteDialog(true)
-  }
+  }, [])
 
-  const confirmDeleteDataset = () => {
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
+  }, [])
+
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { over } = event
+    setOverId(over ? (over.id as string) : null)
+  }, [])
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+
+      if (over && active.id !== over.id) {
+        const datasetId = active.id as string
+        const collectionId = over.id as string
+
+        const targetCollection = collections.find((c) => c.id === collectionId)
+        if (targetCollection) {
+          setCollections((prevCollections) =>
+            prevCollections.map((collection) =>
+              collection.id === collectionId
+                ? { ...collection, datasetIds: [...new Set([...collection.datasetIds, datasetId])] }
+                : collection,
+            ),
+          )
+        }
+      }
+
+      setActiveId(null)
+      setOverId(null)
+    },
+    [collections],
+  )
+
+  const draggedDataset = useMemo(() => {
+    return activeId ? datasets.find((d) => d.id === activeId) : null
+  }, [activeId, datasets])
+
+  // ... existing code for other functions ...
+
+  const clearFilters = useCallback(() => {
+    setStatusFilter("all")
+    setRobotTypeFilter("all")
+    setSearchQuery("")
+  }, [])
+
+  const selectAllDatasets = useCallback(() => {
+    setSelectedDatasets(new Set(filteredDatasets.map((d) => d.id)))
+  }, [filteredDatasets])
+
+  const clearSelection = useCallback(() => {
+    setSelectedDatasets(new Set())
+    setIsSelectionMode(false)
+  }, [])
+
+  const handleMassDelete = useCallback(() => {
+    setShowMassDeleteDialog(true)
+  }, [])
+
+  const confirmDeleteDataset = useCallback(() => {
     if (datasetToDelete) {
-      // Remove from collections first
-      setCollections(
-        collections.map((collection) => ({
+      setCollections((prev) =>
+        prev.map((collection) => ({
           ...collection,
           datasetIds: collection.datasetIds.filter((id) => id !== datasetToDelete),
         })),
@@ -497,16 +547,11 @@ export function DatasetsList() {
     }
     setDatasetToDelete(null)
     setShowDeleteDialog(false)
-  }
+  }, [datasetToDelete])
 
-  const handleMassDelete = () => {
-    setShowMassDeleteDialog(true)
-  }
-
-  const confirmMassDelete = () => {
-    // Remove selected datasets from collections
-    setCollections(
-      collections.map((collection) => ({
+  const confirmMassDelete = useCallback(() => {
+    setCollections((prev) =>
+      prev.map((collection) => ({
         ...collection,
         datasetIds: collection.datasetIds.filter((id) => !selectedDatasets.has(id)),
       })),
@@ -514,43 +559,10 @@ export function DatasetsList() {
     console.log(`Mass deleting datasets:`, Array.from(selectedDatasets))
     clearSelection()
     setShowMassDeleteDialog(false)
-  }
+  }, [selectedDatasets, clearSelection])
 
-  // DnD Kit event handlers
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string)
-  }
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event
-    setOverId(over ? (over.id as string) : null)
-  }
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-
-    if (over && active.id !== over.id) {
-      const datasetId = active.id as string
-      const collectionId = over.id as string
-
-      // Check if dropping on a collection
-      const targetCollection = collections.find((c) => c.id === collectionId)
-      if (targetCollection) {
-        setCollections((prevCollections) =>
-          prevCollections.map((collection) =>
-            collection.id === collectionId
-              ? { ...collection, datasetIds: [...new Set([...collection.datasetIds, datasetId])] }
-              : collection,
-          ),
-        )
-      }
-    }
-
-    setActiveId(null)
-    setOverId(null)
-  }
-
-  const draggedDataset = activeId ? datasets.find((d) => d.id === activeId) : null
+  const hasActiveFilters = statusFilter !== "all" || robotTypeFilter !== "all" || searchQuery
+  const containerVariants = createStaggerAnimation(0.1)
 
   return (
     <DndContext
@@ -560,6 +572,7 @@ export function DatasetsList() {
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
+      {/* Header */}
       <motion.div className="p-8 space-y-8" variants={containerVariants} initial="initial" animate="animate">
         {/* Header */}
         <motion.div className="flex items-center justify-between" variants={ANIMATION.variants.staggerItem}>
@@ -699,6 +712,7 @@ export function DatasetsList() {
           onCreateCollection={createCollection}
         />
 
+        {/* Alert Dialogs */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -736,10 +750,9 @@ export function DatasetsList() {
         </AlertDialog>
       </motion.div>
 
-      {/* Simplified Drag Overlay */}
       <DragOverlay>
         {draggedDataset ? (
-          <div className="opacity-80">
+          <div className="opacity-60 rotate-3 scale-105" style={{ willChange: "transform" }}>
             <DatasetCard dataset={draggedDataset} showDeleteButton={false} />
           </div>
         ) : null}
