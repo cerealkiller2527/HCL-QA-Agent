@@ -1,6 +1,5 @@
 "use client"
 import { useState } from "react"
-import type React from "react"
 
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -18,6 +17,7 @@ import {
   Trash2,
   MoreHorizontal,
   X,
+  MousePointer2,
 } from "lucide-react"
 import {
   AlertDialog,
@@ -29,6 +29,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  DndContext,
+  DragOverlay,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  KeyboardSensor,
+  type DragStartEvent,
+  type DragEndEvent,
+  type DragOverEvent,
+  closestCenter,
+} from "@dnd-kit/core"
+import { useDraggable, useDroppable } from "@dnd-kit/core"
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable"
 import { mockDatasets } from "@/lib/data/mock-datasets"
 import { DatasetCard } from "@/components/datasets/dataset-card"
 import { DatasetFilters } from "@/components/datasets/dataset-filters"
@@ -45,17 +59,306 @@ interface Collection {
   datasetIds: string[]
 }
 
+// Draggable Dataset Component
+function DraggableDataset({
+  dataset,
+  isSelectionMode,
+  selectedDatasets,
+  toggleDatasetSelection,
+  handleDeleteDataset,
+}: {
+  dataset: any
+  isSelectionMode: boolean
+  selectedDatasets: Set<string>
+  toggleDatasetSelection: (id: string) => void
+  handleDeleteDataset: (id: string) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: dataset.id,
+    disabled: isSelectionMode,
+  })
+
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0) rotate(2deg)`,
+        zIndex: 1000,
+      }
+    : undefined
+
+  return (
+    <motion.div
+      ref={setNodeRef}
+      style={style}
+      className={`relative transition-all duration-200 ${
+        isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
+      } ${isDragging ? "opacity-50" : "hover:scale-[1.02]"}`}
+      onClick={() => isSelectionMode && toggleDatasetSelection(dataset.id)}
+      {...listeners}
+      {...attributes}
+    >
+      {isSelectionMode && (
+        <div className="absolute top-3 left-3 z-10">
+          <Checkbox
+            checked={selectedDatasets.has(dataset.id)}
+            onCheckedChange={() => toggleDatasetSelection(dataset.id)}
+            className="bg-background border-2 border-primary"
+          />
+        </div>
+      )}
+      <DatasetCard
+        dataset={dataset}
+        onDelete={() => handleDeleteDataset(dataset.id)}
+        showDeleteButton={!isSelectionMode}
+      />
+    </motion.div>
+  )
+}
+
+// Droppable Collection Component
+function DroppableCollection({
+  collection,
+  datasets,
+  expandedCollections,
+  toggleCollectionExpansion,
+  removeFromCollection,
+  handleDeleteDataset,
+  router,
+  isOver,
+}: {
+  collection: Collection
+  datasets: any[]
+  expandedCollections: Set<string>
+  toggleCollectionExpansion: (id: string) => void
+  removeFromCollection: (collectionId: string, datasetId: string) => void
+  handleDeleteDataset: (id: string) => void
+  router: any
+  isOver: boolean
+}) {
+  const { setNodeRef } = useDroppable({
+    id: collection.id,
+  })
+
+  const isExpanded = expandedCollections.has(collection.id)
+  const collectionDatasets = collection.datasetIds
+    .map((id) => datasets.find((d) => d.id === id))
+    .filter(Boolean) as typeof datasets
+
+  return (
+    <motion.div
+      ref={setNodeRef}
+      className={`relative rounded-xl border-2 transition-all duration-200 overflow-hidden ${
+        isOver ? "border-primary bg-primary/10 shadow-lg scale-[1.02]" : "border-border bg-layer-2 hover:bg-layer-3"
+      }`}
+    >
+      {/* Collection Header */}
+      <div className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div
+              className={`w-12 h-12 rounded-xl ${collection.color} flex items-center justify-center shadow-sm transition-all duration-300`}
+            >
+              {isOver || isExpanded ? (
+                <FolderOpen className="h-6 w-6 text-white" />
+              ) : (
+                <Folder className="h-6 w-6 text-white" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold font-sans text-lg">{collection.name}</h3>
+              <p className="text-sm text-muted-foreground">
+                {collection.datasetIds.length} dataset{collection.datasetIds.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => toggleCollectionExpansion(collection.id)}
+            className="hover:bg-layer-3"
+          >
+            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </Button>
+        </div>
+
+        {collection.description && (
+          <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{collection.description}</p>
+        )}
+
+        {/* Collection Preview (when collapsed) */}
+        {!isExpanded && collection.datasetIds.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {collection.datasetIds.slice(0, 6).map((datasetId) => {
+              const dataset = datasets.find((d) => d.id === datasetId)
+              return dataset ? (
+                <div
+                  key={datasetId}
+                  className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-primary/10 to-primary/20 border border-primary/20 hover:from-primary/20 hover:to-primary/30 transition-all duration-200"
+                >
+                  <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary/30 to-primary/50 flex items-center justify-center text-xs font-mono font-semibold text-primary-foreground">
+                    {dataset.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-xs font-medium text-primary truncate max-w-20">{dataset.name}</span>
+                </div>
+              ) : null
+            })}
+            {collection.datasetIds.length > 6 && (
+              <div className="flex items-center px-3 py-1.5 rounded-lg bg-muted border border-border">
+                <span className="text-xs text-muted-foreground font-semibold">
+                  +{collection.datasetIds.length - 6} more
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Expanded Collection Content */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="border-t border-border"
+          >
+            <div className="p-6 pt-4 space-y-4">
+              {collectionDatasets.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {collectionDatasets.map((dataset) => (
+                    <motion.div
+                      key={dataset.id}
+                      className="group relative p-4 bg-background rounded-lg border border-border hover:bg-layer-2 hover:border-primary/30 transition-all duration-200 hover:shadow-sm"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold font-mono text-sm truncate">{dataset.name}</h4>
+                            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mt-1">
+                              {dataset.description}
+                            </p>
+                          </div>
+                          <CustomDropdown
+                            trigger={
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            }
+                            items={[
+                              {
+                                label: "View Dataset",
+                                icon: <Eye className="h-4 w-4" />,
+                                onClick: () => router.push(`/datasets/${dataset.id}`),
+                              },
+                              {
+                                label: "Remove from Collection",
+                                icon: <ArrowLeft className="h-4 w-4" />,
+                                onClick: () => removeFromCollection(collection.id, dataset.id),
+                              },
+                              {
+                                label: "Delete Dataset",
+                                icon: <Trash2 className="h-4 w-4" />,
+                                onClick: () => handleDeleteDataset(dataset.id),
+                                destructive: true,
+                                separator: true,
+                              },
+                            ]}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center space-x-2">
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                dataset.status === "active"
+                                  ? "bg-green-100 text-green-800"
+                                  : dataset.status === "processing"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {dataset.status}
+                            </span>
+                            <span className="text-muted-foreground font-mono">{dataset.size}</span>
+                          </div>
+                          <span className="text-muted-foreground font-mono">{dataset.robotType}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Created: {dataset.createdAt.toLocaleDateString()}</span>
+                          <span>{dataset.frameCount.toLocaleString()} episodes</span>
+                        </div>
+
+                        {dataset.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {dataset.tags.slice(0, 3).map((tag) => (
+                              <span
+                                key={tag}
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-primary/10 text-primary font-medium"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                            {dataset.tags.length > 3 && (
+                              <span className="text-xs text-muted-foreground">+{dataset.tags.length - 3}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Folder className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">No datasets in this collection</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Drop overlay */}
+      {isOver && (
+        <motion.div
+          className="absolute inset-0 flex items-center justify-center bg-primary/20 backdrop-blur-sm z-10 pointer-events-none"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.2 }}
+        >
+          <div className="text-center">
+            <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+              <Plus className="h-8 w-8 text-white" />
+            </div>
+            <p className="text-primary font-semibold text-lg">Drop to add to collection</p>
+          </div>
+        </motion.div>
+      )}
+    </motion.div>
+  )
+}
+
 export function DatasetsList() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [robotTypeFilter, setRobotTypeFilter] = useState<string>("all")
   const [collections, setCollections] = useState<Collection[]>([])
-  const [draggedDataset, setDraggedDataset] = useState<string | null>(null)
-  const [dragOverCollection, setDragOverCollection] = useState<string | null>(null)
   const [showCollectionModal, setShowCollectionModal] = useState(false)
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set())
-  const [dragHoverTimeout, setDragHoverTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [overId, setOverId] = useState<string | null>(null)
 
   const [selectedDatasets, setSelectedDatasets] = useState<Set<string>>(new Set())
   const [isSelectionMode, setIsSelectionMode] = useState(false)
@@ -66,13 +369,9 @@ export function DatasetsList() {
   const datasets = mockDatasets || []
 
   // Get datasets that aren't in any collection
-  const uncategorizedDatasets = datasets.filter((dataset) => {
-    const isInCollection = collections.some((collection) => collection.datasetIds.includes(dataset.id))
-    if (!isInCollection) {
-      console.log(`Dataset ${dataset.name} is uncategorized`)
-    }
-    return !isInCollection
-  })
+  const uncategorizedDatasets = datasets.filter(
+    (dataset) => !collections.some((collection) => collection.datasetIds.includes(dataset.id)),
+  )
 
   const filteredDatasets = uncategorizedDatasets.filter((dataset) => {
     const matchesStatus = statusFilter === "all" || dataset.status === statusFilter
@@ -100,6 +399,18 @@ export function DatasetsList() {
 
   const containerVariants = createStaggerAnimation(0.1)
 
+  // DnD Kit sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  )
+
   const createCollection = (collectionData: Omit<Collection, "id" | "datasetIds">) => {
     const newCollection: Collection = {
       id: Date.now().toString(),
@@ -120,95 +431,14 @@ export function DatasetsList() {
     setExpandedCollections(newExpanded)
   }
 
-  const handleDragStart = (e: React.DragEvent, datasetId: string) => {
-    e.dataTransfer.effectAllowed = "move"
-    e.dataTransfer.setData("text/plain", datasetId)
-    setDraggedDataset(datasetId)
-  }
-
-  const handleDragEnd = (e: React.DragEvent) => {
-    e.preventDefault()
-    setDraggedDataset(null)
-    setDragOverCollection(null)
-    if (dragHoverTimeout) {
-      clearTimeout(dragHoverTimeout)
-      setDragHoverTimeout(null)
-    }
-  }
-
-  const handleDragOver = (e: React.DragEvent, collectionId: string) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = "move"
-
-    if (draggedDataset && dragOverCollection !== collectionId) {
-      setDragOverCollection(collectionId)
-
-      // Auto-expand collection after hover delay
-      if (!expandedCollections.has(collectionId)) {
-        if (dragHoverTimeout) clearTimeout(dragHoverTimeout)
-        const timeout = setTimeout(() => {
-          setExpandedCollections((prev) => new Set([...prev, collectionId]))
-        }, 800) // Increased delay for more stability
-        setDragHoverTimeout(timeout)
-      }
-    }
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX
-    const y = e.clientY
-
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-      setDragOverCollection(null)
-      if (dragHoverTimeout) {
-        clearTimeout(dragHoverTimeout)
-        setDragHoverTimeout(null)
-      }
-    }
-  }
-
-  const handleDropOnCollection = (e: React.DragEvent, collectionId: string) => {
-    e.preventDefault()
-    const datasetId = e.dataTransfer.getData("text/plain")
-
-    if (!datasetId || !draggedDataset) return
-
+  const removeFromCollection = (collectionId: string, datasetId: string) => {
     setCollections((prevCollections) =>
       prevCollections.map((collection) =>
         collection.id === collectionId
-          ? { ...collection, datasetIds: [...new Set([...collection.datasetIds, datasetId])] }
+          ? { ...collection, datasetIds: collection.datasetIds.filter((id) => id !== datasetId) }
           : collection,
       ),
     )
-
-    // Clean up drag state
-    setDraggedDataset(null)
-    setDragOverCollection(null)
-    if (dragHoverTimeout) {
-      clearTimeout(dragHoverTimeout)
-      setDragHoverTimeout(null)
-    }
-  }
-
-  const removeFromCollection = (collectionId: string, datasetId: string) => {
-    console.log(`Removing dataset ${datasetId} from collection ${collectionId}`)
-
-    setCollections((prevCollections) => {
-      const updatedCollections = prevCollections.map((collection) =>
-        collection.id === collectionId
-          ? { ...collection, datasetIds: collection.datasetIds.filter((id) => id !== datasetId) }
-          : collection,
-      )
-
-      console.log("Updated collections:", updatedCollections)
-      return updatedCollections
-    })
-
-    setTimeout(() => {
-      console.log("Dataset should now appear in uncategorized list")
-    }, 100)
   }
 
   const toggleDatasetSelection = (datasetId: string) => {
@@ -244,7 +474,6 @@ export function DatasetsList() {
           datasetIds: collection.datasetIds.filter((id) => id !== datasetToDelete),
         })),
       )
-      // In a real app, you'd delete from the backend here
       console.log(`Deleting dataset: ${datasetToDelete}`)
     }
     setDatasetToDelete(null)
@@ -263,406 +492,246 @@ export function DatasetsList() {
         datasetIds: collection.datasetIds.filter((id) => !selectedDatasets.has(id)),
       })),
     )
-    // In a real app, you'd delete from the backend here
     console.log(`Mass deleting datasets:`, Array.from(selectedDatasets))
     clearSelection()
     setShowMassDeleteDialog(false)
   }
 
+  // DnD Kit event handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
+  }
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { over } = event
+    setOverId(over ? (over.id as string) : null)
+
+    // Auto-expand collection on drag over
+    if (over && collections.find((c) => c.id === over.id) && !expandedCollections.has(over.id as string)) {
+      setTimeout(() => {
+        setExpandedCollections((prev) => new Set([...prev, over.id as string]))
+      }, 800)
+    }
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const datasetId = active.id as string
+      const collectionId = over.id as string
+
+      // Check if dropping on a collection
+      const targetCollection = collections.find((c) => c.id === collectionId)
+      if (targetCollection) {
+        setCollections((prevCollections) =>
+          prevCollections.map((collection) =>
+            collection.id === collectionId
+              ? { ...collection, datasetIds: [...new Set([...collection.datasetIds, datasetId])] }
+              : collection,
+          ),
+        )
+      }
+    }
+
+    setActiveId(null)
+    setOverId(null)
+  }
+
+  const draggedDataset = activeId ? datasets.find((d) => d.id === activeId) : null
+
   return (
-    <motion.div className="p-8 space-y-8" variants={containerVariants} initial="initial" animate="animate">
-      {/* Header */}
-      <motion.div className="flex items-center justify-between" variants={ANIMATION.variants.staggerItem}>
-        <div className="space-y-1">
-          <h1 className="text-3xl font-semibold font-sans">Datasets</h1>
-          <p className="text-muted-foreground font-sans">Manage your robotics training data</p>
-        </div>
-        <div className="flex space-x-3">
-          {isSelectionMode ? (
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-muted-foreground font-mono">{selectedDatasets.size} selected</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={selectAllDatasets}
-                disabled={selectedDatasets.size === filteredDatasets.length}
-              >
-                Select All
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleMassDelete}
-                disabled={selectedDatasets.size === 0}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 bg-transparent"
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete ({selectedDatasets.size})
-              </Button>
-              <Button variant="outline" size="sm" onClick={clearSelection}>
-                <X className="h-4 w-4 mr-1" />
-                Cancel
-              </Button>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <motion.div className="p-8 space-y-8" variants={containerVariants} initial="initial" animate="animate">
+        {/* Header */}
+        <motion.div className="flex items-center justify-between" variants={ANIMATION.variants.staggerItem}>
+          <div className="space-y-1">
+            <h1 className="text-3xl font-semibold font-sans">Datasets</h1>
+            <p className="text-muted-foreground font-sans">Manage your robotics training data</p>
+          </div>
+          <div className="flex space-x-3">
+            {isSelectionMode ? (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-muted-foreground font-mono">{selectedDatasets.size} selected</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={selectAllDatasets}
+                  disabled={selectedDatasets.size === filteredDatasets.length}
+                >
+                  Select All
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleMassDelete}
+                  disabled={selectedDatasets.size === 0}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 bg-transparent"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete ({selectedDatasets.size})
+                </Button>
+                <Button variant="outline" size="sm" onClick={clearSelection}>
+                  <X className="h-4 w-4 mr-1" />
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button variant="outline" className="bg-transparent" onClick={() => setIsSelectionMode(true)}>
+                  Select
+                </Button>
+                <Button variant="outline" className="bg-transparent" onClick={() => setShowCollectionModal(true)}>
+                  <FolderPlus className="h-4 w-4 mr-2" />
+                  New Collection
+                </Button>
+                <Button className="bg-primary hover:bg-primary/90">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Dataset
+                </Button>
+              </>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Drag and Drop Instructions */}
+        {!isSelectionMode && collections.length > 0 && filteredDatasets.length > 0 && (
+          <motion.div
+            className="flex items-center space-x-2 p-4 bg-primary/5 border border-primary/20 rounded-lg"
+            variants={ANIMATION.variants.staggerItem}
+          >
+            <MousePointer2 className="h-4 w-4 text-primary" />
+            <p className="text-sm text-primary font-medium">Drag and drop datasets onto collections to organize them</p>
+          </motion.div>
+        )}
+
+        {/* Collections */}
+        {collections.length > 0 && (
+          <motion.div variants={ANIMATION.variants.staggerItem}>
+            <h2 className="text-lg font-semibold font-sans mb-4">Collections</h2>
+            <div className="space-y-4">
+              {collections.map((collection) => (
+                <DroppableCollection
+                  key={collection.id}
+                  collection={collection}
+                  datasets={datasets}
+                  expandedCollections={expandedCollections}
+                  toggleCollectionExpansion={toggleCollectionExpansion}
+                  removeFromCollection={removeFromCollection}
+                  handleDeleteDataset={handleDeleteDataset}
+                  router={router}
+                  isOver={overId === collection.id}
+                />
+              ))}
             </div>
-          ) : (
-            <>
-              <Button variant="outline" className="bg-transparent" onClick={() => setIsSelectionMode(true)}>
-                Select
-              </Button>
-              <Button variant="outline" className="bg-transparent" onClick={() => setShowCollectionModal(true)}>
-                <FolderPlus className="h-4 w-4 mr-2" />
-                New Collection
-              </Button>
-              <Button className="bg-primary hover:bg-primary/90">
-                <Plus className="h-4 w-4 mr-2" />
-                New Dataset
-              </Button>
-            </>
-          )}
-        </div>
+          </motion.div>
+        )}
+
+        {/* Filters */}
+        <DatasetFilters
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          robotTypeFilter={robotTypeFilter}
+          setRobotTypeFilter={setRobotTypeFilter}
+          hasActiveFilters={hasActiveFilters}
+          clearFilters={clearFilters}
+          resultsCount={filteredDatasets.length}
+        />
+
+        {/* Datasets Grid */}
+        {filteredDatasets.length > 0 ? (
+          <motion.div variants={ANIMATION.variants.staggerItem}>
+            <motion.div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" variants={containerVariants}>
+              {filteredDatasets.map((dataset) => (
+                <DraggableDataset
+                  key={dataset.id}
+                  dataset={dataset}
+                  isSelectionMode={isSelectionMode}
+                  selectedDatasets={selectedDatasets}
+                  toggleDatasetSelection={toggleDatasetSelection}
+                  handleDeleteDataset={handleDeleteDataset}
+                />
+              ))}
+            </motion.div>
+          </motion.div>
+        ) : (
+          <motion.div className="text-center py-16" variants={ANIMATION.variants.staggerItem}>
+            <div className="mx-auto w-24 h-24 bg-layer-2 rounded-full flex items-center justify-center mb-6">
+              <FolderPlus className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold font-sans mb-2">No datasets found</h3>
+            <p className="text-muted-foreground mb-6 font-sans max-w-md mx-auto">
+              {hasActiveFilters
+                ? "Try adjusting your filters to see more results"
+                : "Get started by creating your first dataset"}
+            </p>
+            <Button className="bg-primary hover:bg-primary/90">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Dataset
+            </Button>
+          </motion.div>
+        )}
+
+        {/* Collection Modal */}
+        <CollectionModal
+          open={showCollectionModal}
+          onOpenChange={setShowCollectionModal}
+          onCreateCollection={createCollection}
+        />
+
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Dataset</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this dataset? This action cannot be undone and will permanently remove
+                all associated data.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteDataset} className="bg-red-600 hover:bg-red-700">
+                Delete Dataset
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={showMassDeleteDialog} onOpenChange={setShowMassDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Multiple Datasets</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete {selectedDatasets.size} dataset{selectedDatasets.size !== 1 ? "s" : ""}?
+                This action cannot be undone and will permanently remove all associated data.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmMassDelete} className="bg-red-600 hover:bg-red-700">
+                Delete {selectedDatasets.size} Dataset{selectedDatasets.size !== 1 ? "s" : ""}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </motion.div>
 
-      {/* Collections */}
-      {collections.length > 0 && (
-        <motion.div variants={ANIMATION.variants.staggerItem}>
-          <h2 className="text-lg font-semibold font-sans mb-4">Collections</h2>
-          <div className="space-y-4">
-            {collections.map((collection) => {
-              const isExpanded = expandedCollections.has(collection.id)
-              const collectionDatasets = collection.datasetIds
-                .map((id) => datasets.find((d) => d.id === id))
-                .filter(Boolean) as typeof datasets
-
-              return (
-                <motion.div
-                  key={collection.id}
-                  className={`relative rounded-xl border-2 transition-all duration-200 overflow-hidden ${
-                    dragOverCollection === collection.id
-                      ? "border-primary bg-primary/10 shadow-lg scale-[1.02]"
-                      : draggedDataset
-                        ? "border-dashed border-primary/50 bg-primary/5"
-                        : "border-border bg-layer-2 hover:bg-layer-3"
-                  }`}
-                  onDragOver={(e) => handleDragOver(e, collection.id)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDropOnCollection(e, collection.id)}
-                >
-                  {/* Collection Header */}
-                  <div className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div
-                          className={`w-12 h-12 rounded-xl ${collection.color} flex items-center justify-center shadow-sm transition-all duration-300`}
-                        >
-                          {dragOverCollection === collection.id || isExpanded ? (
-                            <FolderOpen className="h-6 w-6 text-white" />
-                          ) : (
-                            <Folder className="h-6 w-6 text-white" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold font-sans text-lg">{collection.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {collection.datasetIds.length} dataset{collection.datasetIds.length !== 1 ? "s" : ""}
-                          </p>
-                        </div>
-                      </div>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleCollectionExpansion(collection.id)}
-                        className="hover:bg-layer-3"
-                      >
-                        {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                      </Button>
-                    </div>
-
-                    {collection.description && (
-                      <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{collection.description}</p>
-                    )}
-
-                    {/* Collection Preview (when collapsed) */}
-                    {!isExpanded && collection.datasetIds.length > 0 && (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {collection.datasetIds.slice(0, 6).map((datasetId) => {
-                          const dataset = datasets.find((d) => d.id === datasetId)
-                          return dataset ? (
-                            <div
-                              key={datasetId}
-                              className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-primary/10 to-primary/20 border border-primary/20 hover:from-primary/20 hover:to-primary/30 transition-all duration-200"
-                            >
-                              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary/30 to-primary/50 flex items-center justify-center text-xs font-mono font-semibold text-primary-foreground">
-                                {dataset.name.charAt(0).toUpperCase()}
-                              </div>
-                              <span className="text-xs font-medium text-primary truncate max-w-20">{dataset.name}</span>
-                            </div>
-                          ) : null
-                        })}
-                        {collection.datasetIds.length > 6 && (
-                          <div className="flex items-center px-3 py-1.5 rounded-lg bg-muted border border-border">
-                            <span className="text-xs text-muted-foreground font-semibold">
-                              +{collection.datasetIds.length - 6} more
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Expanded Collection Content */}
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                        className="border-t border-border"
-                      >
-                        <div className="p-6 pt-4 space-y-4">
-                          {collectionDatasets.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {collectionDatasets.map((dataset) => (
-                                <motion.div
-                                  key={dataset.id}
-                                  className="group relative p-4 bg-background rounded-lg border border-border hover:bg-layer-2 hover:border-primary/30 transition-all duration-200 hover:shadow-sm"
-                                  initial={{ opacity: 0, y: 20 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, y: -20 }}
-                                >
-                                  <div className="space-y-3">
-                                    <div className="flex items-start justify-between">
-                                      <div className="flex-1 min-w-0">
-                                        <h4 className="font-semibold font-mono text-sm truncate">{dataset.name}</h4>
-                                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mt-1">
-                                          {dataset.description}
-                                        </p>
-                                      </div>
-                                      <CustomDropdown
-                                        trigger={
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                          >
-                                            <MoreHorizontal className="h-4 w-4" />
-                                          </Button>
-                                        }
-                                        items={[
-                                          {
-                                            label: "View Dataset",
-                                            icon: <Eye className="h-4 w-4" />,
-                                            onClick: () => router.push(`/datasets/${dataset.id}`),
-                                          },
-                                          {
-                                            label: "Remove from Collection",
-                                            icon: <ArrowLeft className="h-4 w-4" />,
-                                            onClick: () => removeFromCollection(collection.id, dataset.id),
-                                          },
-                                          {
-                                            label: "Delete Dataset",
-                                            icon: <Trash2 className="h-4 w-4" />,
-                                            onClick: () => handleDeleteDataset(dataset.id),
-                                            destructive: true,
-                                            separator: true,
-                                          },
-                                        ]}
-                                      />
-                                    </div>
-
-                                    <div className="flex items-center justify-between text-xs">
-                                      <div className="flex items-center space-x-2">
-                                        <span
-                                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                            dataset.status === "active"
-                                              ? "bg-green-100 text-green-800"
-                                              : dataset.status === "processing"
-                                                ? "bg-yellow-100 text-yellow-800"
-                                                : "bg-gray-100 text-gray-800"
-                                          }`}
-                                        >
-                                          {dataset.status}
-                                        </span>
-                                        <span className="text-muted-foreground font-mono">{dataset.size}</span>
-                                      </div>
-                                      <span className="text-muted-foreground font-mono">{dataset.robotType}</span>
-                                    </div>
-
-                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                      <span>Created: {dataset.createdAt.toLocaleDateString()}</span>
-                                      <span>{dataset.frameCount.toLocaleString()} episodes</span>
-                                    </div>
-
-                                    {dataset.tags.length > 0 && (
-                                      <div className="flex flex-wrap gap-1">
-                                        {dataset.tags.slice(0, 3).map((tag) => (
-                                          <span
-                                            key={tag}
-                                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-primary/10 text-primary font-medium"
-                                          >
-                                            {tag}
-                                          </span>
-                                        ))}
-                                        {dataset.tags.length > 3 && (
-                                          <span className="text-xs text-muted-foreground">
-                                            +{dataset.tags.length - 3}
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                </motion.div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-center py-8">
-                              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-                                <Folder className="h-6 w-6 text-muted-foreground" />
-                              </div>
-                              <p className="text-sm text-muted-foreground">No datasets in this collection</p>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Drop overlay */}
-                  {dragOverCollection === collection.id && draggedDataset && (
-                    <motion.div
-                      className="absolute inset-0 flex items-center justify-center bg-primary/20 backdrop-blur-sm z-10 pointer-events-none"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className="text-center">
-                        <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
-                          <Plus className="h-8 w-8 text-white" />
-                        </div>
-                        <p className="text-primary font-semibold text-lg">Drop to add to collection</p>
-                      </div>
-                    </motion.div>
-                  )}
-                </motion.div>
-              )
-            })}
+      {/* Drag Overlay */}
+      <DragOverlay>
+        {draggedDataset ? (
+          <div className="opacity-90 rotate-2 scale-105">
+            <DatasetCard dataset={draggedDataset} showDeleteButton={false} />
           </div>
-        </motion.div>
-      )}
-
-      {/* Filters */}
-      <DatasetFilters
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        robotTypeFilter={robotTypeFilter}
-        setRobotTypeFilter={setRobotTypeFilter}
-        hasActiveFilters={hasActiveFilters}
-        clearFilters={clearFilters}
-        resultsCount={filteredDatasets.length}
-      />
-
-      {/* Datasets Grid */}
-      {filteredDatasets.length > 0 ? (
-        <motion.div variants={ANIMATION.variants.staggerItem}>
-          <motion.div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" variants={containerVariants}>
-            {filteredDatasets.map((dataset) => (
-              <motion.div
-                key={dataset.id}
-                draggable={!isSelectionMode}
-                onDragStart={(e) => handleDragStart(e, dataset.id)}
-                onDragEnd={handleDragEnd}
-                className={`relative transition-all duration-200 ${
-                  isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
-                } ${
-                  draggedDataset === dataset.id
-                    ? "opacity-50 scale-95 rotate-2 z-50 pointer-events-none"
-                    : "hover:scale-[1.02]"
-                }`}
-                animate={draggedDataset === dataset.id ? { scale: 0.95, rotate: 2 } : { scale: 1, rotate: 0 }}
-                transition={{ duration: 0.2 }}
-                onClick={() => isSelectionMode && toggleDatasetSelection(dataset.id)}
-              >
-                {isSelectionMode && (
-                  <div className="absolute top-3 left-3 z-10">
-                    <Checkbox
-                      checked={selectedDatasets.has(dataset.id)}
-                      onCheckedChange={() => toggleDatasetSelection(dataset.id)}
-                      className="bg-background border-2 border-primary"
-                    />
-                  </div>
-                )}
-                <DatasetCard
-                  dataset={dataset}
-                  onDelete={() => handleDeleteDataset(dataset.id)}
-                  showDeleteButton={!isSelectionMode}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-        </motion.div>
-      ) : (
-        <motion.div className="text-center py-16" variants={ANIMATION.variants.staggerItem}>
-          <div className="mx-auto w-24 h-24 bg-layer-2 rounded-full flex items-center justify-center mb-6">
-            <FolderPlus className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="text-xl font-semibold font-sans mb-2">No datasets found</h3>
-          <p className="text-muted-foreground mb-6 font-sans max-w-md mx-auto">
-            {hasActiveFilters
-              ? "Try adjusting your filters to see more results"
-              : "Get started by creating your first dataset"}
-          </p>
-          <Button className="bg-primary hover:bg-primary/90">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Dataset
-          </Button>
-        </motion.div>
-      )}
-
-      {/* Collection Modal */}
-      <CollectionModal
-        open={showCollectionModal}
-        onOpenChange={setShowCollectionModal}
-        onCreateCollection={createCollection}
-      />
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Dataset</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this dataset? This action cannot be undone and will permanently remove all
-              associated data.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteDataset} className="bg-red-600 hover:bg-red-700">
-              Delete Dataset
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={showMassDeleteDialog} onOpenChange={setShowMassDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Multiple Datasets</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedDatasets.size} dataset{selectedDatasets.size !== 1 ? "s" : ""}?
-              This action cannot be undone and will permanently remove all associated data.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmMassDelete} className="bg-red-600 hover:bg-red-700">
-              Delete {selectedDatasets.size} Dataset{selectedDatasets.size !== 1 ? "s" : ""}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </motion.div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   )
 }
