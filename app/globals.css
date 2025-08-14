@@ -13,9 +13,9 @@
     /* Updated primary color to lighter, more vibrant green for light mode */
     --primary: 158 70% 45%;
     --primary-foreground: 0 0% 98%;
-    /* Added complementary coral/orange tint to secondary */
-    --secondary: 22 15% 96.1%;
-    --secondary-foreground: 22 8% 9%;
+    /* Reverted secondary to original colors without complementary tints */
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
     --muted: 0 0% 96.1%;
     --muted-foreground: 0 0% 45.1%;
     --accent: 0 0% 96.1%;
@@ -40,30 +40,25 @@
     /* Made warning color slightly lighter */
     --warning: 38 95% 75%;
     --warning-foreground: 0 0% 50%;
-    /* Added complementary accent colors */
-    --accent-coral: 22 85% 75%;
-    --accent-coral-foreground: 0 0% 20%;
-    --accent-blue: 200 85% 75%;
-    --accent-blue-foreground: 0 0% 20%;
   }
 
   .dark {
     --background: 0 0% 3.9%;
-    /* Added subtle warm tint to dark mode foreground */
-    --foreground: 22 5% 98%;
+    /* Reverted foreground to original without warm tints */
+    --foreground: 0 0% 98%;
     --card: 0 0% 6%;
-    --card-foreground: 22 5% 98%;
+    --card-foreground: 0 0% 98%;
     --popover: 0 0% 6%;
-    --popover-foreground: 22 5% 98%;
+    --popover-foreground: 0 0% 98%;
     --primary: 158 64% 52%; /* Keep original bright teal for dark mode */
     --primary-foreground: 0 0% 98%;
-    /* Added complementary warm tint to dark secondary */
-    --secondary: 22 8% 10%;
-    --secondary-foreground: 22 5% 98%;
+    /* Reverted secondary to original without warm tints */
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 10%;
     --muted-foreground: 0 0% 64%;
     --accent: 0 0% 10%;
-    --accent-foreground: 22 5% 98%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 14.9%;
@@ -79,11 +74,6 @@
     --success-foreground: 0 0% 98%;
     --warning: 38 92% 55%;
     --warning-foreground: 0 0% 9%;
-    /* Dark mode complementary accent colors */
-    --accent-coral: 22 75% 65%;
-    --accent-coral-foreground: 0 0% 98%;
-    --accent-blue: 200 75% 65%;
-    --accent-blue-foreground: 0 0% 98%;
   }
 }
 
@@ -143,25 +133,7 @@
   .text-warning {
     color: hsl(var(--warning));
   }
-  /* Added complementary color utilities */
-  .bg-accent-coral {
-    background-color: hsl(var(--accent-coral));
-  }
-  .bg-accent-coral\/10 {
-    background-color: hsl(var(--accent-coral) / 0.1);
-  }
-  .text-accent-coral {
-    color: hsl(var(--accent-coral));
-  }
-  .bg-accent-blue {
-    background-color: hsl(var(--accent-blue));
-  }
-  .bg-accent-blue\/10 {
-    background-color: hsl(var(--accent-blue) / 0.1);
-  }
-  .text-accent-blue {
-    color: hsl(var(--accent-blue));
-  }
+
   .layer-card {
     background-color: hsl(var(--layer-1));
     border: 1px solid hsl(var(--border));
