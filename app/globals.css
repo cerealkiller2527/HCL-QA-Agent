@@ -18,9 +18,9 @@
     --secondary-foreground: 158 30% 25%;
     --muted: 0 0% 96.1%;
     --muted-foreground: 0 0% 45.1%;
-    /* Updated accent to orange - complementary to green */
-    --accent: 22 85% 88%;
-    --accent-foreground: 22 60% 25%;
+    /* Updated accent to a different shade of green instead of orange */
+    --accent: 158 40% 88%;
+    --accent-foreground: 158 50% 25%;
     /* Made destructive color much lighter for better visibility */
     --destructive: 0 70% 65%;
     --destructive-foreground: 0 0% 98%;
@@ -58,9 +58,9 @@
     --secondary-foreground: 158 40% 85%;
     --muted: 0 0% 10%;
     --muted-foreground: 0 0% 64%;
-    /* Updated accent to darker orange for dark mode */
-    --accent: 22 70% 15%;
-    --accent-foreground: 22 85% 85%;
+    /* Updated accent to a darker green shade for dark mode */
+    --accent: 158 30% 15%;
+    --accent-foreground: 158 50% 85%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 14.9%;
