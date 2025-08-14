@@ -175,56 +175,64 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        {/* Status Panel */}
-        <AnimatePresence>
-          {!sidebarCollapsed && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="p-3 border-t border-border"
-            >
-              <div className="bg-layer-2 rounded-lg p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full" />
-                  <span className="text-code">System Online</span>
-                </div>
-                <div className="text-caption space-y-1">
-                  <div className="flex justify-between">
-                    <span>Robots:</span>
-                    <span className="text-primary font-mono-medium">12</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Datasets:</span>
-                    <span className="text-primary font-mono-medium">847</span>
+        {/* Time and Theme Toggle */}
+        <div className="p-3 border-t border-border">
+          <AnimatePresence>
+            {!sidebarCollapsed ? (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-3"
+              >
+                {/* Time and Theme Toggle */}
+                <div className="bg-layer-2 rounded-lg p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-code text-muted-foreground font-mono text-sm">
+                      {new Date().toLocaleTimeString()}
+                    </div>
+                    <ThemeToggle />
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+
+                {/* Status Panel */}
+                <div className="bg-layer-2 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full" />
+                    <span className="text-code">System Online</span>
+                  </div>
+                  <div className="text-caption space-y-1">
+                    <div className="flex justify-between">
+                      <span>Robots:</span>
+                      <span className="text-primary font-mono-medium">12</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Datasets:</span>
+                      <span className="text-primary font-mono-medium">847</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col items-center gap-2"
+              >
+                <ThemeToggle />
+                <div className="w-2 h-2 bg-primary rounded-full" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </motion.div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 relative">
-        <div className="absolute top-4 right-4 z-20 pointer-events-none">
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={cn(
-              "flex items-center gap-3 px-4 py-2 rounded-lg pointer-events-auto",
-              "bg-layer-1 border border-border",
-              "hover:bg-layer-hover transition-all duration-200",
-            )}
-          >
-            <div className="text-code text-muted-foreground font-mono text-sm">{new Date().toLocaleTimeString()}</div>
-            <div className="w-px h-4 bg-border" />
-            <ThemeToggle />
-          </motion.div>
-        </div>
-
-        <main className="flex-1 overflow-auto bg-layer-0 pt-4 pr-40">
+      <div className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 overflow-auto bg-layer-0 p-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={pathname}
