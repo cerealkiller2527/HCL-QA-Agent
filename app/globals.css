@@ -10,7 +10,7 @@
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.9%;
-    --primary: 158 64% 52%; /* Beautiful teal like OpenNote */
+    --primary: 158 64% 52%;
     --primary-foreground: 0 0% 98%;
     --secondary: 0 0% 96.1%;
     --secondary-foreground: 0 0% 9%;
@@ -23,18 +23,28 @@
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
     --ring: 158 64% 52%;
-    --radius: 0.5rem;
-
-    /* Restored OpenNote-inspired layered backgrounds with subtle depth */
     --layer-0: 0 0% 100%;
     --layer-1: 0 0% 98%;
     --layer-2: 0 0% 96%;
     --layer-3: 0 0% 94%;
-
-    /* Added back subtle accent colors for personality */
-    --tech-blue: 210 100% 56%;
-    --success-green: 142 76% 36%;
-    --warning-amber: 45 90% 55%;
+    --chart-1: 158 64% 52%;
+    --chart-2: 220 13% 18%;
+    --chart-3: 0 84% 60%;
+    --chart-4: 0 0% 45.1%;
+    --chart-5: 0 0% 64%;
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 158 64% 52%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 158 64% 52%;
+    --lerobot-primary: 158 64% 52%;
+    --lerobot-secondary: 220 13% 18%;
+    --lerobot-accent: 0 84% 60%;
+    --glow-primary: 158 64% 52%;
   }
 
   .dark {
@@ -57,17 +67,26 @@
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
     --ring: 158 64% 52%;
-
-    /* Dark mode layers */
     --layer-0: 0 0% 3.9%;
     --layer-1: 0 0% 6%;
     --layer-2: 0 0% 8%;
     --layer-3: 0 0% 10%;
-
-    /* Dark mode accent colors */
-    --tech-blue: 210 100% 56%;
-    --success-green: 142 76% 36%;
-    --warning-amber: 45 90% 55%;
+    --chart-1: 158 64% 52%;
+    --chart-2: 220 13% 91%;
+    --chart-3: 0 84% 60%;
+    --chart-4: 0 0% 64%;
+    --chart-5: 0 0% 45.1%;
+    --sidebar-background: 0 0% 6%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 158 64% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 14.9%;
+    --sidebar-ring: 158 64% 52%;
+    --lerobot-primary: 158 64% 52%;
+    --lerobot-secondary: 220 13% 91%;
+    --lerobot-accent: 0 0% 10%;
   }
 }
 
@@ -75,23 +94,21 @@
   * {
     @apply border-border;
   }
-
   body {
-    @apply bg-background text-foreground font-sans;
-    /* Enhanced smooth theme transitions */
-    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    @apply bg-background text-foreground;
+    /* Enhanced theme transition with smoother easing */
+    transition: background-color 0.6s cubic-bezier(0.23, 1, 0.32, 1), color 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  /* Added smooth transitions for all theme-aware elements */
+  * {
+    transition: background-color 0.4s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+      color 0.4s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.4s cubic-bezier(0.23, 1, 0.32, 1);
   }
 }
 
-/* Restored enhanced font system with personality */
+/* Cleaned up utility classes and removed unused styles */
 @layer utilities {
-  .font-mono {
-    font-family: var(--font-jetbrains-mono), monospace;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.025em;
-  }
-
-  /* Layered backgrounds for depth */
   .bg-layer-0 {
     background-color: hsl(var(--layer-0));
   }
@@ -105,37 +122,26 @@
     background-color: hsl(var(--layer-3));
   }
 
-  /* Restored accent colors for personality */
-  .text-tech-blue {
-    color: hsl(var(--tech-blue));
+  .text-lerobot-primary {
+    color: hsl(var(--lerobot-primary));
   }
-  .text-success-green {
-    color: hsl(var(--success-green));
+  .text-lerobot-secondary {
+    color: hsl(var(--lerobot-secondary));
   }
-  .text-warning-amber {
-    color: hsl(var(--warning-amber));
-  }
-
-  .bg-tech-blue {
-    background-color: hsl(var(--tech-blue));
-  }
-  .bg-success-green {
-    background-color: hsl(var(--success-green));
-  }
-  .bg-warning-amber {
-    background-color: hsl(var(--warning-amber));
+  .bg-lerobot-primary {
+    background-color: hsl(var(--lerobot-primary));
   }
 
-  /* Subtle hover effects for personality */
-  .hover-glow {
-    transition: box-shadow 0.2s ease;
+  .glow-primary {
+    box-shadow: 0 0 20px hsla(var(--glow-primary), 0.1);
   }
-  .hover-glow:hover {
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.1);
+
+  .layer-depth {
+    box-shadow: 0 1px 3px hsla(var(--foreground), 0.1), 0 1px 2px hsla(var(--foreground), 0.06);
   }
 }
 
-/* Theme transition overlay */
+/* Enhanced theme transition overlay with better positioning */
 .theme-transition {
   position: fixed;
   top: 0;
@@ -144,4 +150,24 @@
   height: 100vh;
   pointer-events: none;
   z-index: 9999;
+  overflow: hidden;
+}
+
+/* Simplified font classes */
+@layer base {
+  .font-heading {
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-weight: 600;
+  }
+  .font-mono-data {
+    font-family: var(--font-jetbrains-mono), "Fira Code", monospace;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+  .font-mono-label {
+    font-family: var(--font-jetbrains-mono), "Fira Code", monospace;
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0.025em;
+  }
 }
