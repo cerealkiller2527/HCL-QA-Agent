@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { createContext, useContext, useEffect, useState } from "react"
 
 type Theme = "dark" | "light"
@@ -20,14 +19,13 @@ type ThemeProviderState = {
 const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined)
 
 export function ThemeProvider({ children, defaultTheme = "dark", storageKey = "lerobot-theme" }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>(defaultTheme)
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem(storageKey) as Theme
-    if (savedTheme === "dark" || savedTheme === "light") {
-      setThemeState(savedTheme)
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window !== "undefined") {
+      const savedTheme = localStorage.getItem(storageKey) as Theme
+      return savedTheme === "dark" || savedTheme === "light" ? savedTheme : defaultTheme
     }
-  }, [storageKey])
+    return defaultTheme
+  })
 
   useEffect(() => {
     const root = document.documentElement
