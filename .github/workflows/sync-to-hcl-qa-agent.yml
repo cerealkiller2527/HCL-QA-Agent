@@ -47,10 +47,11 @@ jobs:
         fi
         
         # Determine target branch name
+        # Only rename prototype-frontend-template, keep all others the same
         if [ "$BRANCH_NAME" = "prototype-frontend-template" ]; then
           TARGET_BRANCH="frontend-prototype"
         else
-          TARGET_BRANCH="frontend-$BRANCH_NAME"
+          TARGET_BRANCH="$BRANCH_NAME"  # Keep exact same name
         fi
         echo "target_branch=$TARGET_BRANCH" >> $GITHUB_OUTPUT
         echo "Target branch will be: $TARGET_BRANCH"
