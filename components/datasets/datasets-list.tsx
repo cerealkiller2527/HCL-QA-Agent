@@ -66,9 +66,13 @@ export function DatasetsList() {
   const datasets = mockDatasets || []
 
   // Get datasets that aren't in any collection
-  const uncategorizedDatasets = datasets.filter(
-    (dataset) => !collections.some((collection) => collection.datasetIds.includes(dataset.id)),
-  )
+  const uncategorizedDatasets = datasets.filter((dataset) => {
+    const isInCollection = collections.some((collection) => collection.datasetIds.includes(dataset.id))
+    if (!isInCollection) {
+      console.log(`Dataset ${dataset.name} is uncategorized`)
+    }
+    return !isInCollection
+  })
 
   const filteredDatasets = uncategorizedDatasets.filter((dataset) => {
     const matchesStatus = statusFilter === "all" || dataset.status === statusFilter
@@ -174,13 +178,22 @@ export function DatasetsList() {
   }
 
   const removeFromCollection = (collectionId: string, datasetId: string) => {
-    setCollections(
-      collections.map((collection) =>
+    console.log(`Removing dataset ${datasetId} from collection ${collectionId}`)
+
+    setCollections((prevCollections) => {
+      const updatedCollections = prevCollections.map((collection) =>
         collection.id === collectionId
           ? { ...collection, datasetIds: collection.datasetIds.filter((id) => id !== datasetId) }
           : collection,
-      ),
-    )
+      )
+
+      console.log("Updated collections:", updatedCollections)
+      return updatedCollections
+    })
+
+    setTimeout(() => {
+      console.log("Dataset should now appear in uncategorized list")
+    }, 100)
   }
 
   const toggleDatasetSelection = (datasetId: string) => {
