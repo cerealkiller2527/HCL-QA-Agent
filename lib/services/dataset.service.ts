@@ -1,239 +1,157 @@
-import type { Dataset, DatasetMetrics } from "@/lib/types/dataset"
-import type { ApiResponse } from "@/lib/api/base"
 import { apiClient } from "@/lib/api/base"
+import type { Dataset, DatasetMetadata, RecordingSession } from "@/lib/types/dataset"
 import { mockDatasets } from "@/lib/data/mock-datasets"
 
 export interface DatasetFilters {
-  robotType?: string
-  status?: string
-  tags?: string[]
-  dateRange?: {
-    start: Date
-    end: Date
-  }
   search?: string
+  status?: string
+  robotType?: string
+  tags?: string[]
+  dateFrom?: Date
+  dateTo?: Date
 }
 
-export interface DatasetSortOptions {
-  field: "name" | "createdAt" | "updatedAt" | "fileSize" | "duration"
-  direction: "asc" | "desc"
+export interface CreateDatasetRequest {
+  name: string
+  description: string
+  robotType: Dataset["robotType"]
+  tags: string[]
+  metadata: Partial<DatasetMetadata>
 }
 
-export class DatasetService {
-  private static instance: DatasetService
-  private cache = new Map<string, Dataset>()
-  private cacheExpiry = new Map<string, number>()
-  private readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+export interface UpdateDatasetRequest extends Partial<CreateDatasetRequest> {
+  id: string
+}
 
-  static getInstance(): DatasetService {
-    if (!DatasetService.instance) {
-      DatasetService.instance = new DatasetService()
+class DatasetService {
+  private readonly endpoint = "/datasets"
+
+  // For development, use mock data
+  private useMockData = process.env.NODE_ENV === "development"
+
+  async getDatasets(filters?: DatasetFilters): Promise<Dataset[]> {
+    if (this.useMockData) {
+      return this.filterMockDatasets(mockDatasets, filters)
     }
-    return DatasetService.instance
-  }
 
-  private isCacheValid(key: string): boolean {
-    const expiry = this.cacheExpiry.get(key)
-    return expiry ? Date.now() < expiry : false
-  }
-
-  private setCache(key: string, data: Dataset): void {
-    this.cache.set(key, data)
-    this.cacheExpiry.set(key, Date.now() + this.CACHE_TTL)
-  }
-
-  async getDatasets(
-    filters?: DatasetFilters,
-    sort?: DatasetSortOptions,
-    pagination?: { page: number; limit: number },
-  ): Promise<ApiResponse<Dataset[]>> {
     try {
-      // In development, use mock data
-      if (process.env.NODE_ENV === "development") {
-        let filteredData = [...mockDatasets]
-
-        // Apply filters
-        if (filters) {
-          if (filters.robotType) {
-            filteredData = filteredData.filter((d) => d.robotType === filters.robotType)
-          }
-          if (filters.status) {
-            filteredData = filteredData.filter((d) => d.status === filters.status)
-          }
-          if (filters.tags?.length) {
-            filteredData = filteredData.filter((d) => filters.tags!.some((tag) => d.tags.includes(tag)))
-          }
-          if (filters.search) {
-            const search = filters.search.toLowerCase()
-            filteredData = filteredData.filter(
-              (d) => d.name.toLowerCase().includes(search) || d.description.toLowerCase().includes(search),
-            )
-          }
-        }
-
-        // Apply sorting
-        if (sort) {
-          filteredData.sort((a, b) => {
-            const aVal = a[sort.field]
-            const bVal = b[sort.field]
-            const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0
-            return sort.direction === "desc" ? -comparison : comparison
-          })
-        }
-
-        // Apply pagination
-        const total = filteredData.length
-        if (pagination) {
-          const start = (pagination.page - 1) * pagination.limit
-          filteredData = filteredData.slice(start, start + pagination.limit)
-        }
-
-        return {
-          data: filteredData,
-          success: true,
-          meta: {
-            total,
-            page: pagination?.page || 1,
-            limit: pagination?.limit || total,
-            hasMore: pagination ? pagination.page * pagination.limit < total : false,
-          },
-        }
-      }
-
-      // Production API call
-      return await apiClient.get<Dataset[]>("/datasets", {
-        ...filters,
-        ...sort,
-        ...pagination,
-      })
+      const response = await apiClient.get<Dataset[]>(this.endpoint, filters)
+      return response.data
     } catch (error) {
-      throw error
+      console.error("Failed to fetch datasets:", error)
+      return this.filterMockDatasets(mockDatasets, filters)
     }
   }
 
-  async getDataset(id: string): Promise<ApiResponse<Dataset>> {
-    // Check cache first
-    if (this.isCacheValid(id)) {
-      const cached = this.cache.get(id)!
-      return { data: cached, success: true }
+  async getDataset(id: string): Promise<Dataset | null> {
+    if (this.useMockData) {
+      return mockDatasets.find((d) => d.id === id) || null
     }
 
     try {
-      if (process.env.NODE_ENV === "development") {
-        const dataset = mockDatasets.find((d) => d.id === id)
-        if (!dataset) {
-          throw new Error("Dataset not found")
-        }
-        this.setCache(id, dataset)
-        return { data: dataset, success: true }
-      }
-
-      const response = await apiClient.get<Dataset>(`/datasets/${id}`)
-      if (response.success) {
-        this.setCache(id, response.data)
-      }
-      return response
+      const response = await apiClient.get<Dataset>(`${this.endpoint}/${id}`)
+      return response.data
     } catch (error) {
-      throw error
+      console.error(`Failed to fetch dataset ${id}:`, error)
+      return mockDatasets.find((d) => d.id === id) || null
     }
   }
 
-  async createDataset(dataset: Omit<Dataset, "id" | "createdAt" | "updatedAt">): Promise<ApiResponse<Dataset>> {
-    try {
-      if (process.env.NODE_ENV === "development") {
-        const newDataset: Dataset = {
-          ...dataset,
-          id: `dataset_${Date.now()}`,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }
-        mockDatasets.push(newDataset)
-        this.setCache(newDataset.id, newDataset)
-        return { data: newDataset, success: true }
+  async createDataset(data: CreateDatasetRequest): Promise<Dataset> {
+    if (this.useMockData) {
+      const newDataset: Dataset = {
+        id: `dataset_${Date.now()}`,
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        duration: 0,
+        frameCount: 0,
+        fileSize: 0,
+        status: "recording",
+        sensors: [],
+        metadata: {
+          recordingEnvironment: "",
+          robotModel: "",
+          taskDescription: data.description,
+          recordingQuality: "medium",
+          version: "1.0.0",
+          ...data.metadata,
+        },
       }
-
-      const response = await apiClient.post<Dataset>("/datasets", dataset)
-      if (response.success) {
-        this.setCache(response.data.id, response.data)
-      }
-      return response
-    } catch (error) {
-      throw error
+      mockDatasets.unshift(newDataset)
+      return newDataset
     }
+
+    const response = await apiClient.post<Dataset>(this.endpoint, data)
+    return response.data
   }
 
-  async updateDataset(id: string, updates: Partial<Dataset>): Promise<ApiResponse<Dataset>> {
-    try {
-      if (process.env.NODE_ENV === "development") {
-        const index = mockDatasets.findIndex((d) => d.id === id)
-        if (index === -1) {
-          throw new Error("Dataset not found")
-        }
+  async updateDataset(data: UpdateDatasetRequest): Promise<Dataset> {
+    if (this.useMockData) {
+      const index = mockDatasets.findIndex((d) => d.id === data.id)
+      if (index === -1) throw new Error("Dataset not found")
 
-        const updated = {
-          ...mockDatasets[index],
-          ...updates,
-          updatedAt: new Date(),
-        }
-        mockDatasets[index] = updated
-        this.setCache(id, updated)
-        return { data: updated, success: true }
+      const updated = {
+        ...mockDatasets[index],
+        ...data,
+        updatedAt: new Date(),
       }
-
-      const response = await apiClient.put<Dataset>(`/datasets/${id}`, updates)
-      if (response.success) {
-        this.setCache(id, response.data)
-      }
-      return response
-    } catch (error) {
-      throw error
+      mockDatasets[index] = updated
+      return updated
     }
+
+    const response = await apiClient.put<Dataset>(`${this.endpoint}/${data.id}`, data)
+    return response.data
   }
 
-  async deleteDataset(id: string): Promise<ApiResponse<void>> {
-    try {
-      if (process.env.NODE_ENV === "development") {
-        const index = mockDatasets.findIndex((d) => d.id === id)
-        if (index === -1) {
-          throw new Error("Dataset not found")
-        }
+  async deleteDataset(id: string): Promise<void> {
+    if (this.useMockData) {
+      const index = mockDatasets.findIndex((d) => d.id === id)
+      if (index !== -1) {
         mockDatasets.splice(index, 1)
-        this.cache.delete(id)
-        this.cacheExpiry.delete(id)
-        return { data: undefined, success: true }
       }
-
-      const response = await apiClient.delete<void>(`/datasets/${id}`)
-      if (response.success) {
-        this.cache.delete(id)
-        this.cacheExpiry.delete(id)
-      }
-      return response
-    } catch (error) {
-      throw error
+      return
     }
+
+    await apiClient.delete(`${this.endpoint}/${id}`)
   }
 
-  async getDatasetMetrics(id: string): Promise<ApiResponse<DatasetMetrics>> {
-    try {
-      if (process.env.NODE_ENV === "development") {
-        const dataset = mockDatasets.find((d) => d.id === id)
-        if (!dataset?.metrics) {
-          throw new Error("Metrics not found")
-        }
-        return { data: dataset.metrics, success: true }
-      }
-
-      return await apiClient.get<DatasetMetrics>(`/datasets/${id}/metrics`)
-    } catch (error) {
-      throw error
-    }
+  async startRecording(datasetId: string): Promise<RecordingSession> {
+    const response = await apiClient.post<RecordingSession>(`${this.endpoint}/${datasetId}/record`)
+    return response.data
   }
 
-  clearCache(): void {
-    this.cache.clear()
-    this.cacheExpiry.clear()
+  async stopRecording(datasetId: string): Promise<void> {
+    await apiClient.post(`${this.endpoint}/${datasetId}/stop`)
+  }
+
+  private filterMockDatasets(datasets: Dataset[], filters?: DatasetFilters): Dataset[] {
+    if (!filters) return datasets
+
+    return datasets.filter((dataset) => {
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase()
+        const matchesSearch =
+          dataset.name.toLowerCase().includes(searchLower) ||
+          dataset.description.toLowerCase().includes(searchLower) ||
+          dataset.tags.some((tag) => tag.toLowerCase().includes(searchLower))
+        if (!matchesSearch) return false
+      }
+
+      if (filters.status && dataset.status !== filters.status) return false
+      if (filters.robotType && dataset.robotType !== filters.robotType) return false
+
+      if (filters.tags && filters.tags.length > 0) {
+        const hasMatchingTag = filters.tags.some((tag) => dataset.tags.includes(tag))
+        if (!hasMatchingTag) return false
+      }
+
+      if (filters.dateFrom && dataset.createdAt < filters.dateFrom) return false
+      if (filters.dateTo && dataset.createdAt > filters.dateTo) return false
+
+      return true
+    })
   }
 }
 
-export const datasetService = DatasetService.getInstance()
+export const datasetService = new DatasetService()

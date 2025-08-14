@@ -1,147 +1,83 @@
-import type { Robot } from "@/lib/types/dataset"
-import type { ApiResponse } from "@/lib/api/base"
 import { apiClient } from "@/lib/api/base"
+import type { Robot } from "@/lib/types/dataset"
 import { mockRobots } from "@/lib/data/mock-datasets"
 
 export interface RobotFilters {
-  status?: string
-  type?: string
+  status?: Robot["status"]
+  type?: Robot["type"]
   location?: string
-  capabilities?: string[]
 }
 
-export class RobotService {
-  private static instance: RobotService
-  private cache = new Map<string, Robot>()
-  private cacheExpiry = new Map<string, number>()
-  private readonly CACHE_TTL = 30 * 1000 // 30 seconds for real-time data
+export interface RobotCommand {
+  type: "start" | "stop" | "pause" | "resume" | "emergency_stop"
+  parameters?: Record<string, any>
+}
 
-  static getInstance(): RobotService {
-    if (!RobotService.instance) {
-      RobotService.instance = new RobotService()
-    }
-    return RobotService.instance
-  }
+class RobotService {
+  private readonly endpoint = "/robots"
+  private useMockData = process.env.NODE_ENV === "development"
 
-  private isCacheValid(key: string): boolean {
-    const expiry = this.cacheExpiry.get(key)
-    return expiry ? Date.now() < expiry : false
-  }
-
-  private setCache(key: string, data: Robot): void {
-    this.cache.set(key, data)
-    this.cacheExpiry.set(key, Date.now() + this.CACHE_TTL)
-  }
-
-  async getRobots(filters?: RobotFilters): Promise<ApiResponse<Robot[]>> {
-    try {
-      if (process.env.NODE_ENV === "development") {
-        let filteredData = [...mockRobots]
-
-        if (filters) {
-          if (filters.status) {
-            filteredData = filteredData.filter((r) => r.status === filters.status)
-          }
-          if (filters.type) {
-            filteredData = filteredData.filter((r) => r.type === filters.type)
-          }
-          if (filters.location) {
-            filteredData = filteredData.filter((r) => r.location.includes(filters.location!))
-          }
-          if (filters.capabilities?.length) {
-            filteredData = filteredData.filter((r) => filters.capabilities!.some((cap) => r.capabilities.includes(cap)))
-          }
-        }
-
-        return { data: filteredData, success: true }
-      }
-
-      return await apiClient.get<Robot[]>("/robots", filters)
-    } catch (error) {
-      throw error
-    }
-  }
-
-  async getRobot(id: string): Promise<ApiResponse<Robot>> {
-    if (this.isCacheValid(id)) {
-      const cached = this.cache.get(id)!
-      return { data: cached, success: true }
+  async getRobots(filters?: RobotFilters): Promise<Robot[]> {
+    if (this.useMockData) {
+      return this.filterMockRobots(mockRobots, filters)
     }
 
     try {
-      if (process.env.NODE_ENV === "development") {
-        const robot = mockRobots.find((r) => r.id === id)
-        if (!robot) {
-          throw new Error("Robot not found")
-        }
-        this.setCache(id, robot)
-        return { data: robot, success: true }
-      }
-
-      const response = await apiClient.get<Robot>(`/robots/${id}`)
-      if (response.success) {
-        this.setCache(id, response.data)
-      }
-      return response
+      const response = await apiClient.get<Robot[]>(this.endpoint, filters)
+      return response.data
     } catch (error) {
-      throw error
+      console.error("Failed to fetch robots:", error)
+      return this.filterMockRobots(mockRobots, filters)
     }
   }
 
-  async updateRobotStatus(id: string, status: Robot["status"]): Promise<ApiResponse<Robot>> {
+  async getRobot(id: string): Promise<Robot | null> {
+    if (this.useMockData) {
+      return mockRobots.find((r) => r.id === id) || null
+    }
+
     try {
-      if (process.env.NODE_ENV === "development") {
-        const robot = mockRobots.find((r) => r.id === id)
-        if (!robot) {
-          throw new Error("Robot not found")
-        }
-        robot.status = status
-        robot.lastSeen = new Date()
-        this.setCache(id, robot)
-        return { data: robot, success: true }
-      }
-
-      const response = await apiClient.put<Robot>(`/robots/${id}/status`, { status })
-      if (response.success) {
-        this.setCache(id, response.data)
-      }
-      return response
+      const response = await apiClient.get<Robot>(`${this.endpoint}/${id}`)
+      return response.data
     } catch (error) {
-      throw error
+      console.error(`Failed to fetch robot ${id}:`, error)
+      return mockRobots.find((r) => r.id === id) || null
     }
   }
 
-  async getRobotStats(): Promise<
-    ApiResponse<{
-      total: number
-      online: number
-      offline: number
-      maintenance: number
-      avgBattery: number
-    }>
-  > {
-    try {
-      if (process.env.NODE_ENV === "development") {
-        const stats = {
-          total: mockRobots.length,
-          online: mockRobots.filter((r) => r.status === "online").length,
-          offline: mockRobots.filter((r) => r.status === "offline").length,
-          maintenance: mockRobots.filter((r) => r.status === "maintenance").length,
-          avgBattery: Math.round(mockRobots.reduce((acc, r) => acc + (r.batteryLevel || 0), 0) / mockRobots.length),
-        }
-        return { data: stats, success: true }
-      }
-
-      return await apiClient.get("/robots/stats")
-    } catch (error) {
-      throw error
+  async sendCommand(robotId: string, command: RobotCommand): Promise<void> {
+    if (this.useMockData) {
+      console.log(`Mock command sent to ${robotId}:`, command)
+      return
     }
+
+    await apiClient.post(`${this.endpoint}/${robotId}/command`, command)
   }
 
-  clearCache(): void {
-    this.cache.clear()
-    this.cacheExpiry.clear()
+  async updateRobotStatus(robotId: string, status: Robot["status"]): Promise<Robot> {
+    if (this.useMockData) {
+      const robot = mockRobots.find((r) => r.id === robotId)
+      if (!robot) throw new Error("Robot not found")
+
+      robot.status = status
+      robot.lastSeen = new Date()
+      return robot
+    }
+
+    const response = await apiClient.put<Robot>(`${this.endpoint}/${robotId}/status`, { status })
+    return response.data
+  }
+
+  private filterMockRobots(robots: Robot[], filters?: RobotFilters): Robot[] {
+    if (!filters) return robots
+
+    return robots.filter((robot) => {
+      if (filters.status && robot.status !== filters.status) return false
+      if (filters.type && robot.type !== filters.type) return false
+      if (filters.location && robot.location !== filters.location) return false
+      return true
+    })
   }
 }
 
-export const robotService = RobotService.getInstance()
+export const robotService = new RobotService()

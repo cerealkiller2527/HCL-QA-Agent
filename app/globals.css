@@ -233,7 +233,6 @@
 }
 
 @layer components {
-  /* Simplified and standardized typography classes */
   .font-heading {
     font-family: var(--font-inter);
     font-weight: 600;
@@ -280,7 +279,6 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Standardized semantic typography classes */
   .text-display {
     @apply font-heading-lg text-3xl md:text-4xl;
   }
@@ -303,14 +301,5 @@
 
   .text-code {
     @apply font-mono-sm;
-  }
-
-  /* Added missing body text classes */
-  .text-body {
-    @apply font-body text-base;
-  }
-
-  .text-body-medium {
-    @apply font-body-medium text-base;
   }
 }
