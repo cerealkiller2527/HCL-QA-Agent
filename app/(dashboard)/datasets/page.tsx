@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SimpleDropdown } from "@/components/ui/simple-dropdown"
 import {
   Search,
   Plus,
@@ -120,31 +120,33 @@ export default function DatasetsPage() {
         </div>
 
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px] bg-layer-1 border-border">
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="ready">Ready</SelectItem>
-              <SelectItem value="processing">Processing</SelectItem>
-              <SelectItem value="recording">Recording</SelectItem>
-              <SelectItem value="error">Error</SelectItem>
-            </SelectContent>
-          </Select>
+          <SimpleDropdown
+            value={statusFilter}
+            onValueChange={setStatusFilter}
+            placeholder="All Status"
+            className="w-[140px] bg-layer-1 border-border"
+            options={[
+              { value: "all", label: "All Status" },
+              { value: "ready", label: "Ready" },
+              { value: "processing", label: "Processing" },
+              { value: "recording", label: "Recording" },
+              { value: "error", label: "Error" },
+            ]}
+          />
 
-          <Select value={robotTypeFilter} onValueChange={setRobotTypeFilter}>
-            <SelectTrigger className="w-[140px] bg-layer-1 border-border">
-              <SelectValue placeholder="All Types" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="arm">Robotic Arm</SelectItem>
-              <SelectItem value="mobile">Mobile Robot</SelectItem>
-              <SelectItem value="humanoid">Humanoid</SelectItem>
-              <SelectItem value="custom">Custom</SelectItem>
-            </SelectContent>
-          </Select>
+          <SimpleDropdown
+            value={robotTypeFilter}
+            onValueChange={setRobotTypeFilter}
+            placeholder="All Types"
+            className="w-[140px] bg-layer-1 border-border"
+            options={[
+              { value: "all", label: "All Types" },
+              { value: "arm", label: "Robotic Arm" },
+              { value: "mobile", label: "Mobile Robot" },
+              { value: "humanoid", label: "Humanoid" },
+              { value: "custom", label: "Custom" },
+            ]}
+          />
 
           {hasActiveFilters && (
             <Button variant="outline" onClick={clearFilters} className="bg-transparent">
