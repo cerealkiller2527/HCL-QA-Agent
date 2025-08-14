@@ -1,8 +1,17 @@
+"use client"
+
+import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Bot, Wifi, WifiOff, Battery, Cpu, Plus, Settings } from "lucide-react"
 import { mockRobots } from "@/lib/data/mock-datasets"
+import { PageHeader } from "@/components/ui/page-header"
+import { StatCard } from "@/components/ui/stat-card"
+import { StatusBadge } from "@/components/ui/status-badge"
+import { ANIMATION_VARIANTS, ANIMATION_DURATION } from "@/lib/constants/animations"
+import { createStaggerAnimation } from "@/lib/utils/animations"
+
+const MotionCard = motion(Card)
 
 const statusConfig = {
   online: { color: "bg-primary", label: "Online", icon: Wifi },
@@ -24,161 +33,135 @@ export default function RobotsPage() {
   const maintenanceRobots = mockRobots.filter((r) => r.status === "maintenance").length
   const avgBattery = Math.round(mockRobots.reduce((acc, r) => acc + (r.batteryLevel || 0), 0) / mockRobots.length)
 
+  const containerVariants = createStaggerAnimation(0.1, ANIMATION_DURATION.medium)
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold font-sans">Robot Fleet</h1>
-          <p className="text-muted-foreground font-sans">Monitor and manage your robotic agents</p>
-        </div>
-        <Button className="bg-primary hover:bg-primary/90">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Robot
-        </Button>
-      </div>
+    <motion.div
+      className="p-6 space-y-6 max-w-7xl mx-auto"
+      variants={containerVariants}
+      initial="initial"
+      animate="animate"
+    >
+      <PageHeader
+        title="Robot Fleet"
+        description="Monitor and manage your robotic agents"
+        action={
+          <Button className="bg-primary hover:bg-primary/90">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Robot
+          </Button>
+        }
+      />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="layer-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-              <div>
-                <p className="text-2xl font-mono font-medium">{onlineRobots}</p>
-                <p className="text-sm text-muted-foreground font-sans">Online</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="layer-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-secondary rounded-full" />
-              <div>
-                <p className="text-2xl font-mono font-medium">{maintenanceRobots}</p>
-                <p className="text-sm text-muted-foreground font-sans">Maintenance</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="layer-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-muted-foreground rounded-full" />
-              <div>
-                <p className="text-2xl font-mono font-medium">{offlineRobots}</p>
-                <p className="text-sm text-muted-foreground font-sans">Offline</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="layer-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <Battery className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-2xl font-mono font-medium">{avgBattery}%</p>
-                <p className="text-sm text-muted-foreground font-sans">Avg Battery</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <motion.div className="grid grid-cols-1 md:grid-cols-4 gap-4" variants={containerVariants}>
+        <StatCard value={onlineRobots} description="Online" statusColor="bg-primary" index={0} />
+        <StatCard value={maintenanceRobots} description="Maintenance" statusColor="bg-destructive" index={1} />
+        <StatCard value={offlineRobots} description="Offline" statusColor="bg-muted-foreground" index={2} />
+        <StatCard icon={Battery} value={`${avgBattery}%`} description="Avg Battery" index={3} />
+      </motion.div>
 
-      {/* Robot Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockRobots.map((robot) => {
+      <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" variants={containerVariants}>
+        {mockRobots.map((robot, index) => {
           const StatusIcon = statusConfig[robot.status as keyof typeof statusConfig].icon
           return (
-            <Card key={robot.id} className="layer-interactive group">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg font-semibold font-sans group-hover:text-primary transition-colors">
-                      {robot.name}
-                    </CardTitle>
-                    <CardDescription className="text-xs font-mono">{robot.id}</CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`w-2 h-2 rounded-full ${statusConfig[robot.status as keyof typeof statusConfig].color}`}
-                    />
-                    <StatusIcon className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                {/* Robot Type & Status */}
-                <div className="flex items-center justify-between">
-                  <Badge
-                    className={`text-xs font-mono ${robotTypeConfig[robot.type as keyof typeof robotTypeConfig].color}`}
-                  >
-                    {robotTypeConfig[robot.type as keyof typeof robotTypeConfig].label}
-                  </Badge>
-                  <Badge
-                    variant={
-                      robot.status === "online" ? "default" : robot.status === "maintenance" ? "destructive" : "outline"
-                    }
-                    className="text-xs font-mono"
-                  >
-                    {statusConfig[robot.status as keyof typeof statusConfig].label}
-                  </Badge>
-                </div>
-
-                {/* Battery */}
-                {robot.batteryLevel && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground font-sans">Battery</span>
-                      <span className="font-mono">{robot.batteryLevel}%</span>
+            <motion.div key={robot.id} variants={ANIMATION_VARIANTS.staggerItem}>
+              <MotionCard
+                className="layer-interactive group"
+                whileHover={{ y: -4, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: ANIMATION_DURATION.fast }}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="text-subtitle group-hover:text-primary transition-colors">
+                        {robot.name}
+                      </CardTitle>
+                      <CardDescription className="text-code">{robot.id}</CardDescription>
                     </div>
-                    <div className="w-full bg-layer-2 rounded-full h-2">
+                    <div className="flex items-center gap-2">
                       <div
-                        className={`h-2 rounded-full transition-all ${
-                          robot.batteryLevel > 60
-                            ? "bg-primary"
-                            : robot.batteryLevel > 30
-                              ? "bg-secondary"
-                              : "bg-destructive"
-                        }`}
-                        style={{ width: `${robot.batteryLevel}%` }}
+                        className={`w-2 h-2 rounded-full ${statusConfig[robot.status as keyof typeof statusConfig].color}`}
                       />
+                      <StatusIcon className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>
-                )}
+                </CardHeader>
 
-                {/* Details */}
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground font-sans">Location:</span>
-                    <span className="font-sans">{robot.location}</span>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <StatusBadge
+                      status={robotTypeConfig[robot.type as keyof typeof robotTypeConfig].label}
+                      className={robotTypeConfig[robot.type as keyof typeof robotTypeConfig].color}
+                    />
+                    <StatusBadge
+                      status={statusConfig[robot.status as keyof typeof statusConfig].label}
+                      variant={
+                        robot.status === "online"
+                          ? "default"
+                          : robot.status === "maintenance"
+                            ? "destructive"
+                            : "outline"
+                      }
+                    />
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground font-sans">Last Seen:</span>
-                    <span className="font-mono text-xs">{robot.lastSeen.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground font-sans">Current Task:</span>
-                    <span className="text-right font-sans">{robot.currentTask || "Idle"}</span>
-                  </div>
-                </div>
 
-                {/* Actions */}
-                <div className="flex gap-2 pt-2">
-                  <Button size="sm" variant="outline" className="flex-1 bg-transparent text-xs font-mono">
-                    <Bot className="h-4 w-4 mr-1" />
-                    Control
-                  </Button>
-                  <Button size="sm" variant="outline" className="bg-transparent">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  {/* Battery */}
+                  {robot.batteryLevel && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-label">Battery</span>
+                        <span className="text-code">{robot.batteryLevel}%</span>
+                      </div>
+                      <div className="w-full bg-layer-2 rounded-full h-2">
+                        <motion.div
+                          className={`h-2 rounded-full transition-all ${
+                            robot.batteryLevel > 60
+                              ? "bg-primary"
+                              : robot.batteryLevel > 30
+                                ? "bg-secondary"
+                                : "bg-destructive"
+                          }`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${robot.batteryLevel}%` }}
+                          transition={{ delay: index * 0.1 + 0.5, duration: ANIMATION_DURATION.medium }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Details */}
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-label">Location:</span>
+                      <span className="text-body">{robot.location}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-label">Last Seen:</span>
+                      <span className="text-code">{robot.lastSeen.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-label">Current Task:</span>
+                      <span className="text-right text-body">{robot.currentTask || "Idle"}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2">
+                    <Button size="sm" variant="outline" className="flex-1 bg-transparent text-code">
+                      <Bot className="h-4 w-4 mr-1" />
+                      Control
+                    </Button>
+                    <Button size="sm" variant="outline" className="bg-transparent">
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </MotionCard>
+            </motion.div>
           )
         })}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
