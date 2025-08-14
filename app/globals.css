@@ -13,13 +13,14 @@
     /* Updated primary color to lighter, more vibrant green for light mode */
     --primary: 158 70% 45%;
     --primary-foreground: 0 0% 98%;
-    /* Reverted secondary to original colors without complementary tints */
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
+    /* Updated secondary to a complementary green shade */
+    --secondary: 158 25% 92%;
+    --secondary-foreground: 158 30% 25%;
     --muted: 0 0% 96.1%;
     --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
+    /* Updated accent to orange - complementary to green */
+    --accent: 22 85% 88%;
+    --accent-foreground: 22 60% 25%;
     /* Made destructive color much lighter for better visibility */
     --destructive: 0 70% 65%;
     --destructive-foreground: 0 0% 98%;
@@ -52,13 +53,14 @@
     --popover-foreground: 0 0% 98%;
     --primary: 158 64% 52%; /* Keep original bright teal for dark mode */
     --primary-foreground: 0 0% 98%;
-    /* Reverted secondary to original without warm tints */
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 98%;
+    /* Updated secondary to a darker green shade for dark mode */
+    --secondary: 158 20% 12%;
+    --secondary-foreground: 158 40% 85%;
     --muted: 0 0% 10%;
     --muted-foreground: 0 0% 64%;
-    --accent: 0 0% 10%;
-    --accent-foreground: 0 0% 98%;
+    /* Updated accent to darker orange for dark mode */
+    --accent: 22 70% 15%;
+    --accent-foreground: 22 85% 85%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 14.9%;
