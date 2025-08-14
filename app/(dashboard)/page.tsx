@@ -1,37 +1,37 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Database, Bot, Play, BarChart3, Plus, Activity, Clock } from "lucide-react"
+import { Database, Bot, Play, BarChart3, Plus, Activity, Clock, Zap } from "lucide-react"
 import Link from "next/link"
 
 export default function DashboardPage() {
   return (
-    <div className="p-6 space-y-6">
-      {/* Welcome Section */}
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="space-y-2">
-        <h1 className="font-heading text-3xl font-bold">
-          Welcome to <span className="text-lerobot-orange">LeRobot</span>
+        <h1 className="font-heading text-3xl font-semibold">
+          Welcome to <span className="text-lerobot-primary">LeRobot</span>
         </h1>
         <p className="text-muted-foreground text-lg">Build and scale robotic agents with our AI-powered platform</p>
       </div>
 
-      {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link href="/datasets">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer border-lerobot-blue/20 hover:border-lerobot-blue/40">
+          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-lerobot-primary/30 hover-lift layer-depth layer-depth-hover">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <Database className="h-8 w-8 text-lerobot-blue" />
+                <div className="p-2 rounded-lg bg-lerobot-primary/10">
+                  <Database className="h-5 w-5 text-lerobot-primary" />
+                </div>
                 <div>
-                  <CardTitle className="text-base">Datasets</CardTitle>
-                  <CardDescription>Manage training data</CardDescription>
+                  <CardTitle className="text-base font-heading">Datasets</CardTitle>
+                  <CardDescription className="text-sm">Training data</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">847</div>
-                <Button size="sm" variant="outline">
-                  <Plus className="h-4 w-4 mr-1" />
+                <div className="text-2xl font-semibold font-mono-tech">847</div>
+                <Button size="sm" variant="outline" className="h-7 text-xs bg-layer-2 hover:bg-layer-3">
+                  <Plus className="h-3 w-3 mr-1" />
                   New
                 </Button>
               </div>
@@ -40,132 +40,123 @@ export default function DashboardPage() {
         </Link>
 
         <Link href="/robots">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer border-lerobot-green/20 hover:border-lerobot-green/40">
+          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-lerobot-primary/30 hover-lift layer-depth layer-depth-hover">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <Bot className="h-8 w-8 text-lerobot-green" />
+                <div className="p-2 rounded-lg bg-lerobot-primary/10">
+                  <Bot className="h-5 w-5 text-lerobot-primary" />
+                </div>
                 <div>
-                  <CardTitle className="text-base">Robots</CardTitle>
-                  <CardDescription>Connected agents</CardDescription>
+                  <CardTitle className="text-base font-heading">Robots</CardTitle>
+                  <CardDescription className="text-sm">Connected agents</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">12</div>
-                <div className="text-sm text-lerobot-green font-medium">Online</div>
+                <div className="text-2xl font-semibold font-mono-tech">12</div>
+                <div className="text-xs text-lerobot-primary font-medium bg-lerobot-primary/10 px-2 py-1 rounded">
+                  Online
+                </div>
               </div>
             </CardContent>
           </Card>
         </Link>
 
         <Link href="/missions">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer border-lerobot-orange/20 hover:border-lerobot-orange/40">
+          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-lerobot-primary/30 hover-lift layer-depth layer-depth-hover">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <Play className="h-8 w-8 text-lerobot-orange" />
+                <div className="p-2 rounded-lg bg-lerobot-primary/10">
+                  <Play className="h-5 w-5 text-lerobot-primary" />
+                </div>
                 <div>
-                  <CardTitle className="text-base">Missions</CardTitle>
-                  <CardDescription>Active operations</CardDescription>
+                  <CardTitle className="text-base font-heading">Missions</CardTitle>
+                  <CardDescription className="text-sm">Active operations</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">23</div>
-                <div className="text-sm text-lerobot-orange font-medium">Running</div>
+                <div className="text-2xl font-semibold font-mono-tech">23</div>
+                <div className="text-xs text-lerobot-primary font-medium bg-lerobot-primary/10 px-2 py-1 rounded">
+                  Running
+                </div>
               </div>
             </CardContent>
           </Card>
         </Link>
 
         <Link href="/analytics">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card className="bg-layer-1 hover:bg-layer-2 transition-all duration-200 cursor-pointer hover:border-lerobot-primary/30 hover-lift layer-depth layer-depth-hover">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <BarChart3 className="h-8 w-8 text-lerobot-blue" />
+                <div className="p-2 rounded-lg bg-lerobot-primary/10">
+                  <BarChart3 className="h-5 w-5 text-lerobot-primary" />
+                </div>
                 <div>
-                  <CardTitle className="text-base">Analytics</CardTitle>
-                  <CardDescription>Performance metrics</CardDescription>
+                  <CardTitle className="text-base font-heading">Analytics</CardTitle>
+                  <CardDescription className="text-sm">Performance metrics</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">99.9%</div>
-                <div className="text-sm text-lerobot-green font-medium">Uptime</div>
+                <div className="text-2xl font-semibold font-mono-tech">99.9%</div>
+                <div className="text-xs text-lerobot-primary font-medium bg-lerobot-primary/10 px-2 py-1 rounded">
+                  Uptime
+                </div>
               </div>
             </CardContent>
           </Card>
         </Link>
       </div>
 
-      {/* System Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-heading flex items-center gap-2">
-              <Activity className="h-5 w-5" />
+        <Card className="bg-layer-1 layer-depth">
+          <CardHeader className="pb-4">
+            <CardTitle className="font-heading text-lg flex items-center gap-2">
+              <Activity className="h-5 w-5 text-lerobot-primary" />
               System Status
             </CardTitle>
-            <CardDescription>Current platform health and performance</CardDescription>
+            <CardDescription>Platform health and performance</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {[
-              { label: "Platform Status", value: "Operational", color: "text-lerobot-green" },
-              { label: "Active Robots", value: "12/15", color: "text-lerobot-blue" },
-              { label: "Running Missions", value: "23", color: "text-lerobot-orange" },
+              { label: "Platform Status", value: "Operational", color: "text-lerobot-primary" },
+              { label: "Active Robots", value: "12/15", color: "text-lerobot-primary" },
+              { label: "Running Missions", value: "23", color: "text-lerobot-primary" },
               { label: "Data Storage", value: "2.4TB used", color: "text-muted-foreground" },
             ].map((item, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-accent/30">
-                <span className="font-medium">{item.label}</span>
-                <span className={`font-mono ${item.color}`}>{item.value}</span>
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-layer-2">
+                <span className="text-sm font-medium">{item.label}</span>
+                <span className={`font-mono-tech text-sm font-medium ${item.color}`}>{item.value}</span>
               </div>
             ))}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-heading flex items-center gap-2">
-              <Clock className="h-5 w-5" />
+        <Card className="bg-layer-1 layer-depth">
+          <CardHeader className="pb-4">
+            <CardTitle className="font-heading text-lg flex items-center gap-2">
+              <Clock className="h-5 w-5 text-lerobot-primary" />
               Recent Activity
             </CardTitle>
             <CardDescription>Latest updates from your robotic agents</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {[
-                {
-                  type: "dataset",
-                  message: "New dataset 'kitchen_tasks_v2' uploaded",
-                  time: "2 minutes ago",
-                  color: "text-lerobot-blue",
-                },
-                {
-                  type: "robot",
-                  message: "Robot ARM-001 completed mission successfully",
-                  time: "5 minutes ago",
-                  color: "text-lerobot-green",
-                },
-                {
-                  type: "mission",
-                  message: "Mission 'object_sorting' started",
-                  time: "12 minutes ago",
-                  color: "text-lerobot-orange",
-                },
-                {
-                  type: "system",
-                  message: "System backup completed",
-                  time: "1 hour ago",
-                  color: "text-muted-foreground",
-                },
+                { message: "New dataset 'kitchen_tasks_v2' uploaded", time: "2 minutes ago" },
+                { message: "Robot ARM-001 completed mission successfully", time: "5 minutes ago" },
+                { message: "Mission 'object_sorting' started", time: "12 minutes ago" },
+                { message: "System backup completed", time: "1 hour ago" },
               ].map((activity, index) => (
-                <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-accent/30">
-                  <div className={`w-2 h-2 rounded-full ${activity.color.replace("text-", "bg-")}`} />
+                <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-layer-2">
+                  <div className="w-2 h-2 rounded-full bg-lerobot-primary" />
                   <div className="flex-1">
                     <p className="text-sm font-medium">{activity.message}</p>
-                    <p className="text-xs text-muted-foreground">{activity.time}</p>
+                    <p className="text-xs text-muted-foreground font-mono-tech">{activity.time}</p>
                   </div>
                 </div>
               ))}
@@ -174,41 +165,41 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Quick Start */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-heading">Quick Start</CardTitle>
+      <Card className="bg-layer-1 layer-depth">
+        <CardHeader className="pb-4">
+          <CardTitle className="font-heading text-lg flex items-center gap-2">
+            <Zap className="h-5 w-5 text-lerobot-primary" />
+            Quick Start
+          </CardTitle>
           <CardDescription>Get started with common tasks</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link href="/datasets/recorder">
-              <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center gap-2 bg-transparent">
-                <Database className="h-6 w-6 text-lerobot-blue" />
-                <div className="text-center">
-                  <p className="font-medium">Record Dataset</p>
-                  <p className="text-xs text-muted-foreground">Start recording new training data</p>
-                </div>
-              </Button>
-            </Link>
-            <Link href="/robots">
-              <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center gap-2 bg-transparent">
-                <Bot className="h-6 w-6 text-lerobot-green" />
-                <div className="text-center">
-                  <p className="font-medium">Connect Robot</p>
-                  <p className="text-xs text-muted-foreground">Add a new robot to your fleet</p>
-                </div>
-              </Button>
-            </Link>
-            <Link href="/missions">
-              <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center gap-2 bg-transparent">
-                <Play className="h-6 w-6 text-lerobot-orange" />
-                <div className="text-center">
-                  <p className="font-medium">Create Mission</p>
-                  <p className="text-xs text-muted-foreground">Start a new robotic mission</p>
-                </div>
-              </Button>
-            </Link>
+            {[
+              {
+                href: "/datasets/recorder",
+                icon: Database,
+                title: "Record Dataset",
+                desc: "Start recording new training data",
+              },
+              { href: "/robots", icon: Bot, title: "Connect Robot", desc: "Add a new robot to your fleet" },
+              { href: "/missions", icon: Play, title: "Create Mission", desc: "Start a new robotic mission" },
+            ].map((item, index) => (
+              <Link key={index} href={item.href}>
+                <Button
+                  variant="outline"
+                  className="w-full h-auto p-4 flex flex-col items-center gap-3 hover:bg-layer-2 hover:border-lerobot-primary/30 transition-all hover-lift bg-layer-1 layer-depth-hover"
+                >
+                  <div className="p-2 rounded-lg bg-lerobot-primary/10">
+                    <item.icon className="h-5 w-5 text-lerobot-primary" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-heading font-medium text-sm">{item.title}</p>
+                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  </div>
+                </Button>
+              </Link>
+            ))}
           </div>
         </CardContent>
       </Card>
