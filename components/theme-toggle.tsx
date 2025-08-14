@@ -32,7 +32,11 @@ export function ThemeToggle() {
             }}
             className="absolute"
           >
-            {theme === "dark" ? <Moon className="h-4 w-4 text-primary" /> : <Sun className="h-4 w-4 text-yellow-500" />}
+            {theme === "light" ? (
+              <Sun className="h-4 w-4 text-yellow-500" />
+            ) : (
+              <Moon className="h-4 w-4 text-primary" />
+            )}
           </motion.div>
         </AnimatePresence>
         <span className="sr-only">Toggle theme</span>

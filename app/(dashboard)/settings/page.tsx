@@ -13,10 +13,10 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">Configure your LeRobot platform</p>
+          <h1 className="font-sans text-3xl font-bold">Settings</h1>
+          <p className="text-muted-foreground font-sans">Configure your HCLTech platform</p>
         </div>
-        <Button className="bg-lerobot-orange hover:bg-lerobot-orange/90">
+        <Button className="bg-primary hover:bg-primary/90">
           <Save className="h-4 w-4 mr-2" />
           Save Changes
         </Button>
@@ -33,14 +33,14 @@ export default function SettingsPage() {
         <TabsContent value="general" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="font-heading">Platform Configuration</CardTitle>
+              <CardTitle className="font-sans">Platform Configuration</CardTitle>
               <CardDescription>Basic platform settings and preferences</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="platform-name">Platform Name</Label>
-                  <Input id="platform-name" defaultValue="LeRobot Platform" />
+                  <Input id="platform-name" defaultValue="HCLTech Platform" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="timezone">Timezone</Label>
@@ -58,13 +58,6 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Dark Mode</Label>
-                    <p className="text-sm text-muted-foreground">Use dark theme for the interface</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <Label>Auto-save Datasets</Label>
@@ -95,7 +88,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="storage-path">Default Storage Path</Label>
-                  <Input id="storage-path" defaultValue="/data/lerobot" />
+                  <Input id="storage-path" defaultValue="/data/hcltech" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="retention">Data Retention (days)</Label>
