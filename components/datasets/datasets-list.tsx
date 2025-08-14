@@ -5,6 +5,7 @@ import type React from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { CustomDropdown } from "@/components/ui/custom-dropdown"
 import {
   Plus,
   FolderPlus,
@@ -18,13 +19,6 @@ import {
   MoreHorizontal,
   X,
 } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -418,8 +412,8 @@ export function DatasetsList() {
                                           {dataset.description}
                                         </p>
                                       </div>
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
+                                      <CustomDropdown
+                                        trigger={
                                           <Button
                                             size="sm"
                                             variant="ghost"
@@ -427,28 +421,27 @@ export function DatasetsList() {
                                           >
                                             <MoreHorizontal className="h-4 w-4" />
                                           </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                          <DropdownMenuItem onClick={() => router.push(`/datasets/${dataset.id}`)}>
-                                            <Eye className="h-4 w-4 mr-2" />
-                                            View Dataset
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem
-                                            onClick={() => removeFromCollection(collection.id, dataset.id)}
-                                          >
-                                            <ArrowLeft className="h-4 w-4 mr-2" />
-                                            Remove from Collection
-                                          </DropdownMenuItem>
-                                          <DropdownMenuSeparator />
-                                          <DropdownMenuItem
-                                            onClick={() => handleDeleteDataset(dataset.id)}
-                                            className="text-red-600 focus:text-red-600"
-                                          >
-                                            <Trash2 className="h-4 w-4 mr-2" />
-                                            Delete Dataset
-                                          </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
+                                        }
+                                        items={[
+                                          {
+                                            label: "View Dataset",
+                                            icon: <Eye className="h-4 w-4" />,
+                                            onClick: () => router.push(`/datasets/${dataset.id}`),
+                                          },
+                                          {
+                                            label: "Remove from Collection",
+                                            icon: <ArrowLeft className="h-4 w-4" />,
+                                            onClick: () => removeFromCollection(collection.id, dataset.id),
+                                          },
+                                          {
+                                            label: "Delete Dataset",
+                                            icon: <Trash2 className="h-4 w-4" />,
+                                            onClick: () => handleDeleteDataset(dataset.id),
+                                            destructive: true,
+                                            separator: true,
+                                          },
+                                        ]}
+                                      />
                                     </div>
 
                                     <div className="flex items-center justify-between text-xs">
