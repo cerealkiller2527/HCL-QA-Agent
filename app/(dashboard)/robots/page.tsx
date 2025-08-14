@@ -3,22 +3,15 @@
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Bot, Wifi, WifiOff, Battery, Cpu, Plus, Settings } from "lucide-react"
+import { Bot, Battery, Plus, Settings } from "lucide-react"
 import { mockRobots } from "@/lib/data/mock-datasets"
 import { PageHeader } from "@/components/ui/page-header"
-import { StatCard } from "@/components/ui/stat-card"
+import { MetricCard } from "@/components/ui/metric-card"
 import { StatusBadge } from "@/components/ui/status-badge"
-import { ANIMATION_VARIANTS, ANIMATION_DURATION } from "@/lib/constants/animations"
+import { ANIMATION, STATUS_CONFIG } from "@/lib/constants"
 import { createStaggerAnimation } from "@/lib/utils/animations"
 
 const MotionCard = motion(Card)
-
-const statusConfig = {
-  online: { color: "bg-primary", label: "Online", icon: Wifi },
-  offline: { color: "bg-muted-foreground", label: "Offline", icon: WifiOff },
-  maintenance: { color: "bg-destructive", label: "Maintenance", icon: Settings },
-  busy: { color: "bg-secondary", label: "Busy", icon: Cpu },
-}
 
 const robotTypeConfig = {
   arm: { label: "Robotic Arm", color: "bg-primary/10 text-primary" },
@@ -33,7 +26,7 @@ export default function RobotsPage() {
   const maintenanceRobots = mockRobots.filter((r) => r.status === "maintenance").length
   const avgBattery = Math.round(mockRobots.reduce((acc, r) => acc + (r.batteryLevel || 0), 0) / mockRobots.length)
 
-  const containerVariants = createStaggerAnimation(0.1, ANIMATION_DURATION.medium)
+  const containerVariants = createStaggerAnimation(0.1, ANIMATION.DURATION.medium)
 
   return (
     <motion.div
@@ -54,22 +47,22 @@ export default function RobotsPage() {
       />
 
       <motion.div className="grid grid-cols-1 md:grid-cols-4 gap-4" variants={containerVariants}>
-        <StatCard value={onlineRobots} description="Online" statusColor="bg-primary" index={0} />
-        <StatCard value={maintenanceRobots} description="Maintenance" statusColor="bg-destructive" index={1} />
-        <StatCard value={offlineRobots} description="Offline" statusColor="bg-muted-foreground" index={2} />
-        <StatCard icon={Battery} value={`${avgBattery}%`} description="Avg Battery" index={3} />
+        <MetricCard value={onlineRobots} description="Online" statusColor="bg-primary" />
+        <MetricCard value={maintenanceRobots} description="Maintenance" statusColor="bg-destructive" />
+        <MetricCard value={offlineRobots} description="Offline" statusColor="bg-muted-foreground" />
+        <MetricCard icon={Battery} value={`${avgBattery}%`} description="Avg Battery" />
       </motion.div>
 
       <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" variants={containerVariants}>
         {mockRobots.map((robot, index) => {
-          const StatusIcon = statusConfig[robot.status as keyof typeof statusConfig].icon
+          const StatusIcon = STATUS_CONFIG[robot.status as keyof typeof STATUS_CONFIG].icon
           return (
-            <motion.div key={robot.id} variants={ANIMATION_VARIANTS.staggerItem}>
+            <motion.div key={robot.id} variants={ANIMATION.VARIANTS.staggerItem}>
               <MotionCard
                 className="layer-interactive group"
                 whileHover={{ y: -4, scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                transition={{ duration: ANIMATION_DURATION.fast }}
+                transition={{ duration: ANIMATION.DURATION.fast }}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
@@ -81,7 +74,7 @@ export default function RobotsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <div
-                        className={`w-2 h-2 rounded-full ${statusConfig[robot.status as keyof typeof statusConfig].color}`}
+                        className={`w-2 h-2 rounded-full ${STATUS_CONFIG[robot.status as keyof typeof STATUS_CONFIG].color}`}
                       />
                       <StatusIcon className="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -95,7 +88,7 @@ export default function RobotsPage() {
                       className={robotTypeConfig[robot.type as keyof typeof robotTypeConfig].color}
                     />
                     <StatusBadge
-                      status={statusConfig[robot.status as keyof typeof statusConfig].label}
+                      status={STATUS_CONFIG[robot.status as keyof typeof STATUS_CONFIG].label}
                       variant={
                         robot.status === "online"
                           ? "default"
@@ -124,7 +117,7 @@ export default function RobotsPage() {
                           }`}
                           initial={{ width: 0 }}
                           animate={{ width: `${robot.batteryLevel}%` }}
-                          transition={{ delay: index * 0.1 + 0.5, duration: ANIMATION_DURATION.medium }}
+                          transition={{ delay: index * 0.1 + 0.5, duration: ANIMATION.DURATION.medium }}
                         />
                       </div>
                     </div>

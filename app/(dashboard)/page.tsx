@@ -5,14 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Database, Bot, Play, BarChart3, Plus, Activity, Clock, Zap } from "lucide-react"
 import Link from "next/link"
-import { ANIMATION_VARIANTS, ANIMATION_DURATION, ANIMATION_EASING } from "@/lib/constants/animations"
+import { ANIMATION } from "@/lib/constants"
 import { createStaggerAnimation, createHoverAnimation } from "@/lib/utils/animations"
 
 const MotionCard = motion(Card)
 const MotionButton = motion(Button)
 
 export default function DashboardPage() {
-  const containerVariants = createStaggerAnimation(0.1, ANIMATION_DURATION.medium)
+  const containerVariants = createStaggerAnimation(0.1, ANIMATION.duration.medium)
 
   const cardHover = createHoverAnimation("lift")
   const buttonHover = createHoverAnimation("scale")
@@ -24,7 +24,7 @@ export default function DashboardPage() {
       initial="initial"
       animate="animate"
     >
-      <motion.div className="space-y-2" variants={ANIMATION_VARIANTS.slideInFromBottom}>
+      <motion.div className="space-y-2" variants={ANIMATION.variants.slideUp}>
         <h1 className="text-display">
           Welcome to <span className="text-primary">LeRobot</span>
         </h1>
@@ -54,20 +54,20 @@ export default function DashboardPage() {
             status: "Uptime",
           },
         ].map((item, index) => (
-          <motion.div key={index} variants={ANIMATION_VARIANTS.staggerItem}>
+          <motion.div key={index} variants={ANIMATION.variants.staggerItem}>
             <Link href={item.href}>
               <MotionCard
                 className="layer-interactive cursor-pointer"
                 whileHover={cardHover}
                 whileTap={{ scale: 0.98 }}
-                transition={{ duration: ANIMATION_DURATION.fast, ease: ANIMATION_EASING.easeOut }}
+                transition={{ duration: ANIMATION.duration.fast, ease: ANIMATION.easing.easeOut }}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
                     <motion.div
                       className="p-2 rounded-lg bg-primary/10"
                       whileHover={{ scale: 1.1 }}
-                      transition={{ duration: ANIMATION_DURATION.fast }}
+                      transition={{ duration: ANIMATION.duration.fast }}
                     >
                       <item.icon className="h-5 w-5 text-primary" />
                     </motion.div>
@@ -83,7 +83,7 @@ export default function DashboardPage() {
                       className="text-2xl font-mono-medium"
                       initial={{ scale: 0.8, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: index * 0.1 + 0.3, duration: ANIMATION_DURATION.medium }}
+                      transition={{ delay: index * 0.1 + 0.3, duration: ANIMATION.duration.medium }}
                     >
                       {item.value}
                     </motion.div>
@@ -104,8 +104,8 @@ export default function DashboardPage() {
       </motion.div>
 
       <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6" variants={containerVariants}>
-        <motion.div variants={ANIMATION_VARIANTS.staggerItem}>
-          <MotionCard className="layer-card" whileHover={cardHover} transition={{ duration: ANIMATION_DURATION.fast }}>
+        <motion.div variants={ANIMATION.variants.staggerItem}>
+          <MotionCard className="layer-card" whileHover={cardHover} transition={{ duration: ANIMATION.duration.fast }}>
             <CardHeader className="pb-4">
               <CardTitle className="text-subtitle flex items-center gap-2">
                 <Activity className="h-5 w-5 text-primary" />
@@ -125,7 +125,7 @@ export default function DashboardPage() {
                   className="flex items-center justify-between p-3 rounded-lg bg-layer-2"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 + 0.5, duration: ANIMATION_DURATION.medium }}
+                  transition={{ delay: index * 0.1 + 0.5, duration: ANIMATION.duration.medium }}
                   whileHover={{ x: 4 }}
                 >
                   <span className="text-label">{item.label}</span>
@@ -136,8 +136,8 @@ export default function DashboardPage() {
           </MotionCard>
         </motion.div>
 
-        <motion.div variants={ANIMATION_VARIANTS.staggerItem}>
-          <MotionCard className="layer-card" whileHover={cardHover} transition={{ duration: ANIMATION_DURATION.fast }}>
+        <motion.div variants={ANIMATION.variants.staggerItem}>
+          <MotionCard className="layer-card" whileHover={cardHover} transition={{ duration: ANIMATION.duration.fast }}>
             <CardHeader className="pb-4">
               <CardTitle className="text-subtitle flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" />
@@ -158,7 +158,7 @@ export default function DashboardPage() {
                     className="flex items-center gap-3 p-3 rounded-lg bg-layer-2"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 + 0.6, duration: ANIMATION_DURATION.medium }}
+                    transition={{ delay: index * 0.1 + 0.6, duration: ANIMATION.duration.medium }}
                     whileHover={{ scale: 1.02, x: 4 }}
                   >
                     <motion.div
@@ -178,8 +178,8 @@ export default function DashboardPage() {
         </motion.div>
       </motion.div>
 
-      <motion.div variants={ANIMATION_VARIANTS.staggerItem}>
-        <MotionCard className="layer-card" whileHover={cardHover} transition={{ duration: ANIMATION_DURATION.fast }}>
+      <motion.div variants={ANIMATION.variants.staggerItem}>
+        <MotionCard className="layer-card" whileHover={cardHover} transition={{ duration: ANIMATION.duration.fast }}>
           <CardHeader className="pb-4">
             <CardTitle className="text-subtitle flex items-center gap-2">
               <Zap className="h-5 w-5 text-primary" />
@@ -199,19 +199,19 @@ export default function DashboardPage() {
                 { href: "/robots", icon: Bot, title: "Connect Robot", desc: "Add a new robot to your fleet" },
                 { href: "/missions", icon: Play, title: "Create Mission", desc: "Start a new robotic mission" },
               ].map((item, index) => (
-                <motion.div key={index} variants={ANIMATION_VARIANTS.staggerItem}>
+                <motion.div key={index} variants={ANIMATION.variants.staggerItem}>
                   <Link href={item.href}>
                     <MotionButton
                       variant="outline"
                       className="w-full h-auto p-4 flex flex-col items-center gap-3 layer-interactive bg-transparent"
                       whileHover={buttonHover}
                       whileTap={{ scale: 0.95 }}
-                      transition={{ duration: ANIMATION_DURATION.fast }}
+                      transition={{ duration: ANIMATION.duration.fast }}
                     >
                       <motion.div
                         className="p-2 rounded-lg bg-primary/10"
                         whileHover={{ scale: 1.1, rotate: 5 }}
-                        transition={{ duration: ANIMATION_DURATION.fast }}
+                        transition={{ duration: ANIMATION.duration.fast }}
                       >
                         <item.icon className="h-5 w-5 text-primary" />
                       </motion.div>

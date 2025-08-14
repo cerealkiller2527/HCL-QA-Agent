@@ -19,19 +19,15 @@ type ThemeProviderState = {
 const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined)
 
 export function ThemeProvider({ children, defaultTheme = "dark", storageKey = "lerobot-theme" }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme | undefined>(undefined)
-  const [mounted, setMounted] = useState(false)
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window !== "undefined") {
+      const savedTheme = localStorage.getItem(storageKey) as Theme
+      return savedTheme === "dark" || savedTheme === "light" ? savedTheme : defaultTheme
+    }
+    return defaultTheme
+  })
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem(storageKey) as Theme
-    const initialTheme = savedTheme === "dark" || savedTheme === "light" ? savedTheme : defaultTheme
-    setThemeState(initialTheme)
-    setMounted(true)
-  }, [defaultTheme, storageKey])
-
-  useEffect(() => {
-    if (!theme) return
-
     const root = document.documentElement
     root.classList.remove("light", "dark")
     root.classList.add(theme)
@@ -40,14 +36,6 @@ export function ThemeProvider({ children, defaultTheme = "dark", storageKey = "l
   const setTheme = (newTheme: Theme) => {
     localStorage.setItem(storageKey, newTheme)
     setThemeState(newTheme)
-  }
-
-  if (!mounted || !theme) {
-    return (
-      <ThemeProviderContext.Provider value={{ theme: defaultTheme, setTheme }}>
-        {children}
-      </ThemeProviderContext.Provider>
-    )
   }
 
   return <ThemeProviderContext.Provider value={{ theme, setTheme }}>{children}</ThemeProviderContext.Provider>

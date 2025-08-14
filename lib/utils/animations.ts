@@ -1,9 +1,9 @@
 "use client"
 
 import type { Variants } from "framer-motion"
-import { ANIMATION_DURATION, ANIMATION_EASING } from "@/lib/constants/animations"
+import { ANIMATION } from "@/lib/constants"
 
-export function createStaggerAnimation(staggerDelay = 0.1, duration: number = ANIMATION_DURATION.medium): Variants {
+export function createStaggerAnimation(staggerDelay = 0.1, duration: number = ANIMATION.duration.medium): Variants {
   return {
     animate: {
       transition: {
@@ -35,16 +35,16 @@ export function createSlideAnimation(direction: "up" | "down" | "left" | "right"
       x: 0,
       y: 0,
       transition: {
-        duration: ANIMATION_DURATION.medium,
-        ease: ANIMATION_EASING.easeOut,
+        duration: ANIMATION.duration.medium,
+        ease: ANIMATION.easing.easeOut,
       },
     },
     exit: {
       opacity: 0,
       ...getInitialPosition(),
       transition: {
-        duration: ANIMATION_DURATION.fast,
-        ease: ANIMATION_EASING.easeIn,
+        duration: ANIMATION.duration.fast,
+        ease: ANIMATION.easing.default,
       },
     },
   }
@@ -56,17 +56,17 @@ export function createHoverAnimation(type: "lift" | "glow" | "scale" = "lift") {
       return {
         y: -2,
         scale: 1.01,
-        transition: { duration: ANIMATION_DURATION.fast, ease: ANIMATION_EASING.easeOut },
+        transition: { duration: ANIMATION.duration.fast, ease: ANIMATION.easing.easeOut },
       }
     case "glow":
       return {
         boxShadow: "0 0 20px rgba(20, 184, 166, 0.2)",
-        transition: { duration: ANIMATION_DURATION.medium, ease: ANIMATION_EASING.default },
+        transition: { duration: ANIMATION.duration.medium, ease: ANIMATION.easing.default },
       }
     case "scale":
       return {
         scale: 1.05,
-        transition: { duration: ANIMATION_DURATION.fast, ease: ANIMATION_EASING.spring },
+        transition: { duration: ANIMATION.duration.fast, ease: ANIMATION.easing.default },
       }
   }
 }

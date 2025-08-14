@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { motion } from "framer-motion"
-import { ANIMATION_VARIANTS } from "@/lib/constants/animations"
+import { ANIMATION } from "@/lib/constants"
 
 interface PageHeaderProps {
   title: string
@@ -13,7 +13,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, action }: PageHeaderProps) {
   return (
-    <motion.div className="flex items-center justify-between" variants={ANIMATION_VARIANTS.slideInFromBottom}>
+    <motion.div className="flex items-center justify-between" variants={ANIMATION.variants.slideUp}>
       <div className="space-y-1">
         <h1 className="text-display">{title}</h1>
         <p className="text-muted-foreground text-body">{description}</p>
