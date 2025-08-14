@@ -4,8 +4,37 @@ import type React from "react"
 
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Plus, FolderPlus, Folder, FolderOpen, Search, ChevronDown, ChevronRight, Eye, ArrowLeft } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Plus,
+  FolderPlus,
+  Folder,
+  FolderOpen,
+  ChevronDown,
+  ChevronRight,
+  Eye,
+  ArrowLeft,
+  Trash2,
+  MoreHorizontal,
+  X,
+} from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { mockDatasets } from "@/lib/data/mock-datasets"
 import { DatasetCard } from "@/components/datasets/dataset-card"
 import { DatasetFilters } from "@/components/datasets/dataset-filters"
@@ -32,8 +61,13 @@ export function DatasetsList() {
   const [dragOverCollection, setDragOverCollection] = useState<string | null>(null)
   const [showCollectionModal, setShowCollectionModal] = useState(false)
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set())
-  const [collectionSearchQueries, setCollectionSearchQueries] = useState<Record<string, string>>({})
   const [dragHoverTimeout, setDragHoverTimeout] = useState<NodeJS.Timeout | null>(null)
+
+  const [selectedDatasets, setSelectedDatasets] = useState<Set<string>>(new Set())
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [datasetToDelete, setDatasetToDelete] = useState<string | null>(null)
+  const [showMassDeleteDialog, setShowMassDeleteDialog] = useState(false)
 
   const datasets = mockDatasets || []
 
@@ -155,21 +189,62 @@ export function DatasetsList() {
     )
   }
 
-  const getFilteredCollectionDatasets = (collection: Collection) => {
-    const collectionDatasets = collection.datasetIds
-      .map((id) => datasets.find((d) => d.id === id))
-      .filter(Boolean) as typeof datasets
+  const toggleDatasetSelection = (datasetId: string) => {
+    const newSelected = new Set(selectedDatasets)
+    if (newSelected.has(datasetId)) {
+      newSelected.delete(datasetId)
+    } else {
+      newSelected.add(datasetId)
+    }
+    setSelectedDatasets(newSelected)
+  }
 
-    const searchQuery = collectionSearchQueries[collection.id] || ""
-    if (!searchQuery.trim()) return collectionDatasets
+  const selectAllDatasets = () => {
+    setSelectedDatasets(new Set(filteredDatasets.map((d) => d.id)))
+  }
 
-    const query = searchQuery.toLowerCase()
-    return collectionDatasets.filter(
-      (dataset) =>
-        dataset.name.toLowerCase().includes(query) ||
-        dataset.description.toLowerCase().includes(query) ||
-        dataset.tags.some((tag) => tag.toLowerCase().includes(query)),
+  const clearSelection = () => {
+    setSelectedDatasets(new Set())
+    setIsSelectionMode(false)
+  }
+
+  const handleDeleteDataset = (datasetId: string) => {
+    setDatasetToDelete(datasetId)
+    setShowDeleteDialog(true)
+  }
+
+  const confirmDeleteDataset = () => {
+    if (datasetToDelete) {
+      // Remove from collections first
+      setCollections(
+        collections.map((collection) => ({
+          ...collection,
+          datasetIds: collection.datasetIds.filter((id) => id !== datasetToDelete),
+        })),
+      )
+      // In a real app, you'd delete from the backend here
+      console.log(`Deleting dataset: ${datasetToDelete}`)
+    }
+    setDatasetToDelete(null)
+    setShowDeleteDialog(false)
+  }
+
+  const handleMassDelete = () => {
+    setShowMassDeleteDialog(true)
+  }
+
+  const confirmMassDelete = () => {
+    // Remove selected datasets from collections
+    setCollections(
+      collections.map((collection) => ({
+        ...collection,
+        datasetIds: collection.datasetIds.filter((id) => !selectedDatasets.has(id)),
+      })),
     )
+    // In a real app, you'd delete from the backend here
+    console.log(`Mass deleting datasets:`, Array.from(selectedDatasets))
+    clearSelection()
+    setShowMassDeleteDialog(false)
   }
 
   return (
@@ -181,14 +256,47 @@ export function DatasetsList() {
           <p className="text-muted-foreground font-sans">Manage your robotics training data</p>
         </div>
         <div className="flex space-x-3">
-          <Button variant="outline" className="bg-transparent" onClick={() => setShowCollectionModal(true)}>
-            <FolderPlus className="h-4 w-4 mr-2" />
-            New Collection
-          </Button>
-          <Button className="bg-primary hover:bg-primary/90">
-            <Plus className="h-4 w-4 mr-2" />
-            New Dataset
-          </Button>
+          {isSelectionMode ? (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-muted-foreground font-mono">{selectedDatasets.size} selected</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectAllDatasets}
+                disabled={selectedDatasets.size === filteredDatasets.length}
+              >
+                Select All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleMassDelete}
+                disabled={selectedDatasets.size === 0}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 bg-transparent"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete ({selectedDatasets.size})
+              </Button>
+              <Button variant="outline" size="sm" onClick={clearSelection}>
+                <X className="h-4 w-4 mr-1" />
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <>
+              <Button variant="outline" className="bg-transparent" onClick={() => setIsSelectionMode(true)}>
+                Select
+              </Button>
+              <Button variant="outline" className="bg-transparent" onClick={() => setShowCollectionModal(true)}>
+                <FolderPlus className="h-4 w-4 mr-2" />
+                New Collection
+              </Button>
+              <Button className="bg-primary hover:bg-primary/90">
+                <Plus className="h-4 w-4 mr-2" />
+                New Dataset
+              </Button>
+            </>
+          )}
         </div>
       </motion.div>
 
@@ -199,7 +307,9 @@ export function DatasetsList() {
           <div className="space-y-4">
             {collections.map((collection) => {
               const isExpanded = expandedCollections.has(collection.id)
-              const filteredDatasets = getFilteredCollectionDatasets(collection)
+              const collectionDatasets = collection.datasetIds
+                .map((id) => datasets.find((d) => d.id === id))
+                .filter(Boolean) as typeof datasets
 
               return (
                 <motion.div
@@ -254,7 +364,7 @@ export function DatasetsList() {
                     {/* Collection Preview (when collapsed) */}
                     {!isExpanded && collection.datasetIds.length > 0 && (
                       <div className="mt-4 flex flex-wrap gap-2">
-                        {collection.datasetIds.slice(0, 6).map((datasetId, index) => {
+                        {collection.datasetIds.slice(0, 6).map((datasetId) => {
                           const dataset = datasets.find((d) => d.id === datasetId)
                           return dataset ? (
                             <div
@@ -290,60 +400,55 @@ export function DatasetsList() {
                         className="border-t border-border"
                       >
                         <div className="p-6 pt-4 space-y-4">
-                          {/* Search within collection */}
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              placeholder={`Search in ${collection.name}...`}
-                              value={collectionSearchQueries[collection.id] || ""}
-                              onChange={(e) =>
-                                setCollectionSearchQueries((prev) => ({
-                                  ...prev,
-                                  [collection.id]: e.target.value,
-                                }))
-                              }
-                              className="pl-10 bg-background border-border"
-                            />
-                          </div>
-
-                          {/* Datasets in collection */}
-                          {filteredDatasets.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {filteredDatasets.map((dataset) => (
+                          {collectionDatasets.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {collectionDatasets.map((dataset) => (
                                 <motion.div
                                   key={dataset.id}
-                                  className="group relative p-3 bg-background rounded-lg border border-border hover:bg-layer-2 hover:border-primary/30 transition-all duration-200 hover:shadow-sm"
+                                  className="group relative p-4 bg-background rounded-lg border border-border hover:bg-layer-2 hover:border-primary/30 transition-all duration-200 hover:shadow-sm"
                                   initial={{ opacity: 0, y: 20 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   exit={{ opacity: 0, y: -20 }}
                                 >
-                                  <div className="space-y-2">
+                                  <div className="space-y-3">
                                     <div className="flex items-start justify-between">
                                       <div className="flex-1 min-w-0">
                                         <h4 className="font-semibold font-mono text-sm truncate">{dataset.name}</h4>
-                                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mt-1">
                                           {dataset.description}
                                         </p>
                                       </div>
-                                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => router.push(`/datasets/${dataset.id}`)}
-                                          className="h-7 w-7 p-0 hover:bg-primary/10 hover:border-primary/30"
-                                        >
-                                          <Eye className="h-3 w-3" />
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => removeFromCollection(collection.id, dataset.id)}
-                                          className="h-7 w-7 p-0 hover:bg-red-50 hover:border-red-200"
-                                          title="Remove from collection"
-                                        >
-                                          <ArrowLeft className="h-3 w-3" />
-                                        </Button>
-                                      </div>
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                          >
+                                            <MoreHorizontal className="h-4 w-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                          <DropdownMenuItem onClick={() => router.push(`/datasets/${dataset.id}`)}>
+                                            <Eye className="h-4 w-4 mr-2" />
+                                            View Dataset
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => removeFromCollection(collection.id, dataset.id)}
+                                          >
+                                            <ArrowLeft className="h-4 w-4 mr-2" />
+                                            Remove from Collection
+                                          </DropdownMenuItem>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem
+                                            onClick={() => handleDeleteDataset(dataset.id)}
+                                            className="text-red-600 focus:text-red-600"
+                                          >
+                                            <Trash2 className="h-4 w-4 mr-2" />
+                                            Delete Dataset
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
                                     </div>
 
                                     <div className="flex items-center justify-between text-xs">
@@ -362,6 +467,11 @@ export function DatasetsList() {
                                         <span className="text-muted-foreground font-mono">{dataset.size}</span>
                                       </div>
                                       <span className="text-muted-foreground font-mono">{dataset.robotType}</span>
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                      <span>Created: {dataset.createdAt}</span>
+                                      <span>{dataset.episodes} episodes</span>
                                     </div>
 
                                     {dataset.tags.length > 0 && (
@@ -388,13 +498,9 @@ export function DatasetsList() {
                           ) : (
                             <div className="text-center py-8">
                               <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-                                <Search className="h-6 w-6 text-muted-foreground" />
+                                <Folder className="h-6 w-6 text-muted-foreground" />
                               </div>
-                              <p className="text-sm text-muted-foreground">
-                                {collectionSearchQueries[collection.id]
-                                  ? "No datasets match your search"
-                                  : "No datasets in this collection"}
-                              </p>
+                              <p className="text-sm text-muted-foreground">No datasets in this collection</p>
                             </div>
                           )}
                         </div>
@@ -444,16 +550,30 @@ export function DatasetsList() {
             {filteredDatasets.map((dataset) => (
               <motion.div
                 key={dataset.id}
-                draggable
+                draggable={!isSelectionMode}
                 onDragStart={() => handleDragStart(dataset.id)}
                 onDragEnd={handleDragEnd}
-                className={`transition-all duration-300 cursor-grab active:cursor-grabbing ${
-                  draggedDataset === dataset.id ? "opacity-60 scale-95 rotate-2 z-50" : "hover:scale-[1.02]"
-                }`}
-                whileDrag={{ scale: 0.95, rotate: 5, zIndex: 50 }}
+                className={`relative transition-all duration-300 ${
+                  isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
+                } ${draggedDataset === dataset.id ? "opacity-60 scale-95 rotate-2 z-50" : "hover:scale-[1.02]"}`}
+                whileDrag={!isSelectionMode ? { scale: 0.95, rotate: 5, zIndex: 50 } : {}}
                 layout
+                onClick={() => isSelectionMode && toggleDatasetSelection(dataset.id)}
               >
-                <DatasetCard dataset={dataset} />
+                {isSelectionMode && (
+                  <div className="absolute top-3 left-3 z-10">
+                    <Checkbox
+                      checked={selectedDatasets.has(dataset.id)}
+                      onCheckedChange={() => toggleDatasetSelection(dataset.id)}
+                      className="bg-background border-2 border-primary"
+                    />
+                  </div>
+                )}
+                <DatasetCard
+                  dataset={dataset}
+                  onDelete={() => handleDeleteDataset(dataset.id)}
+                  showDeleteButton={!isSelectionMode}
+                />
               </motion.div>
             ))}
           </motion.div>
@@ -482,6 +602,42 @@ export function DatasetsList() {
         onOpenChange={setShowCollectionModal}
         onCreateCollection={createCollection}
       />
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Dataset</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this dataset? This action cannot be undone and will permanently remove all
+              associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteDataset} className="bg-red-600 hover:bg-red-700">
+              Delete Dataset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showMassDeleteDialog} onOpenChange={setShowMassDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Multiple Datasets</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedDatasets.size} dataset{selectedDatasets.size !== 1 ? "s" : ""}?
+              This action cannot be undone and will permanently remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmMassDelete} className="bg-red-600 hover:bg-red-700">
+              Delete {selectedDatasets.size} Dataset{selectedDatasets.size !== 1 ? "s" : ""}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   )
 }

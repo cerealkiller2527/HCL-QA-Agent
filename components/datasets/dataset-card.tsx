@@ -5,7 +5,18 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, HardDrive, Eye, Download, Play, AlertCircle, CheckCircle, Loader2 } from "lucide-react"
+import {
+  Calendar,
+  Clock,
+  HardDrive,
+  Eye,
+  Download,
+  Play,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  Trash2,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ANIMATION } from "@/lib/constants"
 
@@ -52,9 +63,11 @@ function formatDuration(seconds: number): string {
 
 interface DatasetCardProps {
   dataset: Dataset
+  onDelete?: () => void
+  showDeleteButton?: boolean
 }
 
-export function DatasetCard({ dataset }: DatasetCardProps) {
+export function DatasetCard({ dataset, onDelete, showDeleteButton = true }: DatasetCardProps) {
   const router = useRouter()
   const StatusIcon = statusConfig[dataset.status].icon
   const isProcessing = dataset.status === "processing"
@@ -133,6 +146,19 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
             <Button size="sm" variant="outline" className="bg-transparent hover:bg-primary/10">
               <Download className="h-4 w-4" />
             </Button>
+            {showDeleteButton && onDelete && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-transparent hover:bg-red-50 hover:border-red-200 hover:text-red-600"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete()
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
