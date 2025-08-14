@@ -97,13 +97,31 @@
   body {
     @apply bg-background text-foreground;
     /* Enhanced theme transition with smoother easing */
-    transition: background-color 0.6s cubic-bezier(0.23, 1, 0.32, 1), color 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+    transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
   }
 
   /* Added smooth transitions for all theme-aware elements */
   * {
-    transition: background-color 0.4s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.4s cubic-bezier(0.23, 1, 0.32, 1),
-      color 0.4s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    transition:
+      background-color 0.3s ease-in-out,
+      border-color 0.3s ease-in-out,
+      color 0.3s ease-in-out,
+      box-shadow 0.3s ease-in-out,
+      opacity 0.3s ease-in-out;
+  }
+
+  /* Ensure buttons and interactive elements transition together */
+  button,
+  [role="button"],
+  .clickable {
+    transition: all 0.3s ease-in-out !important;
+  }
+
+  /* Synchronized sidebar and navigation transitions */
+  nav,
+  aside,
+  .sidebar {
+    transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out, color 0.3s ease-in-out !important;
   }
 }
 
