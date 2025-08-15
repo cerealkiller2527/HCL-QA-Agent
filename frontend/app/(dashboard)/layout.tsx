@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -38,14 +37,18 @@ const HCLTechLogo = ({ className }: { className?: string }) => (
 )
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("sidebar-collapsed")
-      return saved ? JSON.parse(saved) : false
-    }
-    return false
-  })
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
+
+  // Load saved state after mount to avoid hydration issues
+  useEffect(() => {
+    setMounted(true)
+    const saved = localStorage.getItem("sidebar-collapsed")
+    if (saved) {
+      setSidebarCollapsed(JSON.parse(saved))
+    }
+  }, [])
 
   const toggleSidebar = () => {
     const newState = !sidebarCollapsed

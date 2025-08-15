@@ -17,6 +17,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import config
 from schemas.viewer import CameraInfo, VideoUrl, EpisodeVideos, VideoStreamInfo
 from services.video_service import VideoService
+from services.metadata_service import MetadataService
+from services.telemetry_service import TelemetryService
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +33,10 @@ class HuggingFaceService:
         self._cache_ttl = timedelta(minutes=config.CACHE_TTL_MINUTES)
         # Initialize video service
         self.video_service = VideoService(token)
+        # Initialize metadata service
+        self.metadata_service = MetadataService(token)
+        # Initialize telemetry service
+        self.telemetry_service = TelemetryService(token)
     
     def get_user_info(self) -> Dict[str, Any]:
         """Get authenticated user information with caching"""
@@ -242,6 +248,12 @@ class HuggingFaceService:
     
     def _get_lerobot_metadata(self, repo_id: str) -> Optional[Dict[str, Any]]:
         """Fetch LeRobot-specific metadata from meta/info.json"""
+        # First try the metadata service for more comprehensive metadata
+        metadata = self.metadata_service.fetch_meta_data(repo_id)
+        if metadata:
+            return metadata
+        
+        # Fallback to the original method if metadata service fails
         try:
             info_url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/meta/info.json"
             response = requests.get(info_url, headers=self.headers, timeout=5)
@@ -249,6 +261,12 @@ class HuggingFaceService:
                 return response.json()
         except Exception as e:
             logger.debug(f"Could not fetch LeRobot metadata for {repo_id}: {e}")
+        
+        # Try to get dataset info as another fallback
+        dataset_info = self.metadata_service.fetch_dataset_info(repo_id)
+        if dataset_info:
+            return dataset_info
+        
         return None
     
     def get_dataset_details(self, repo_id: str) -> Optional[Dict[str, Any]]:
@@ -383,44 +401,70 @@ class HuggingFaceService:
     
     def _get_episode_telemetry(self, repo_id: str, episode_id: int, 
                                meta_info: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Fetch telemetry data from parquet file"""
-        telemetry_data = []
-        
+        """Fetch telemetry data using TelemetryService"""
         try:
-            if "data_path" in meta_info:
-                data_path = meta_info["data_path"]
-                chunk = episode_id // meta_info.get("chunks_size", 1000)
-                parquet_path = data_path.format(
-                    episode_chunk=chunk,
-                    episode_index=episode_id
-                )
-                parquet_url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/{parquet_path}"
+            # Use the telemetry service to get properly formatted data
+            telemetry = self.telemetry_service.get_episode_telemetry(
+                repo_id=repo_id,
+                episode_id=episode_id,
+                features_metadata=meta_info
+            )
+            
+            if not telemetry:
+                logger.warning(f"No telemetry data available for {repo_id} episode {episode_id}")
+                return []
+            
+            # Convert TelemetryData to frontend format
+            telemetry_data = []
+            
+            # Process timestamps
+            timestamps = telemetry.timestamps if hasattr(telemetry, 'timestamps') else []
+            
+            # Get states and actions
+            states = telemetry.states if hasattr(telemetry, 'states') else {}
+            actions = telemetry.actions if hasattr(telemetry, 'actions') else {}
+            
+            # Combine into data points
+            max_points = min(1000, len(timestamps))  # Limit for performance
+            step = max(1, len(timestamps) // max_points)
+            
+            for i in range(0, len(timestamps), step):
+                point = {"time": timestamps[i]}
                 
-                # Read parquet file with pandas
-                df = pd.read_parquet(
-                    parquet_url, 
-                    storage_options={"headers": self.headers}
-                )
+                # Add state data
+                for col_name, col_data in states.items():
+                    if isinstance(col_data, list):
+                        if isinstance(col_data[0], list):
+                            # Multi-dimensional data
+                            for j, series in enumerate(col_data):
+                                if i < len(series):
+                                    point[f"{col_name}_{j}"] = series[i]
+                        else:
+                            # Single dimensional data
+                            if i < len(col_data):
+                                point[col_name] = col_data[i]
                 
-                # Convert to list of dicts for frontend
-                # Limit to reasonable number of points for visualization
-                max_points = 1000
-                step = max(1, len(df) // max_points)
-                sampled_df = df[::step]
+                # Add action data
+                for col_name, col_data in actions.items():
+                    if isinstance(col_data, list):
+                        if isinstance(col_data[0], list):
+                            # Multi-dimensional data
+                            for j, series in enumerate(col_data):
+                                if i < len(series):
+                                    point[f"{col_name}_{j}"] = series[i]
+                        else:
+                            # Single dimensional data
+                            if i < len(col_data):
+                                point[col_name] = col_data[i]
                 
-                # Convert to frontend format
-                for _, row in sampled_df.iterrows():
-                    point = {"time": row.get("timestamp", 0)}
-                    # Add relevant telemetry fields
-                    for col in df.columns:
-                        if col.startswith("observation.state") or col.startswith("action"):
-                            point[col] = row[col] if pd.notna(row[col]) else 0
-                    telemetry_data.append(point)
+                telemetry_data.append(point)
+            
+            logger.info(f"Successfully processed {len(telemetry_data)} telemetry points for {repo_id} episode {episode_id}")
+            return telemetry_data
                     
         except Exception as e:
-            logger.debug(f"Could not fetch telemetry for {repo_id}/{episode_id}: {e}")
-        
-        return telemetry_data
+            logger.error(f"Error getting telemetry for {repo_id}/{episode_id}: {e}")
+            return []
     
     def get_dataset_size(self, repo_id: str) -> Optional[int]:
         """Get the actual size of a dataset from HuggingFace datasets-server API"""

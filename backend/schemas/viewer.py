@@ -3,7 +3,7 @@ Viewer-specific Pydantic models for dataset visualization
 """
 
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from enum import Enum
 
 
@@ -81,11 +81,12 @@ class TelemetryData(BaseModel):
     timestamps: List[float] = Field(..., description="Time points in seconds")
     
     # Robot state and action data organized by joint/feature
-    states: Dict[str, List[float]] = Field(
+    # Can be either List[float] for single dimensional or List[List[float]] for multi-dimensional
+    states: Dict[str, Union[List[float], List[List[float]]]] = Field(
         default_factory=dict, 
         description="Time series data for robot states"
     )
-    actions: Dict[str, List[float]] = Field(
+    actions: Dict[str, Union[List[float], List[List[float]]]] = Field(
         default_factory=dict,
         description="Time series data for robot actions"
     )

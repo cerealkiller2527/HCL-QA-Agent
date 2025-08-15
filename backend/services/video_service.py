@@ -13,6 +13,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import config
 from schemas.viewer import CameraInfo, VideoUrl, EpisodeVideos, VideoStreamInfo
+from services.metadata_service import MetadataService
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,8 @@ class VideoService:
         self.headers = {"Authorization": f"Bearer {token}"}
         self._cache = {}
         self._cache_ttl = timedelta(minutes=config.CACHE_TTL_MINUTES)
+        # Initialize metadata service
+        self.metadata_service = MetadataService(token)
     
     def get_video_urls(
         self, 
@@ -116,16 +119,33 @@ class VideoService:
                 return cached_data
         
         try:
-            features = metadata.get("features", {})
-            video_keys = self._extract_video_keys(features)
+            # First try to get camera keys from actual metadata
+            camera_keys = self.metadata_service.get_camera_keys_from_metadata(repo_id)
             
-            if not video_keys:
-                video_keys = self._get_fallback_video_keys()
+            # Fallback to extracting from features
+            if not camera_keys:
+                features = metadata.get("features", {})
+                camera_keys = self._extract_video_keys(features)
+            
+            # Last resort - use fallback keys
+            if not camera_keys:
+                camera_keys = self._get_fallback_video_keys()
+                logger.warning(f"Using fallback camera keys for {repo_id}")
             
             cameras = []
+            features = metadata.get("features", {})
             
-            for video_key in video_keys:
-                camera = self._create_camera_info(video_key, features.get(video_key, {}))
+            for video_key in camera_keys:
+                # Use the dots format for camera keys (LeRobot standard)
+                if '_' in video_key and '.' not in video_key:
+                    # Convert underscores to dots for proper LeRobot format
+                    standard_key = video_key.replace('_', '.')
+                    if 'observation' not in standard_key:
+                        standard_key = f"observation.images.{standard_key}"
+                else:
+                    standard_key = video_key
+                
+                camera = self._create_camera_info(standard_key, features.get(standard_key, {}))
                 cameras.append(camera)
             
             result = VideoStreamInfo(
@@ -176,12 +196,24 @@ class VideoService:
     ) -> Optional[VideoUrl]:
         """Create a VideoUrl object for a specific camera"""
         try:
-            # Construct video URL based on LeRobot standard pattern
-            # Convert dots to underscores in filename
-            video_filename = f"{video_key.replace('.', '_')}_episode_{episode_id}.mp4"
-            video_url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/videos/{video_filename}"
+            # Calculate chunk number (episodes are typically grouped in chunks of 1000)
+            # This can be overridden by metadata if available
+            chunk_size = 1000  # Default chunk size
+            chunk = episode_id // chunk_size
             
-            # Extract resolution and fps
+            # Build the correct LeRobot video URL pattern:
+            # videos/chunk-{chunk:03d}/{camera_key}/episode_{episode:06d}.mp4
+            video_path = f"videos/chunk-{chunk:03d}/{video_key}/episode_{episode_id:06d}.mp4"
+            video_url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/{video_path}"
+            
+            logger.info(f"Generated video URL for {video_key}: {video_url}")
+            
+            # Try to verify if the URL exists (optional, can be slow)
+            # Commenting out for performance, but can be enabled for debugging
+            # if not self.verify_video_url(video_url):
+            #     logger.warning(f"Video URL may not be accessible: {video_url}")
+            
+            # Extract resolution and fps from feature info
             resolution = self._extract_resolution(feature_info)
             fps = self._extract_fps(feature_info)
             

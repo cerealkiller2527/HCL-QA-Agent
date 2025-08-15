@@ -1,8 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts"
 
 interface TelemetryDataPoint {
   time: number
@@ -23,16 +22,7 @@ interface TelemetryChartProps {
   yDomain?: [number, number]
 }
 
-type ChartConfig = Record<string, { label: string; color: string }>
-
 export function TelemetryChart({ title, data, lines, currentData, yDomain }: TelemetryChartProps) {
-  const chartConfig = lines.reduce<ChartConfig>((config, line) => {
-    config[line.dataKey] = {
-      label: line.name,
-      color: line.color,
-    }
-    return config
-  }, {})
 
   return (
     <Card className="layer-card">
@@ -40,7 +30,7 @@ export function TelemetryChart({ title, data, lines, currentData, yDomain }: Tel
         <CardTitle className="font-sans text-sm">{title}</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <ChartContainer config={chartConfig} className="h-40 w-full">
+        <div className="h-40 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -56,7 +46,14 @@ export function TelemetryChart({ title, data, lines, currentData, yDomain }: Tel
                 tickLine={false}
                 tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
               />
-              <ChartTooltip content={<ChartTooltipContent />} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--popover))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '6px'
+                }}
+                labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
+              />
               {lines.map((line) => (
                 <Line
                   key={line.dataKey}
@@ -69,7 +66,7 @@ export function TelemetryChart({ title, data, lines, currentData, yDomain }: Tel
               ))}
             </LineChart>
           </ResponsiveContainer>
-        </ChartContainer>
+        </div>
 
         {/* Data Values */}
         <div className="mt-3 space-y-2">

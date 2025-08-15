@@ -447,9 +447,9 @@ export default function DatasetsPage() {
         // Refresh the datasets list
         refetch()
         
-        console.log(`Successfully deleted dataset: ${datasetToDelete}`)
+        // Dataset deleted successfully
       } catch (error) {
-        console.error(`Failed to delete dataset: ${error}`)
+        // Failed to delete dataset
         alert(`Failed to delete dataset. You may not have permission to delete this dataset.`)
       }
     }
@@ -465,7 +465,7 @@ export default function DatasetsPage() {
       // Delete all selected datasets from HuggingFace
       const deletePromises = Array.from(selectedDatasets).map(id => 
         datasetsApi.deleteDataset(id).catch(err => {
-          console.error(`Failed to delete ${id}:`, err)
+          // Failed to delete dataset
           return false
         })
       )
@@ -485,14 +485,14 @@ export default function DatasetsPage() {
         // Refresh the datasets list
         refetch()
         
-        console.log(`Successfully deleted ${successCount} datasets`)
+        // Successfully deleted datasets
       }
       
       if (successCount < selectedDatasets.size) {
         alert(`Only ${successCount} out of ${selectedDatasets.size} datasets were deleted. You may not have permission to delete some datasets.`)
       }
     } catch (error) {
-      console.error(`Failed to delete datasets:`, error)
+      // Failed to delete datasets
       alert(`Failed to delete datasets. Please try again.`)
     }
     

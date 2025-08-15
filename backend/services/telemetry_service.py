@@ -18,12 +18,20 @@ from schemas.viewer import TelemetryData, TelemetryPoint
 
 logger = logging.getLogger(__name__)
 
+# Constants
+DEFAULT_FPS = 30
+DEFAULT_CHUNK_SIZE = 1000
+REQUEST_TIMEOUT = 30
+
 
 class TelemetryService:
     """Service for fetching and processing telemetry data from HuggingFace datasets"""
     
     def __init__(self, token: str):
         """Initialize telemetry service with HuggingFace token"""
+        if not token or not isinstance(token, str):
+            raise ValueError("token must be a non-empty string")
+        
         self.token = token
         self.headers = {"Authorization": f"Bearer {token}"}
         self._cache = {}
@@ -46,6 +54,16 @@ class TelemetryService:
         Returns:
             TelemetryData object or None if not available
         """
+        # Input validation
+        if not repo_id or not isinstance(repo_id, str):
+            raise ValueError("repo_id must be a non-empty string")
+        
+        if not isinstance(episode_id, int) or episode_id < 0:
+            raise ValueError("episode_id must be a non-negative integer")
+        
+        if features_metadata is not None and not isinstance(features_metadata, dict):
+            raise ValueError("features_metadata must be a dictionary or None")
+        
         cache_key = f"telemetry_{repo_id}_{episode_id}"
         
         # Check cache
@@ -65,28 +83,45 @@ class TelemetryService:
                 return None
             
             # Determine chunk size and data path pattern
-            chunks_size = features_metadata.get("chunks_size", 1000)
+            chunks_size = features_metadata.get("chunks_size", DEFAULT_CHUNK_SIZE)
             episode_chunk = episode_id // chunks_size
             
-            # Try to fetch parquet data
-            data_url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/data/train-{episode_chunk:05d}-of-NNNNN.parquet"
+            # Try LeRobot pattern first - data/chunk-XXX/episode_XXXXXX.parquet
+            data_url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/data/chunk-{episode_chunk:03d}/episode_{episode_id:06d}.parquet"
             
-            # First, check if the URL pattern works
-            test_url = data_url.replace("NNNNN", "00001")
-            response = requests.head(test_url, headers=self.headers, timeout=5)
+            logger.info(f"Trying to fetch telemetry from: {data_url}")
+            response = requests.head(data_url, headers=self.headers, timeout=5)
             
             if response.status_code == 404:
-                # Try alternative pattern
-                data_url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/data/chunk-{episode_chunk:03d}/episode_{episode_id}.parquet"
+                # Try alternative pattern with different chunk padding
+                data_url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/data/chunk-{episode_chunk:04d}/episode_{episode_id:06d}.parquet"
                 response = requests.head(data_url, headers=self.headers, timeout=5)
             
             if response.status_code == 404:
+                # Try HuggingFace datasets pattern
+                data_url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/data/train-{episode_chunk:05d}-of-NNNNN.parquet"
+                test_url = data_url.replace("NNNNN", "00001")
+                response = requests.head(test_url, headers=self.headers, timeout=5)
+                
+            if response.status_code == 404:
                 # Try fetching from episodes.jsonl for episode info
+                logger.warning(f"Could not find parquet file for episode {episode_id}, falling back to episodes.jsonl")
                 return self._get_telemetry_from_episodes_file(repo_id, episode_id, features_metadata)
             
             # Fetch the parquet file
             logger.info(f"Fetching telemetry data from {data_url}")
-            df = pd.read_parquet(data_url, storage_options={"headers": self.headers})
+            # Download the file first then read it
+            try:
+                import io
+                response = requests.get(data_url, headers=self.headers, timeout=REQUEST_TIMEOUT)
+                if response.status_code == 200:
+                    df = pd.read_parquet(io.BytesIO(response.content))
+                else:
+                    logger.error(f"Failed to fetch parquet file: HTTP {response.status_code}")
+                    return None
+            except Exception as e:
+                logger.error(f"Failed to read parquet file: {e}")
+                return None
             
             # Filter for the specific episode
             if "episode_index" in df.columns:
@@ -151,52 +186,62 @@ class TelemetryService:
             timestamps = df["timestamp"].tolist()
         elif "index" in df.columns:
             # Generate timestamps based on fps
-            fps = features_metadata.get("fps", 30)
+            fps = features_metadata.get("fps", DEFAULT_FPS)
             timestamps = [i / fps for i in range(len(df))]
         else:
-            timestamps = list(range(len(df)))
+            # Generate timestamps based on row indices
+            fps = features_metadata.get("fps", DEFAULT_FPS)
+            timestamps = [i / fps for i in range(len(df))]
         
-        # Identify state and action columns
-        features = features_metadata.get("features", {})
+        # Identify state and action columns from actual DataFrame columns
         state_columns = []
         action_columns = []
         
-        for col_name, col_info in features.items():
-            if col_name in df.columns:
-                # Check if it's a state or action column
-                if "observation" in col_name or "state" in col_name:
-                    state_columns.append(col_name)
-                elif "action" in col_name:
-                    action_columns.append(col_name)
+        # Look for state/observation columns
+        for col in df.columns:
+            if isinstance(col, str):
+                if "observation.state" in col or "state" in col:
+                    state_columns.append(col)
+                elif "action" in col:
+                    action_columns.append(col)
         
         # Process states
         states = {}
         feature_names = {}
+        features = features_metadata.get("features", {})
         
         for col in state_columns:
             col_data = df[col].values
             
-            # Handle multi-dimensional data
-            if len(col_data.shape) > 1:
-                # Transpose to get time series per dimension
-                col_data = col_data.T
-                
-                # Generate feature names for each dimension
-                if col in features and "names" in features[col]:
-                    names = features[col]["names"]
-                    if isinstance(names, dict):
-                        # Handle nested naming structure
-                        names = self._flatten_names(names)
-                    feature_names[col] = names
-                else:
-                    # Generate default names
-                    n_dims = col_data.shape[0] if len(col_data.shape) > 1 else 1
+            # Check if each element is an array (common in LeRobot datasets)
+            if col_data.dtype == object and len(col_data) > 0:
+                # Each element is itself an array
+                first_elem = col_data[0]
+                if hasattr(first_elem, '__len__') and not isinstance(first_elem, str):
+                    # Convert array of arrays to proper format
+                    import numpy as np
+                    # Stack all arrays into a 2D array
+                    col_data = np.vstack(col_data)
+                    # Transpose to get time series per dimension
+                    col_data = col_data.T
+                    n_dims = col_data.shape[0]
                     feature_names[col] = [f"{col}_{i}" for i in range(n_dims)]
-                
-                # Store as list of lists (each inner list is a time series)
+                    # Convert to list of lists
+                    states[col] = [dim.tolist() for dim in col_data]
+                else:
+                    # Single values
+                    states[col] = [float(v) if not isinstance(v, (list, np.ndarray)) else float(v[0]) for v in col_data]
+                    feature_names[col] = [col]
+            elif len(col_data.shape) > 1 and col_data.shape[1] > 1:
+                # Multi-dimensional numpy array
+                col_data = col_data.T
+                n_dims = col_data.shape[0]
+                feature_names[col] = [f"{col}_{i}" for i in range(n_dims)]
                 states[col] = col_data.tolist()
             else:
                 # Single dimensional data
+                if len(col_data.shape) > 1:
+                    col_data = col_data.flatten()
                 states[col] = col_data.tolist()
                 feature_names[col] = [col]
         
@@ -206,27 +251,41 @@ class TelemetryService:
         for col in action_columns:
             col_data = df[col].values
             
-            # Handle multi-dimensional data
-            if len(col_data.shape) > 1:
-                col_data = col_data.T
-                
-                if col in features and "names" in features[col]:
-                    names = features[col]["names"]
-                    if isinstance(names, dict):
-                        names = self._flatten_names(names)
-                    feature_names[col] = names
-                else:
-                    n_dims = col_data.shape[0] if len(col_data.shape) > 1 else 1
+            # Check if each element is an array (common in LeRobot datasets)
+            if col_data.dtype == object and len(col_data) > 0:
+                # Each element is itself an array
+                first_elem = col_data[0]
+                if hasattr(first_elem, '__len__') and not isinstance(first_elem, str):
+                    # Convert array of arrays to proper format
+                    import numpy as np
+                    # Stack all arrays into a 2D array
+                    col_data = np.vstack(col_data)
+                    # Transpose to get time series per dimension
+                    col_data = col_data.T
+                    n_dims = col_data.shape[0]
                     feature_names[col] = [f"{col}_{i}" for i in range(n_dims)]
-                
+                    # Convert to list of lists
+                    actions[col] = [dim.tolist() for dim in col_data]
+                else:
+                    # Single values
+                    actions[col] = [float(v) if not isinstance(v, (list, np.ndarray)) else float(v[0]) for v in col_data]
+                    feature_names[col] = [col]
+            elif len(col_data.shape) > 1 and col_data.shape[1] > 1:
+                # Multi-dimensional numpy array
+                col_data = col_data.T
+                n_dims = col_data.shape[0]
+                feature_names[col] = [f"{col}_{i}" for i in range(n_dims)]
                 actions[col] = col_data.tolist()
             else:
+                # Single dimensional data
+                if len(col_data.shape) > 1:
+                    col_data = col_data.flatten()
                 actions[col] = col_data.tolist()
                 feature_names[col] = [col]
         
         # Calculate duration
         duration = timestamps[-1] if timestamps else 0
-        fps = features_metadata.get("fps", 30)
+        fps = features_metadata.get("fps", DEFAULT_FPS)
         
         return TelemetryData(
             episode_id=episode_id,
@@ -314,7 +373,7 @@ class TelemetryService:
             
             # Generate basic telemetry structure
             length = episode_info.get("length", 100)
-            fps = features_metadata.get("fps", 30)
+            fps = features_metadata.get("fps", DEFAULT_FPS)
             duration = length / fps
             timestamps = [i / fps for i in range(length)]
             

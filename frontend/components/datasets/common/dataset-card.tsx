@@ -237,6 +237,17 @@ export function DatasetCard({
           <div className="flex gap-2 pt-2">
             <Button
               size="sm"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              onClick={(e) => {
+                e.stopPropagation()
+                router.push(`/datasets/${dataset.id}`)
+              }}
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              View
+            </Button>
+            <Button
+              size="sm"
               variant="outline"
               className="bg-transparent hover:bg-primary/10"
               onClick={(e) => {
