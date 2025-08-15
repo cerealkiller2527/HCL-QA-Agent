@@ -611,6 +611,18 @@ export function DatasetsList() {
     searchQuery
   const containerVariants = createStaggerAnimation(0.1)
 
+  const viewCollectionTogether = useCallback(
+    (collectionId: string) => {
+      const collection = collections.find((c) => c.id === collectionId)
+      if (collection && collection.datasetIds.length > 0) {
+        // Navigate to a special view that shows all datasets in the collection
+        const datasetIds = collection.datasetIds.join(",")
+        router.push(`/datasets/collection/${collectionId}?datasets=${datasetIds}`)
+      }
+    },
+    [collections, router],
+  )
+
   return (
     <DndContext
       sensors={sensors}
@@ -689,44 +701,77 @@ export function DatasetsList() {
             <h2 className="text-title mb-4">Collections</h2>
             <div className="space-y-4">
               {collections.map((collection) => (
-                <DroppableCollection
-                  key={collection.id}
-                  collection={collection}
-                  datasets={datasets}
-                  expandedCollections={expandedCollections}
-                  toggleCollectionExpansion={toggleCollectionExpansion}
-                  removeFromCollection={removeFromCollection}
-                  handleDeleteDataset={handleDeleteDataset}
-                  router={router}
-                  isOver={overId === collection.id}
-                />
+                <div key={collection.id}>
+                  <DroppableCollection
+                    collection={collection}
+                    datasets={datasets}
+                    expandedCollections={expandedCollections}
+                    toggleCollectionExpansion={toggleCollectionExpansion}
+                    removeFromCollection={removeFromCollection}
+                    handleDeleteDataset={handleDeleteDataset}
+                    router={router}
+                    isOver={overId === collection.id}
+                  />
+                  {/* View All Together button for each collection */}
+                  {collection.datasetIds.length > 1 && (
+                    <div className="mt-3 flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => viewCollectionTogether(collection.id)}
+                        className="bg-transparent hover:bg-primary/5 border-primary/20 text-primary hover:text-primary"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View All Together ({collection.datasetIds.length})
+                      </Button>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </motion.div>
         )}
 
         {/* Filters */}
-        <DatasetFilters
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-          robotTypeFilter={robotTypeFilter}
-          setRobotTypeFilter={setRobotTypeFilter}
-          sizeFilter={sizeFilter}
-          setSizeFilter={setSizeFilter}
-          dateFilter={dateFilter}
-          setDateFilter={setDateFilter}
-          tagFilter={tagFilter}
-          setTagFilter={setTagFilter}
-          hasActiveFilters={hasActiveFilters}
-          clearFilters={clearFilters}
-          resultsCount={filteredDatasets.length}
-        />
+        <motion.div variants={ANIMATION.variants.staggerItem}>
+          <div className="bg-layer-1 border border-border rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-title">Filter Datasets</h3>
+              {hasActiveFilters && (
+                <span className="text-caption text-muted-foreground bg-primary/10 px-2 py-1 rounded-md">
+                  {filteredDatasets.length} result{filteredDatasets.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+            <DatasetFilters
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              robotTypeFilter={robotTypeFilter}
+              setRobotTypeFilter={setRobotTypeFilter}
+              sizeFilter={sizeFilter}
+              setSizeFilter={setSizeFilter}
+              dateFilter={dateFilter}
+              setDateFilter={setDateFilter}
+              tagFilter={tagFilter}
+              setTagFilter={setTagFilter}
+              hasActiveFilters={hasActiveFilters}
+              clearFilters={clearFilters}
+              resultsCount={filteredDatasets.length}
+            />
+          </div>
+        </motion.div>
 
         {/* Datasets Grid */}
         {filteredDatasets.length > 0 ? (
           <motion.div variants={ANIMATION.variants.staggerItem}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-title">
+                {hasActiveFilters ? "Filtered Datasets" : "All Datasets"}
+                <span className="text-caption text-muted-foreground ml-2">({filteredDatasets.length})</span>
+              </h3>
+            </div>
             <motion.div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" variants={containerVariants}>
               {filteredDatasets.map((dataset) => (
                 <DraggableDataset
