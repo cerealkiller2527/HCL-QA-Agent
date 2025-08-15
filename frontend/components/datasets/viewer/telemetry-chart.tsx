@@ -4,26 +4,35 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts"
 
+interface TelemetryDataPoint {
+  time: number
+  [key: string]: number | string
+}
+
+interface ChartLine {
+  dataKey: string
+  color: string
+  name: string
+}
+
 interface TelemetryChartProps {
   title: string
-  data: any[]
-  lines: {
-    dataKey: string
-    color: string
-    name: string
-  }[]
-  currentData?: any
+  data: TelemetryDataPoint[]
+  lines: ChartLine[]
+  currentData?: TelemetryDataPoint
   yDomain?: [number, number]
 }
 
+type ChartConfig = Record<string, { label: string; color: string }>
+
 export function TelemetryChart({ title, data, lines, currentData, yDomain }: TelemetryChartProps) {
-  const chartConfig = lines.reduce((config, line) => {
+  const chartConfig = lines.reduce<ChartConfig>((config, line) => {
     config[line.dataKey] = {
       label: line.name,
       color: line.color,
     }
     return config
-  }, {} as any)
+  }, {})
 
   return (
     <Card className="layer-card">

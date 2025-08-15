@@ -4,90 +4,58 @@ export interface Dataset {
   description: string
   robotType: "arm" | "mobile" | "humanoid" | "custom"
   createdAt: Date
-  updatedAt: Date
   duration: number // in seconds
   frameCount: number
   fileSize: number // in bytes
   status: "recording" | "processing" | "ready" | "error"
   tags: string[]
-  metadata: DatasetMetadata
-  sensors: SensorConfig[]
-  metrics?: DatasetMetrics
-  validation?: ValidationResults
+  
+  // Optional fields that may be available from backend
+  episodeCount?: number
+  fps?: number
+  author?: string
+  likes?: number
+  downloads?: number
+  private?: boolean
+  
+  // HuggingFace metadata fields
+  languages?: string[] // Dataset languages
+  taskCategories?: string[] // Task categories like "text-classification"
+  taskIds?: string[] // Specific tasks like "sentiment-analysis"
+  sizeCategories?: string // Size category like "100K<n<1M"
+  multilinguality?: "monolingual" | "multilingual" | "translation" // If dataset is multilingual
+  languageCreators?: string[] // How the data was created
+  paperswithcodeId?: string // Link to Papers with Code
+  prettyName?: string // Formatted display name
+  license?: string // Dataset license info
+  citation?: string // Citation information
 }
 
-export interface DatasetMetadata {
-  recordingEnvironment: string
-  robotModel: string
-  taskDescription: string
-  recordingQuality: "low" | "medium" | "high"
-  annotations?: string[]
-  lighting?: "natural" | "artificial" | "mixed"
-  temperature?: number
-  humidity?: number
-  collaborators?: string[]
-  version: string
-}
-
-export interface SensorConfig {
-  id: string
+// Episode-related interfaces for detailed dataset view
+export interface Episode {
+  id: number
   name: string
-  type: "camera" | "lidar" | "imu" | "force" | "joint_position" | "audio" | "custom"
-  frequency: number // Hz
-  enabled: boolean
-  resolution?: string
-  accuracy?: number
-  calibrationDate?: Date
-}
-
-export interface DatasetMetrics {
-  averageFrameRate: number
-  droppedFrames: number
-  dataIntegrity: number // 0-100 percentage
-  compressionRatio: number
-  processingTime: number // seconds
-  qualityScore: number // 0-100
-}
-
-export interface ValidationResults {
-  isValid: boolean
-  errors: string[]
-  warnings: string[]
-  completeness: number // 0-100 percentage
-  lastValidated: Date
-}
-
-export interface DataPoint {
-  timestamp: number
-  frameIndex: number
-  robotState: RobotState
-  sensorReadings: Record<string, any>
-  actions: RobotAction[]
-}
-
-export interface Pose {
-  position: [number, number, number]
-  orientation: [number, number, number, number] // quaternion
-}
-
-export interface RobotState {
-  jointPositions: number[]
-  endEffectorPose: Pose
-  velocity: number[]
-  torque: number[]
-  temperature?: number[]
-  batteryLevel?: number
-  errorFlags?: string[]
-}
-
-export interface RobotAction {
-  type: "move" | "grasp" | "release" | "wait" | "custom"
-  parameters: Record<string, any>
   duration: number
-  success?: boolean
-  confidence?: number
+  status: string
+  tasks: string[]
+  length?: number
 }
 
+export interface VideoUrl {
+  camera: string
+  url: string
+  resolution?: string
+  fps?: number
+}
+
+export interface EpisodeData {
+  episode: Episode
+  videoUrls: VideoUrl[]
+  telemetryData: Record<string, any>[]
+  cameras: Record<string, string>[]
+}
+
+// Recording session interface for live recording features
 export interface RecordingSession {
   id: string
   datasetId: string
@@ -95,13 +63,7 @@ export interface RecordingSession {
   endTime?: Date
   status: "active" | "paused" | "stopped" | "error"
   frameRate: number
-  activeSensors: string[]
   currentFrame: number
-  metrics: {
-    dataRate: number // MB/s
-    storageUsed: number // bytes
-    qualityScore: number
-  }
   errors?: string[]
 }
 

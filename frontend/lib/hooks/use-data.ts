@@ -20,14 +20,26 @@ export function useData<T>(options: UseDataOptions<T>) {
       setData(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch data")
+      // Don't retry on error - let user manually retry
+      console.error("Data fetch error:", err)
     } finally {
       setLoading(false)
     }
   }, [options.fetcher, ...(options.dependencies || [])])
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    let mounted = true
+    
+    // Only fetch if component is mounted
+    if (mounted) {
+      fetchData()
+    }
+    
+    // Cleanup function
+    return () => {
+      mounted = false
+    }
+  }, []) // Only run once on mount, not on every fetchData change
 
   const refetch = useCallback(() => {
     fetchData()

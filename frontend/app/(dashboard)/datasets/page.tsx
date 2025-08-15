@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -19,6 +20,8 @@ import {
   X,
   MousePointer2,
   Search,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
 import {
   AlertDialog,
@@ -50,10 +53,18 @@ import { CollectionModal } from "@/components/datasets/collections/collection-mo
 import { CustomDropdown } from "@/components/ui/custom-dropdown"
 
 // Data & Utils
-import { mockDatasets } from "@/lib/data/mock-datasets"
+import { useDatasets } from "@/lib/hooks/use-datasets"
 import { ANIMATION } from "@/lib/constants"
 import { createStaggerAnimation } from "@/lib/utils/animations"
 import { cn } from "@/lib/utils"
+
+// Helper function
+function formatFileSize(bytes: number): string {
+  const sizes = ["B", "KB", "MB", "GB", "TB"]
+  if (bytes === 0 || !bytes) return "Size unavailable"
+  const i = Math.floor(Math.log(bytes) / Math.log(1024))
+  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i]
+}
 
 interface Collection {
   id: string
@@ -93,22 +104,19 @@ function DraggableDataset({
       ref={setNodeRef}
       style={style}
       className={`${
-        isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
+        isSelectionMode ? "" : "cursor-grab active:cursor-grabbing"
       } ${isDragging ? "opacity-60" : ""} transition-opacity duration-200`}
-      onClick={() => isSelectionMode && toggleDatasetSelection(dataset.id)}
-      {...listeners}
-      {...attributes}
+      {...(isSelectionMode ? {} : listeners)}
+      {...(isSelectionMode ? {} : attributes)}
     >
-      {isSelectionMode && (
-        <div className="absolute top-3 left-3 z-10">
-          <Checkbox
-            checked={selectedDatasets.has(dataset.id)}
-            onCheckedChange={() => toggleDatasetSelection(dataset.id)}
-            className="bg-background border-2 border-primary"
-          />
-        </div>
-      )}
-      <DatasetCard dataset={dataset} onDelete={handleDeleteDataset} showDeleteButton={!isSelectionMode} />
+      <DatasetCard 
+        dataset={dataset} 
+        onDelete={() => handleDeleteDataset(dataset.id)}
+        showDeleteButton={!isSelectionMode}
+        isSelectionMode={isSelectionMode}
+        isSelected={selectedDatasets.has(dataset.id)}
+        onSelect={() => toggleDatasetSelection(dataset.id)}
+      />
     </div>
   )
 }
@@ -252,8 +260,8 @@ function CollectionView({
                           />
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground font-mono">{dataset.size}</span>
-                          <span className="text-muted-foreground font-mono">{dataset.frameCount.toLocaleString()} frames</span>
+                          <span className="text-muted-foreground font-mono">{formatFileSize(dataset.fileSize)}</span>
+                          <span className="text-muted-foreground font-mono">{(dataset.frameCount || 0).toLocaleString()} frames</span>
                         </div>
                       </div>
                     </div>
@@ -300,24 +308,23 @@ export default function DatasetsPage() {
   const [datasetToDelete, setDatasetToDelete] = useState<string | null>(null)
   const [showMassDeleteDialog, setShowMassDeleteDialog] = useState(false)
 
-  const datasets = mockDatasets || []
+  // Fetch datasets from API
+  const { data: datasets, loading, error, refetch } = useDatasets({
+    search: searchQuery || undefined
+  })
+  
+  // Use empty array if no data yet
+  const allDatasets = datasets || []
 
   // Computed Values
   const uncategorizedDatasets = useMemo(() => {
-    return datasets.filter((dataset) => !collections.some((collection) => collection.datasetIds.includes(dataset.id)))
-  }, [datasets, collections])
+    return allDatasets.filter((dataset) => !collections.some((collection) => collection.datasetIds.includes(dataset.id)))
+  }, [allDatasets, collections])
 
   const displayedDatasets = useMemo(() => {
-    if (!searchQuery.trim()) return uncategorizedDatasets
-    const query = searchQuery.toLowerCase()
-    return uncategorizedDatasets.filter(
-      (dataset) =>
-        dataset.name.toLowerCase().includes(query) ||
-        dataset.description.toLowerCase().includes(query) ||
-        dataset.robotType.toLowerCase().includes(query) ||
-        dataset.tags.some((tag) => tag.toLowerCase().includes(query))
-    )
-  }, [uncategorizedDatasets, searchQuery])
+    // Since we're already filtering by search in the API call, just return uncategorized datasets
+    return uncategorizedDatasets
+  }, [uncategorizedDatasets])
 
   // Drag and Drop Setup
   const sensors = useSensors(
@@ -408,8 +415,8 @@ export default function DatasetsPage() {
   )
 
   const draggedDataset = useMemo(() => {
-    return activeId ? datasets.find((d) => d.id === activeId) : null
-  }, [activeId, datasets])
+    return activeId ? allDatasets.find((d) => d.id === activeId) : null
+  }, [activeId, allDatasets])
 
   const selectAllDatasets = useCallback(() => {
     setSelectedDatasets(new Set(displayedDatasets.map((d) => d.id)))
@@ -420,31 +427,78 @@ export default function DatasetsPage() {
     setIsSelectionMode(false)
   }, [])
 
-  const confirmDeleteDataset = useCallback(() => {
+  const confirmDeleteDataset = useCallback(async () => {
     if (datasetToDelete) {
-      setCollections((prev) =>
-        prev.map((collection) => ({
-          ...collection,
-          datasetIds: collection.datasetIds.filter((id) => id !== datasetToDelete),
-        }))
-      )
-      console.log(`Deleting dataset: ${datasetToDelete}`)
+      try {
+        // Import the API client
+        const { datasetsApi } = await import('@/lib/api/datasets.api')
+        
+        // Delete from HuggingFace
+        await datasetsApi.deleteDataset(datasetToDelete)
+        
+        // Remove from collections
+        setCollections((prev) =>
+          prev.map((collection) => ({
+            ...collection,
+            datasetIds: collection.datasetIds.filter((id) => id !== datasetToDelete),
+          }))
+        )
+        
+        // Refresh the datasets list
+        refetch()
+        
+        console.log(`Successfully deleted dataset: ${datasetToDelete}`)
+      } catch (error) {
+        console.error(`Failed to delete dataset: ${error}`)
+        alert(`Failed to delete dataset. You may not have permission to delete this dataset.`)
+      }
     }
     setDatasetToDelete(null)
     setShowDeleteDialog(false)
-  }, [datasetToDelete])
+  }, [datasetToDelete, refetch])
 
-  const confirmMassDelete = useCallback(() => {
-    setCollections((prev) =>
-      prev.map((collection) => ({
-        ...collection,
-        datasetIds: collection.datasetIds.filter((id) => !selectedDatasets.has(id)),
-      }))
-    )
-    console.log(`Mass deleting datasets:`, Array.from(selectedDatasets))
+  const confirmMassDelete = useCallback(async () => {
+    try {
+      // Import the API client
+      const { datasetsApi } = await import('@/lib/api/datasets.api')
+      
+      // Delete all selected datasets from HuggingFace
+      const deletePromises = Array.from(selectedDatasets).map(id => 
+        datasetsApi.deleteDataset(id).catch(err => {
+          console.error(`Failed to delete ${id}:`, err)
+          return false
+        })
+      )
+      
+      const results = await Promise.all(deletePromises)
+      const successCount = results.filter(r => r === true).length
+      
+      if (successCount > 0) {
+        // Remove from collections
+        setCollections((prev) =>
+          prev.map((collection) => ({
+            ...collection,
+            datasetIds: collection.datasetIds.filter((id) => !selectedDatasets.has(id)),
+          }))
+        )
+        
+        // Refresh the datasets list
+        refetch()
+        
+        console.log(`Successfully deleted ${successCount} datasets`)
+      }
+      
+      if (successCount < selectedDatasets.size) {
+        alert(`Only ${successCount} out of ${selectedDatasets.size} datasets were deleted. You may not have permission to delete some datasets.`)
+      }
+    } catch (error) {
+      console.error(`Failed to delete datasets:`, error)
+      alert(`Failed to delete datasets. Please try again.`)
+    }
+    
     clearSelection()
     setShowMassDeleteDialog(false)
-  }, [selectedDatasets, clearSelection])
+  }, [selectedDatasets, clearSelection, refetch])
 
   const containerVariants = createStaggerAnimation(0.1)
 
@@ -546,7 +600,7 @@ export default function DatasetsPage() {
                 <CollectionView
                   key={collection.id}
                   collection={collection}
-                  datasets={datasets}
+                  datasets={allDatasets}
                   isExpanded={expandedCollections.has(collection.id)}
                   isOver={overId === collection.id}
                   onToggleExpansion={() => toggleCollectionExpansion(collection.id)}
@@ -559,7 +613,26 @@ export default function DatasetsPage() {
         )}
 
         {/* Datasets Grid */}
-        {displayedDatasets.length > 0 ? (
+        {loading ? (
+          <motion.div className="text-center py-16" variants={ANIMATION.variants.staggerItem}>
+            <div className="mx-auto w-24 h-24 bg-layer-2 rounded-full flex items-center justify-center mb-6 animate-pulse">
+              <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+            </div>
+            <h3 className="text-title mb-2">Loading datasets...</h3>
+            <p className="text-body text-muted-foreground">Fetching your datasets from HuggingFace</p>
+          </motion.div>
+        ) : error ? (
+          <motion.div className="text-center py-16" variants={ANIMATION.variants.staggerItem}>
+            <div className="mx-auto w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-6">
+              <AlertCircle className="h-8 w-8 text-red-500" />
+            </div>
+            <h3 className="text-title mb-2">Failed to load datasets</h3>
+            <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">{error}</p>
+            <Button variant="outline" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          </motion.div>
+        ) : displayedDatasets.length > 0 ? (
           <motion.div variants={ANIMATION.variants.staggerItem}>
             <motion.div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" variants={containerVariants}>
               {displayedDatasets.map((dataset) => (
@@ -614,10 +687,22 @@ export default function DatasetsPage() {
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Dataset</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this dataset? This action cannot be undone and will permanently remove
-                all associated data.
+              <AlertDialogTitle>⚠️ Delete Dataset from HuggingFace</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>
+                  <strong>WARNING:</strong> This will permanently delete the dataset from HuggingFace Hub.
+                </p>
+                <p>
+                  This action cannot be undone and will remove all data, including:
+                </p>
+                <ul className="list-disc list-inside text-sm mt-2">
+                  <li>All dataset files and episodes</li>
+                  <li>All metadata and configurations</li>
+                  <li>The entire repository from HuggingFace</li>
+                </ul>
+                <p className="text-red-600 font-semibold mt-2">
+                  Are you absolutely sure you want to proceed?
+                </p>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

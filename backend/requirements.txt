@@ -1,0 +1,25 @@
+# FastAPI backend requirements - compatible with lerobot environment
+# These packages work alongside lerobot's existing dependencies
+
+# Core FastAPI dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Already included in lerobot, no need to reinstall:
+# huggingface-hub (lerobot has >=0.34.2)
+# datasets (lerobot has 2.19.0-3.6.0)
+# pandas (via datasets)
+# requests (via huggingface-hub)
+# flask (lerobot has 3.0.3-4.0.0)
+
+# Additional dependencies for our backend
+python-dotenv==1.0.0
+python-multipart==0.0.6  # For form data parsing
+httpx==0.25.2  # For async HTTP client
+
+# CORS and API documentation
+# These are included with fastapi but explicitly listing for clarity
+
+# Note: Run this in the lerobot conda environment:
+# conda activate lerobot
+# pip install -r backend/requirements.txt
