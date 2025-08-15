@@ -1,0 +1,226 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 158 70% 45%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 158 25% 92%;
+    --secondary-foreground: 158 30% 25%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 158 40% 88%;
+    --accent-foreground: 158 50% 25%;
+    --destructive: 0 70% 65%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 158 70% 45%;
+    --radius: 0.5rem;
+    --layer-0: 0 0% 100%;
+    --layer-1: 158 15% 98%;
+    --layer-2: 158 12% 96%;
+    --layer-3: 158 10% 94%;
+    --layer-hover: 158 20% 96%;
+    --layer-active: 158 25% 94%;
+    --success: 158 60% 85%;
+    --success-foreground: 0 0% 20%;
+    --warning: 38 95% 75%;
+    --warning-foreground: 0 0% 50%;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 158 64% 52%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 158 20% 12%;
+    --secondary-foreground: 158 40% 85%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 64%;
+    --accent: 158 30% 15%;
+    --accent-foreground: 158 50% 85%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 158 64% 52%;
+    --layer-0: 0 0% 3.9%;
+    --layer-1: 158 15% 6%;
+    --layer-2: 158 12% 8%;
+    --layer-3: 158 10% 10%;
+    --layer-hover: 158 20% 8%;
+    --layer-active: 158 25% 12%;
+    --success: 158 64% 52%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-layer-0 text-foreground font-body;
+    letter-spacing: 0.05rem;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  }
+
+  * {
+    transition:
+      background-color 0.2s ease-in-out, border-color 0.2s ease-in-out,
+      color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, transform 0.15s ease-in-out;
+  }
+}
+
+@layer utilities {
+  /* Consolidated layer utilities */
+  .bg-layer-0 {
+    background-color: hsl(var(--layer-0));
+  }
+  .bg-layer-1 {
+    background-color: hsl(var(--layer-1));
+  }
+  .bg-layer-2 {
+    background-color: hsl(var(--layer-2));
+  }
+  .bg-layer-3 {
+    background-color: hsl(var(--layer-3));
+  }
+  .bg-layer-hover {
+    background-color: hsl(var(--layer-hover));
+  }
+  .bg-layer-active {
+    background-color: hsl(var(--layer-active));
+  }
+
+  /* Consolidated status utilities */
+  .bg-success {
+    background-color: hsl(var(--success));
+  }
+  .bg-success\/10 {
+    background-color: hsl(var(--success) / 0.1);
+  }
+  .text-success {
+    color: hsl(var(--success));
+  }
+  .bg-warning {
+    background-color: hsl(var(--warning));
+  }
+  .bg-warning\/10 {
+    background-color: hsl(var(--warning) / 0.1);
+  }
+  .text-warning {
+    color: hsl(var(--warning));
+  }
+
+  /* Simplified interactive layer classes */
+  .layer-card {
+    background-color: hsl(var(--layer-1));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 1px 3px hsla(var(--foreground), 0.04);
+  }
+
+  .layer-interactive {
+    @apply layer-card cursor-pointer transition-all duration-200;
+  }
+
+  .layer-interactive:hover {
+    background-color: hsl(var(--layer-hover));
+    box-shadow: 0 4px 12px hsla(var(--foreground), 0.06);
+    transform: translateY(-1px);
+  }
+
+  .layer-interactive:active {
+    background-color: hsl(var(--layer-active));
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2);
+  }
+}
+
+@layer components {
+  /* Consolidated font classes with consistent letter spacing */
+  .font-heading {
+    font-family: var(--font-inter);
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    line-height: 1.2;
+  }
+
+  .font-heading-lg {
+    font-family: var(--font-inter);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
+
+  .font-body {
+    font-family: var(--font-inter);
+    font-weight: 400;
+    letter-spacing: 0.05rem;
+    line-height: 1.5;
+  }
+
+  .font-body-medium {
+    font-family: var(--font-inter);
+    font-weight: 500;
+    letter-spacing: 0.05rem;
+    line-height: 1.5;
+  }
+
+  .font-mono {
+    font-family: var(--font-jetbrains-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 400;
+    letter-spacing: 0.05rem;
+  }
+
+  .font-mono-medium {
+    font-family: var(--font-jetbrains-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    letter-spacing: 0.05rem;
+  }
+
+  .font-mono-sm {
+    font-family: var(--font-jetbrains-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.075em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Simplified text utility classes */
+  .text-display {
+    @apply font-heading-lg text-3xl md:text-4xl;
+  }
+  .text-title {
+    @apply font-heading text-xl md:text-2xl;
+  }
+  .text-subtitle {
+    @apply font-heading text-lg;
+  }
+  .text-label {
+    @apply font-body-medium text-sm;
+  }
+  .text-caption {
+    @apply font-body text-xs text-muted-foreground;
+  }
+  .text-code {
+    @apply font-mono-sm;
+  }
+}
