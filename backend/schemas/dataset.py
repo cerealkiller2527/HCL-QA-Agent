@@ -2,7 +2,7 @@
 Dataset-related Pydantic models for API responses
 """
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, computed_field
 from datetime import datetime
 from typing import List, Optional, Dict, Any, Literal
 from enum import Enum
@@ -44,6 +44,13 @@ class DatasetResponse(BaseModel):
     fileSize: int = Field(0, ge=0, description="Total file size in bytes")
     status: DatasetStatus = Field(DatasetStatus.READY, description="Dataset status")
     robotType: RobotType = Field(RobotType.SO101, description="Type of robot")
+    
+    # Computed field for frontend compatibility
+    @computed_field
+    @property
+    def size(self) -> int:
+        """Alias for fileSize to match frontend expectations"""
+        return self.fileSize
     
     # Optional fields that may be available
     episodeCount: Optional[int] = Field(None, description="Number of episodes")
