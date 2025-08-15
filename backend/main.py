@@ -18,6 +18,7 @@ from config import config
 
 # Import our services
 from services.huggingface_service import HuggingFaceService
+from services.telemetry_service import TelemetryService
 
 # Import utilities
 from utils.validators import validators
@@ -30,6 +31,12 @@ from schemas.dataset import (
     EpisodeResponse,
     EpisodeDataResponse,
     UserInfoResponse
+)
+from schemas.viewer import (
+    CameraInfo,
+    EpisodeVideos,
+    TelemetryData,
+    VideoStreamInfo
 )
 
 # Load environment variables
@@ -116,6 +123,27 @@ def get_hf_service(
         )
     
     return HuggingFaceService(token)
+
+# Dependency to get Telemetry service
+def get_telemetry_service(
+    authorization: Optional[str] = Header(None)
+) -> TelemetryService:
+    # Try to get token from Authorization header first
+    token = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.replace("Bearer ", "")
+    
+    # Fall back to environment variable
+    if not token:
+        token = os.getenv("HF_TOKEN")
+    
+    if not token:
+        raise HTTPException(
+            status_code=401, 
+            detail="HF_TOKEN not provided. Please provide via Authorization header or configure in environment."
+        )
+    
+    return TelemetryService(token)
 
 # Root endpoint
 @app.get("/", response_model=ApiInfo)
@@ -301,6 +329,135 @@ def delete_dataset(
         elif "403" in str(e) or "Forbidden" in str(e):
             raise HTTPException(status_code=403, detail="You don't have permission to delete this dataset")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Get video URLs for an episode
+@app.get("/api/v1/datasets/{owner}/{dataset_name}/episodes/{episode_id}/videos", 
+         response_model=EpisodeVideos,
+         dependencies=[Depends(check_rate_limit)])
+def get_episode_videos(
+    owner: str,
+    dataset_name: str,
+    episode_id: int,
+    hf_service: HuggingFaceService = Depends(get_hf_service)
+):
+    """Get video URLs for streaming a specific episode"""
+    # Validate inputs
+    owner = validators.validate_repo_owner(owner)
+    dataset_name = validators.validate_dataset_name(dataset_name)
+    episode_id = validators.validate_episode_id(episode_id)
+    
+    repo_id = f"{owner}/{dataset_name}"
+    try:
+        videos = hf_service.get_video_urls(repo_id, episode_id)
+        if not videos:
+            raise HTTPException(status_code=404, detail=f"No videos found for episode {episode_id}")
+        return videos
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching videos for {repo_id} episode {episode_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Get telemetry data for an episode
+@app.get("/api/v1/datasets/{owner}/{dataset_name}/episodes/{episode_id}/telemetry", 
+         response_model=TelemetryData,
+         dependencies=[Depends(check_rate_limit)])
+def get_episode_telemetry(
+    owner: str,
+    dataset_name: str,
+    episode_id: int,
+    telemetry_service: TelemetryService = Depends(get_telemetry_service),
+    hf_service: HuggingFaceService = Depends(get_hf_service)
+):
+    """Get telemetry data (robot states and actions) for a specific episode"""
+    # Validate inputs
+    owner = validators.validate_repo_owner(owner)
+    dataset_name = validators.validate_dataset_name(dataset_name)
+    episode_id = validators.validate_episode_id(episode_id)
+    
+    repo_id = f"{owner}/{dataset_name}"
+    try:
+        # Get dataset metadata first
+        meta_info = hf_service._get_lerobot_metadata(repo_id)
+        
+        # Get telemetry data
+        telemetry = telemetry_service.get_episode_telemetry(repo_id, episode_id, meta_info)
+        if not telemetry:
+            # Return empty telemetry structure if data not available
+            return TelemetryData(
+                episode_id=episode_id,
+                duration=0,
+                fps=30,
+                timestamps=[],
+                states={},
+                actions={},
+                feature_names={}
+            )
+        return telemetry
+    except Exception as e:
+        logger.error(f"Error fetching telemetry for {repo_id} episode {episode_id}: {e}")
+        # Return empty telemetry instead of failing
+        return TelemetryData(
+            episode_id=episode_id,
+            duration=0,
+            fps=30,
+            timestamps=[],
+            states={},
+            actions={},
+            feature_names={}
+        )
+
+# Get camera information for a dataset
+@app.get("/api/v1/datasets/{owner}/{dataset_name}/cameras", 
+         response_model=VideoStreamInfo,
+         dependencies=[Depends(check_rate_limit)])
+def get_dataset_cameras(
+    owner: str,
+    dataset_name: str,
+    hf_service: HuggingFaceService = Depends(get_hf_service)
+):
+    """Get camera configuration and stream information for a dataset"""
+    # Validate inputs
+    owner = validators.validate_repo_owner(owner)
+    dataset_name = validators.validate_dataset_name(dataset_name)
+    
+    repo_id = f"{owner}/{dataset_name}"
+    try:
+        camera_info = hf_service.get_camera_info(repo_id)
+        if not camera_info:
+            # Return default camera configuration
+            return VideoStreamInfo(
+                dataset_id=repo_id,
+                cameras=[
+                    CameraInfo(
+                        id="observation.image",
+                        name="Main Camera",
+                        resolution="480x640",
+                        fps=30,
+                        active=True
+                    )
+                ],
+                video_format="mp4",
+                encoding="h264"
+            )
+        return camera_info
+    except Exception as e:
+        logger.error(f"Error fetching camera info for {repo_id}: {e}")
+        # Return default configuration
+        return VideoStreamInfo(
+            dataset_id=repo_id,
+            cameras=[
+                CameraInfo(
+                    id="observation.image",
+                    name="Main Camera",
+                    resolution="480x640",
+                    fps=30,
+                    active=True
+                )
+            ],
+            video_format="mp4",
+            encoding="h264"
+        )
 
 # Run the server
 if __name__ == "__main__":

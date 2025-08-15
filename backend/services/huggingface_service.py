@@ -15,6 +15,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import config
+from schemas.viewer import CameraInfo, VideoUrl, EpisodeVideos, VideoStreamInfo
 
 logger = logging.getLogger(__name__)
 
@@ -478,3 +479,129 @@ class HuggingFaceService:
         except Exception as e:
             logger.error(f"Error deleting dataset {repo_id}: {e}")
             raise
+    
+    def get_video_urls(self, repo_id: str, episode_id: int) -> Optional[EpisodeVideos]:
+        """Get video URLs for a specific episode"""
+        try:
+            # Get dataset metadata
+            meta_info = self._get_lerobot_metadata(repo_id)
+            if not meta_info:
+                logger.warning(f"No metadata available for {repo_id}")
+                return None
+            
+            # Get episode info
+            episodes = self.get_dataset_episodes(repo_id)
+            episode = next((e for e in episodes if e["id"] == episode_id), None)
+            
+            if not episode:
+                logger.warning(f"Episode {episode_id} not found in {repo_id}")
+                return None
+            
+            # Identify video features
+            features = meta_info.get("features", {})
+            video_keys = [k for k, v in features.items() if v.get("dtype") == "video"]
+            
+            if not video_keys:
+                # Fallback: common video key patterns
+                video_keys = ["observation.image", "observation.images.top"]
+            
+            video_urls = []
+            
+            for video_key in video_keys:
+                # Construct video URL based on standard LeRobot pattern
+                video_filename = f"{video_key.replace('.', '_')}_episode_{episode_id}.mp4"
+                video_url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/videos/{video_filename}"
+                
+                # Get resolution and fps from metadata if available
+                resolution = "480x640"  # Default resolution
+                fps = 30  # Default fps
+                
+                if video_key in features:
+                    feature_info = features[video_key]
+                    if "shape" in feature_info:
+                        shape = feature_info["shape"]
+                        if len(shape) >= 3:
+                            # Shape is usually [frames, height, width, channels]
+                            resolution = f"{shape[2]}x{shape[1]}"
+                    if "fps" in feature_info:
+                        fps = feature_info["fps"]
+                
+                # Friendly camera name
+                camera_name = video_key.replace("observation.", "").replace("images.", "").replace("_", " ").title()
+                
+                video_urls.append(VideoUrl(
+                    camera=video_key,
+                    url=video_url,
+                    resolution=resolution,
+                    fps=fps
+                ))
+            
+            # Calculate episode duration
+            episode_length = episode.get("length", 100)
+            fps = meta_info.get("fps", 30)
+            duration = episode_length / fps
+            
+            return EpisodeVideos(
+                episode_id=episode_id,
+                videos=video_urls,
+                duration=duration,
+                frame_count=episode_length
+            )
+            
+        except Exception as e:
+            logger.error(f"Error getting video URLs for {repo_id} episode {episode_id}: {e}")
+            return None
+    
+    def get_camera_info(self, repo_id: str) -> Optional[VideoStreamInfo]:
+        """Get camera configuration information for a dataset"""
+        try:
+            # Get dataset metadata
+            meta_info = self._get_lerobot_metadata(repo_id)
+            if not meta_info:
+                return None
+            
+            features = meta_info.get("features", {})
+            video_keys = [k for k, v in features.items() if v.get("dtype") == "video"]
+            
+            if not video_keys:
+                # Fallback to common patterns
+                video_keys = ["observation.image"]
+            
+            cameras = []
+            
+            for video_key in video_keys:
+                # Extract camera info from metadata
+                resolution = "480x640"
+                fps = 30
+                
+                if video_key in features:
+                    feature_info = features[video_key]
+                    if "shape" in feature_info:
+                        shape = feature_info["shape"]
+                        if len(shape) >= 3:
+                            resolution = f"{shape[2]}x{shape[1]}"
+                    if "fps" in feature_info:
+                        fps = feature_info["fps"]
+                
+                # Generate friendly name
+                camera_name = video_key.replace("observation.", "").replace("images.", "")
+                camera_name = camera_name.replace("_", " ").title()
+                
+                cameras.append(CameraInfo(
+                    id=video_key,
+                    name=camera_name,
+                    resolution=resolution,
+                    fps=fps,
+                    active=True
+                ))
+            
+            return VideoStreamInfo(
+                dataset_id=repo_id,
+                cameras=cameras,
+                video_format="mp4",
+                encoding="h264"
+            )
+            
+        except Exception as e:
+            logger.error(f"Error getting camera info for {repo_id}: {e}")
+            return None
