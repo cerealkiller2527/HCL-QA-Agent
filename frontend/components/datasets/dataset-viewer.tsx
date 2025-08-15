@@ -6,11 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CustomDropdown } from "@/components/ui/custom-dropdown"
-import { CameraViewer } from "@/components/datasets/camera-viewer"
-import { EpisodeSelector } from "@/components/datasets/episode-selector"
-import { DatasetStats } from "@/components/datasets/dataset-stats"
-import { TelemetryChart } from "@/components/datasets/telemetry-chart"
+import { CustomSelect } from "@/components/ui/custom-select"
+import { CameraViewer } from "@/components/datasets/viewer/camera-viewer"
+import { EpisodeSelector } from "@/components/datasets/viewer/episode-selector"
+import { DatasetStats } from "@/components/datasets/viewer/dataset-stats"
+import { TelemetryChart } from "@/components/datasets/viewer/telemetry-chart"
 import { Play, Pause, SkipBack, SkipForward, Download, Settings, ArrowLeft, BarChart3, Activity } from "lucide-react"
 import { mockDatasets } from "@/lib/data/mock-datasets"
 import { cn } from "@/lib/utils"
@@ -110,16 +110,16 @@ export function DatasetViewer({ datasetId }: DatasetViewerProps) {
           <p className="text-muted-foreground font-sans text-sm truncate">{dataset.description}</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-layer-2 px-3 py-2 rounded-lg border border-border">
+          <div className="flex items-center gap-1.5 bg-layer-2 px-2.5 py-1.5 rounded-lg border border-border">
             <span className="text-sm font-medium font-sans text-foreground">Episode:</span>
-            <CustomDropdown
+            <CustomSelect
               value={selectedEpisode.toString()}
               onValueChange={(value) => setSelectedEpisode(Number(value))}
-              placeholder="Select Episode"
-              className="w-36 bg-layer-1 border-border"
+              placeholder="Select"
+              className="w-24 h-8"
               options={mockEpisodes.map((ep) => ({
                 value: ep.id.toString(),
-                label: `${ep.name} (${formatDuration(ep.duration)})`,
+                label: `${ep.id} (${formatDuration(ep.duration)})`,
               }))}
             />
           </div>
@@ -195,11 +195,11 @@ export function DatasetViewer({ datasetId }: DatasetViewerProps) {
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground font-sans">Speed:</span>
-                    <CustomDropdown
+                    <CustomSelect
                       value={playbackSpeed.toString()}
                       onValueChange={(value) => setPlaybackSpeed(Number(value))}
                       placeholder="1x"
-                      className="w-16"
+                      className="w-20"
                       options={[
                         { value: "0.25", label: "0.25x" },
                         { value: "0.5", label: "0.5x" },

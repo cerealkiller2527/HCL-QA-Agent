@@ -7,6 +7,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Clock } from "@/components/clock"
 import { ChevronLeft, Database, Bot, Play, BarChart3, Settings, Home, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -116,9 +117,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {/* Time and Theme Toggle */}
               <div className="bg-layer-2 rounded-lg p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-code text-muted-foreground font-mono text-sm">
-                    {new Date().toLocaleTimeString()}
-                  </div>
+                  <Clock />
                   <ThemeToggle />
                 </div>
               </div>

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CustomDropdown } from "@/components/ui/custom-dropdown"
+import { CustomSelect } from "@/components/ui/custom-select"
 import { Camera, Maximize2, Grid3X3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -56,7 +56,7 @@ export function CameraViewer({ streams, currentFrame, totalFrames }: CameraViewe
       <CardContent className="space-y-6">
         {cameraLayout === "single" ? (
           <div className="space-y-4">
-            <CustomDropdown
+            <CustomSelect
               value={selectedCamera}
               onValueChange={setSelectedCamera}
               placeholder="Select Camera"

@@ -72,8 +72,12 @@ export function DatasetCard({ dataset, onDelete, showDeleteButton = true }: Data
   const StatusIcon = statusConfig[dataset.status].icon
   const isProcessing = dataset.status === "processing"
 
+  const handleCardClick = () => {
+    router.push(`/datasets/${dataset.id}`)
+  }
+
   return (
-    <motion.div variants={ANIMATION.variants.staggerItem}>
+    <motion.div variants={ANIMATION.variants.staggerItem} onClick={handleCardClick}>
       <Card className="layer-card group cursor-pointer hover:shadow-lg transition-all duration-200">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
@@ -137,14 +141,14 @@ export function DatasetCard({ dataset, onDelete, showDeleteButton = true }: Data
             <Button
               size="sm"
               variant="outline"
-              className="flex-1 bg-transparent text-xs font-mono hover:bg-primary/10"
-              onClick={() => router.push(`/datasets/${dataset.id}`)}
+              className="bg-transparent hover:bg-primary/10"
+              onClick={(e) => {
+                e.stopPropagation()
+                // Download functionality here
+              }}
             >
-              <Eye className="h-4 w-4 mr-1" />
-              View
-            </Button>
-            <Button size="sm" variant="outline" className="bg-transparent hover:bg-primary/10">
-              <Download className="h-4 w-4" />
+              <Download className="h-4 w-4 mr-1" />
+              Download
             </Button>
             {showDeleteButton && onDelete && (
               <Button
@@ -156,7 +160,8 @@ export function DatasetCard({ dataset, onDelete, showDeleteButton = true }: Data
                   onDelete()
                 }}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete
               </Button>
             )}
           </div>
