@@ -8,6 +8,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   ArrowLeft,
   Camera,
   Gamepad2,
@@ -25,6 +33,7 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
@@ -250,6 +259,17 @@ export default function RobotControlPage({ params }: { params: { id: string } })
     setRecordingType("single")
   }
 
+  const handleStageSetupClose = (open: boolean) => {
+    if (!open) {
+      setRecordingName("")
+      setRecordingDescription("")
+      setRecordingTags("")
+      setPredefinedStages([])
+      setRecordingType("single")
+    }
+    setShowStageSetup(open)
+  }
+
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
@@ -441,150 +461,177 @@ export default function RobotControlPage({ params }: { params: { id: string } })
             </Card>
           )}
 
-          {showStageSetup && (
-            <Card className="layer-card border-primary/20">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-subtitle flex items-center gap-2">
+          <Dialog open={showStageSetup} onOpenChange={handleStageSetupClose}>
+            <DialogContent className="sm:max-w-2xl bg-layer-1 border-border">
+              <DialogHeader>
+                <DialogTitle className="text-title flex items-center gap-2">
                   <Database className="h-5 w-5" />
                   Setup Recording - Episode {currentEpisode}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </DialogTitle>
+                <DialogDescription className="text-body text-muted-foreground">
+                  Configure your recording session. Choose single dataset for simple recording or staged collection for
+                  multiple datasets.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6 py-4">
+                {/* Basic Recording Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="recording-name">Session Name</Label>
+                    <Label htmlFor="recording-name" className="text-body-medium">
+                      Session Name
+                    </Label>
                     <Input
                       id="recording-name"
-                      placeholder="Enter session name"
+                      placeholder="Enter session name..."
                       value={recordingName}
                       onChange={(e) => setRecordingName(e.target.value)}
+                      className="bg-layer-2 border-border focus:border-primary"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="recording-tags">Tags</Label>
+                    <Label htmlFor="recording-tags" className="text-body-medium">
+                      Tags
+                    </Label>
                     <Input
                       id="recording-tags"
-                      placeholder="manipulation, training"
+                      placeholder="manipulation, training, demo"
                       value={recordingTags}
                       onChange={(e) => setRecordingTags(e.target.value)}
+                      className="bg-layer-2 border-border focus:border-primary"
                     />
                   </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="recording-description">Description</Label>
+                  <Label htmlFor="recording-description" className="text-body-medium">
+                    Description <span className="text-muted-foreground text-body">(optional)</span>
+                  </Label>
                   <Textarea
                     id="recording-description"
                     placeholder="Describe this recording session..."
                     value={recordingDescription}
                     onChange={(e) => setRecordingDescription(e.target.value)}
-                    rows={2}
+                    className="bg-layer-2 border-border focus:border-primary resize-none"
+                    rows={3}
                   />
                 </div>
 
+                {/* Recording Type Selection */}
                 <div className="space-y-3">
-                  <Label>Recording Type</Label>
-                  <div className="flex gap-2">
+                  <Label className="text-body-medium">Recording Type</Label>
+                  <div className="grid grid-cols-2 gap-3">
                     <Button
-                      size="sm"
+                      type="button"
                       variant={recordingType === "single" ? "default" : "outline"}
                       onClick={() => setRecordingType("single")}
+                      className="h-auto p-4 flex flex-col items-start gap-2"
                     >
-                      Single Dataset
+                      <div className="font-medium">Single Dataset</div>
+                      <div className="text-xs text-muted-foreground text-left">Record one continuous dataset</div>
                     </Button>
                     <Button
-                      size="sm"
+                      type="button"
                       variant={recordingType === "staged" ? "default" : "outline"}
                       onClick={() => setRecordingType("staged")}
+                      className="h-auto p-4 flex flex-col items-start gap-2"
                     >
-                      Staged Collection
+                      <div className="font-medium">Staged Collection</div>
+                      <div className="text-xs text-muted-foreground text-left">
+                        Multiple stages as separate datasets
+                      </div>
                     </Button>
                   </div>
-                  <p className="text-caption text-muted-foreground">
-                    {recordingType === "single"
-                      ? "Record one continuous dataset"
-                      : "Record multiple stages as separate datasets in a collection"}
-                  </p>
                 </div>
 
+                {/* Stages Setup */}
                 {recordingType === "staged" && (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <Label>Stages Setup</Label>
-                      <Button size="sm" variant="outline" onClick={addStageToSetup}>
+                      <Label className="text-body-medium">Stages Configuration</Label>
+                      <Button type="button" size="sm" variant="outline" onClick={addStageToSetup}>
                         <Plus className="h-3 w-3 mr-1" />
                         Add Stage
                       </Button>
                     </div>
 
                     {predefinedStages.length === 0 ? (
-                      <div className="text-center py-4 text-muted-foreground">
-                        <p className="text-caption">No stages defined yet</p>
-                        <p className="text-xs">Add stages to create a multi-dataset collection</p>
+                      <div className="text-center py-8 text-muted-foreground bg-layer-2 rounded-lg border border-dashed">
+                        <Database className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-body">No stages defined yet</p>
+                        <p className="text-caption">Add stages to create a multi-dataset collection</p>
                       </div>
                     ) : (
-                      <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {predefinedStages.map((stage) => (
-                          <div key={stage.id} className="p-3 border rounded-lg space-y-2">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {predefinedStages.map((stage, index) => (
+                          <div key={stage.id} className="p-4 bg-layer-2 rounded-lg border space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Badge variant="outline" className="text-xs">
+                                Stage {index + 1}
+                              </Badge>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => removeStageFromSetup(stage.id)}
+                                className="h-6 w-6 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                               <Input
                                 placeholder="Stage name"
                                 value={stage.name}
                                 onChange={(e) => updateStageInSetup(stage.id, { name: e.target.value })}
-                                size="sm"
+                                className="bg-layer-1 border-border text-sm"
                               />
                               <Input
-                                placeholder="Task type"
+                                placeholder="Task type (e.g., manipulation)"
                                 value={stage.taskType}
                                 onChange={(e) => updateStageInSetup(stage.id, { taskType: e.target.value })}
-                                size="sm"
+                                className="bg-layer-1 border-border text-sm"
                               />
                             </div>
+
                             <Input
                               placeholder="Tags (comma separated)"
                               value={stage.tags}
                               onChange={(e) => updateStageInSetup(stage.id, { tags: e.target.value })}
-                              size="sm"
+                              className="bg-layer-1 border-border text-sm"
                             />
-                            <div className="flex gap-2">
-                              <Textarea
-                                placeholder="Stage description"
-                                value={stage.description}
-                                onChange={(e) => updateStageInSetup(stage.id, { description: e.target.value })}
-                                rows={2}
-                                className="text-sm flex-1"
-                              />
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => removeStageFromSetup(stage.id)}
-                                className="self-start"
-                              >
-                                Remove
-                              </Button>
-                            </div>
+
+                            <Textarea
+                              placeholder="Stage description..."
+                              value={stage.description}
+                              onChange={(e) => updateStageInSetup(stage.id, { description: e.target.value })}
+                              rows={2}
+                              className="bg-layer-1 border-border text-sm resize-none"
+                            />
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
                 )}
+              </div>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={startRecording}
-                    className="gap-2"
-                    disabled={recordingType === "staged" && predefinedStages.length === 0}
-                  >
-                    <Play className="h-4 w-4" />
-                    Start Recording
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowStageSetup(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => handleStageSetupClose(false)} className="text-body">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={startRecording}
+                  disabled={recordingType === "staged" && predefinedStages.length === 0}
+                  className="text-body bg-primary hover:bg-primary/90"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Start Recording
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </motion.div>
 
         <motion.div className="xl:col-span-1 space-y-4 flex flex-col" variants={ANIMATION.variants.staggerItem}>
