@@ -44,7 +44,6 @@ import {
 import { useDraggable, useDroppable } from "@dnd-kit/core"
 import { mockDatasets } from "@/lib/data/mock-datasets"
 import { DatasetCard } from "@/components/datasets/dataset-card"
-import { DatasetFilters } from "@/components/datasets/dataset-filters"
 import { CollectionModal } from "@/components/datasets/collection-modal"
 import { ANIMATION } from "@/lib/constants"
 import { createStaggerAnimation } from "@/lib/utils/animations"
@@ -366,12 +365,6 @@ const DroppableCollection = memo(function DroppableCollection({
 
 export function DatasetsList() {
   const router = useRouter()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [robotTypeFilter, setRobotTypeFilter] = useState<string>("all")
-  const [sizeFilter, setSizeFilter] = useState<string>("all")
-  const [dateFilter, setDateFilter] = useState<string>("all")
-  const [tagFilter, setTagFilter] = useState<string>("all")
   const [collections, setCollections] = useState<Collection[]>([])
   const [showCollectionModal, setShowCollectionModal] = useState(false)
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set())
@@ -390,74 +383,7 @@ export function DatasetsList() {
     return datasets.filter((dataset) => !collections.some((collection) => collection.datasetIds.includes(dataset.id)))
   }, [datasets, collections])
 
-  const filteredDatasets = useMemo(() => {
-    return uncategorizedDatasets.filter((dataset) => {
-      const matchesStatus = statusFilter === "all" || dataset.status === statusFilter
-      const matchesRobotType = robotTypeFilter === "all" || dataset.robotType === robotTypeFilter
-
-      // Size filter logic
-      const matchesSize =
-        sizeFilter === "all" ||
-        (() => {
-          const sizeValue = Number.parseFloat(dataset.size.replace(/[^\d.]/g, ""))
-          const sizeUnit = dataset.size.toLowerCase()
-          const sizeInGB = sizeUnit.includes("mb") ? sizeValue / 1024 : sizeValue
-
-          switch (sizeFilter) {
-            case "small":
-              return sizeInGB < 1
-            case "medium":
-              return sizeInGB >= 1 && sizeInGB <= 10
-            case "large":
-              return sizeInGB > 10 && sizeInGB <= 100
-            case "xlarge":
-              return sizeInGB > 100
-            default:
-              return true
-          }
-        })()
-
-      // Date filter logic
-      const matchesDate =
-        dateFilter === "all" ||
-        (() => {
-          const datasetDate = new Date(dataset.createdAt)
-          const now = new Date()
-          const diffTime = now.getTime() - datasetDate.getTime()
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-          switch (dateFilter) {
-            case "today":
-              return diffDays <= 1
-            case "week":
-              return diffDays <= 7
-            case "month":
-              return diffDays <= 30
-            case "quarter":
-              return diffDays <= 90
-            case "year":
-              return diffDays <= 365
-            default:
-              return true
-          }
-        })()
-
-      // Tag filter logic
-      const matchesTag =
-        tagFilter === "all" || dataset.tags.some((tag) => tag.toLowerCase().includes(tagFilter.toLowerCase()))
-
-      if (!matchesStatus || !matchesRobotType || !matchesSize || !matchesDate || !matchesTag) return false
-
-      if (!searchQuery.trim()) return true
-
-      const query = searchQuery.toLowerCase()
-      return (
-        dataset.name.toLowerCase().includes(query) ||
-        dataset.description.toLowerCase().includes(query) ||
-        dataset.tags.some((tag) => tag.toLowerCase().includes(query))
-      )
-    })
-  }, [uncategorizedDatasets, statusFilter, robotTypeFilter, sizeFilter, dateFilter, tagFilter, searchQuery])
+  const displayedDatasets = uncategorizedDatasets
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -554,18 +480,9 @@ export function DatasetsList() {
     return activeId ? datasets.find((d) => d.id === activeId) : null
   }, [activeId, datasets])
 
-  const clearFilters = useCallback(() => {
-    setStatusFilter("all")
-    setRobotTypeFilter("all")
-    setSizeFilter("all")
-    setDateFilter("all")
-    setTagFilter("all")
-    setSearchQuery("")
-  }, [])
-
   const selectAllDatasets = useCallback(() => {
-    setSelectedDatasets(new Set(filteredDatasets.map((d) => d.id)))
-  }, [filteredDatasets])
+    setSelectedDatasets(new Set(displayedDatasets.map((d) => d.id)))
+  }, [displayedDatasets])
 
   const clearSelection = useCallback(() => {
     setSelectedDatasets(new Set())
@@ -602,26 +519,7 @@ export function DatasetsList() {
     setShowMassDeleteDialog(false)
   }, [selectedDatasets, clearSelection])
 
-  const hasActiveFilters =
-    statusFilter !== "all" ||
-    robotTypeFilter !== "all" ||
-    sizeFilter !== "all" ||
-    dateFilter !== "all" ||
-    tagFilter !== "all" ||
-    searchQuery
   const containerVariants = createStaggerAnimation(0.1)
-
-  const viewCollectionTogether = useCallback(
-    (collectionId: string) => {
-      const collection = collections.find((c) => c.id === collectionId)
-      if (collection && collection.datasetIds.length > 0) {
-        // Navigate to a special view that shows all datasets in the collection
-        const datasetIds = collection.datasetIds.join(",")
-        router.push(`/datasets/collection/${collectionId}?datasets=${datasetIds}`)
-      }
-    },
-    [collections, router],
-  )
 
   return (
     <DndContext
@@ -647,7 +545,7 @@ export function DatasetsList() {
                   variant="outline"
                   size="sm"
                   onClick={selectAllDatasets}
-                  disabled={selectedDatasets.size === filteredDatasets.length}
+                  disabled={selectedDatasets.size === displayedDatasets.length}
                 >
                   Select All
                 </Button>
@@ -685,7 +583,7 @@ export function DatasetsList() {
         </motion.div>
 
         {/* Drag and Drop Instructions */}
-        {!isSelectionMode && collections.length > 0 && filteredDatasets.length > 0 && (
+        {!isSelectionMode && collections.length > 0 && displayedDatasets.length > 0 && (
           <motion.div
             className="flex items-center space-x-2 p-4 bg-primary/5 border border-primary/20 rounded-lg"
             variants={ANIMATION.variants.staggerItem}
@@ -701,79 +599,27 @@ export function DatasetsList() {
             <h2 className="text-title mb-4">Collections</h2>
             <div className="space-y-4">
               {collections.map((collection) => (
-                <div key={collection.id}>
-                  <DroppableCollection
-                    collection={collection}
-                    datasets={datasets}
-                    expandedCollections={expandedCollections}
-                    toggleCollectionExpansion={toggleCollectionExpansion}
-                    removeFromCollection={removeFromCollection}
-                    handleDeleteDataset={handleDeleteDataset}
-                    router={router}
-                    isOver={overId === collection.id}
-                  />
-                  {/* View All Together button for each collection */}
-                  {collection.datasetIds.length > 1 && (
-                    <div className="mt-3 flex justify-end">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => viewCollectionTogether(collection.id)}
-                        className="bg-transparent hover:bg-primary/5 border-primary/20 text-primary hover:text-primary"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View All Together ({collection.datasetIds.length})
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <DroppableCollection
+                  key={collection.id}
+                  collection={collection}
+                  datasets={datasets}
+                  expandedCollections={expandedCollections}
+                  toggleCollectionExpansion={toggleCollectionExpansion}
+                  removeFromCollection={removeFromCollection}
+                  handleDeleteDataset={handleDeleteDataset}
+                  router={router}
+                  isOver={overId === collection.id}
+                />
               ))}
             </div>
           </motion.div>
         )}
 
-        {/* Filters */}
-        <motion.div variants={ANIMATION.variants.staggerItem}>
-          <div className="bg-layer-1 border border-border rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-title">Filter Datasets</h3>
-              {hasActiveFilters && (
-                <span className="text-caption text-muted-foreground bg-primary/10 px-2 py-1 rounded-md">
-                  {filteredDatasets.length} result{filteredDatasets.length !== 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-            <DatasetFilters
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
-              robotTypeFilter={robotTypeFilter}
-              setRobotTypeFilter={setRobotTypeFilter}
-              sizeFilter={sizeFilter}
-              setSizeFilter={setSizeFilter}
-              dateFilter={dateFilter}
-              setDateFilter={setDateFilter}
-              tagFilter={tagFilter}
-              setTagFilter={setTagFilter}
-              hasActiveFilters={hasActiveFilters}
-              clearFilters={clearFilters}
-              resultsCount={filteredDatasets.length}
-            />
-          </div>
-        </motion.div>
-
         {/* Datasets Grid */}
-        {filteredDatasets.length > 0 ? (
+        {displayedDatasets.length > 0 ? (
           <motion.div variants={ANIMATION.variants.staggerItem}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-title">
-                {hasActiveFilters ? "Filtered Datasets" : "All Datasets"}
-                <span className="text-caption text-muted-foreground ml-2">({filteredDatasets.length})</span>
-              </h3>
-            </div>
             <motion.div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" variants={containerVariants}>
-              {filteredDatasets.map((dataset) => (
+              {displayedDatasets.map((dataset) => (
                 <DraggableDataset
                   key={dataset.id}
                   dataset={dataset}
@@ -792,9 +638,7 @@ export function DatasetsList() {
             </div>
             <h3 className="text-title mb-2">No datasets found</h3>
             <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
-              {hasActiveFilters
-                ? "Try adjusting your filters to see more results"
-                : "Get started by creating your first dataset"}
+              Get started by creating your first dataset
             </p>
             <Button className="bg-primary hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-2" />
