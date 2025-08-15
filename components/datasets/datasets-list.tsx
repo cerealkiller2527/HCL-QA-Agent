@@ -369,6 +369,9 @@ export function DatasetsList() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [robotTypeFilter, setRobotTypeFilter] = useState<string>("all")
+  const [sizeFilter, setSizeFilter] = useState<string>("all")
+  const [dateFilter, setDateFilter] = useState<string>("all")
+  const [tagFilter, setTagFilter] = useState<string>("all")
   const [collections, setCollections] = useState<Collection[]>([])
   const [showCollectionModal, setShowCollectionModal] = useState(false)
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set())
@@ -392,7 +395,58 @@ export function DatasetsList() {
       const matchesStatus = statusFilter === "all" || dataset.status === statusFilter
       const matchesRobotType = robotTypeFilter === "all" || dataset.robotType === robotTypeFilter
 
-      if (!matchesStatus || !matchesRobotType) return false
+      // Size filter logic
+      const matchesSize =
+        sizeFilter === "all" ||
+        (() => {
+          const sizeValue = Number.parseFloat(dataset.size.replace(/[^\d.]/g, ""))
+          const sizeUnit = dataset.size.toLowerCase()
+          const sizeInGB = sizeUnit.includes("mb") ? sizeValue / 1024 : sizeValue
+
+          switch (sizeFilter) {
+            case "small":
+              return sizeInGB < 1
+            case "medium":
+              return sizeInGB >= 1 && sizeInGB <= 10
+            case "large":
+              return sizeInGB > 10 && sizeInGB <= 100
+            case "xlarge":
+              return sizeInGB > 100
+            default:
+              return true
+          }
+        })()
+
+      // Date filter logic
+      const matchesDate =
+        dateFilter === "all" ||
+        (() => {
+          const datasetDate = new Date(dataset.createdAt)
+          const now = new Date()
+          const diffTime = now.getTime() - datasetDate.getTime()
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+          switch (dateFilter) {
+            case "today":
+              return diffDays <= 1
+            case "week":
+              return diffDays <= 7
+            case "month":
+              return diffDays <= 30
+            case "quarter":
+              return diffDays <= 90
+            case "year":
+              return diffDays <= 365
+            default:
+              return true
+          }
+        })()
+
+      // Tag filter logic
+      const matchesTag =
+        tagFilter === "all" || dataset.tags.some((tag) => tag.toLowerCase().includes(tagFilter.toLowerCase()))
+
+      if (!matchesStatus || !matchesRobotType || !matchesSize || !matchesDate || !matchesTag) return false
 
       if (!searchQuery.trim()) return true
 
@@ -403,7 +457,7 @@ export function DatasetsList() {
         dataset.tags.some((tag) => tag.toLowerCase().includes(query))
       )
     })
-  }, [uncategorizedDatasets, statusFilter, robotTypeFilter, searchQuery])
+  }, [uncategorizedDatasets, statusFilter, robotTypeFilter, sizeFilter, dateFilter, tagFilter, searchQuery])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -500,11 +554,12 @@ export function DatasetsList() {
     return activeId ? datasets.find((d) => d.id === activeId) : null
   }, [activeId, datasets])
 
-  // ... existing code for other functions ...
-
   const clearFilters = useCallback(() => {
     setStatusFilter("all")
     setRobotTypeFilter("all")
+    setSizeFilter("all")
+    setDateFilter("all")
+    setTagFilter("all")
     setSearchQuery("")
   }, [])
 
@@ -547,7 +602,13 @@ export function DatasetsList() {
     setShowMassDeleteDialog(false)
   }, [selectedDatasets, clearSelection])
 
-  const hasActiveFilters = statusFilter !== "all" || robotTypeFilter !== "all" || searchQuery
+  const hasActiveFilters =
+    statusFilter !== "all" ||
+    robotTypeFilter !== "all" ||
+    sizeFilter !== "all" ||
+    dateFilter !== "all" ||
+    tagFilter !== "all" ||
+    searchQuery
   const containerVariants = createStaggerAnimation(0.1)
 
   return (
@@ -652,6 +713,12 @@ export function DatasetsList() {
           setStatusFilter={setStatusFilter}
           robotTypeFilter={robotTypeFilter}
           setRobotTypeFilter={setRobotTypeFilter}
+          sizeFilter={sizeFilter}
+          setSizeFilter={setSizeFilter}
+          dateFilter={dateFilter}
+          setDateFilter={setDateFilter}
+          tagFilter={tagFilter}
+          setTagFilter={setTagFilter}
           hasActiveFilters={hasActiveFilters}
           clearFilters={clearFilters}
           resultsCount={filteredDatasets.length}
