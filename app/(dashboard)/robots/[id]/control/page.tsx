@@ -18,20 +18,32 @@ import {
   Battery,
   Wifi,
   AlertTriangle,
-  Settings,
   Database,
-  Clock,
+  Maximize2,
+  Grid3X3,
+  Activity,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { ANIMATION } from "@/lib/constants"
 import { createStaggerAnimation } from "@/lib/utils/animations"
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts"
 
 export default function RobotControlPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [isConnected, setIsConnected] = useState(true)
   const [isRecording, setIsRecording] = useState(false)
   const [controlMode, setControlMode] = useState<"manual" | "autonomous">("manual")
+  const [cameraLayout, setCameraLayout] = useState<"single" | "grid">("grid")
+  const [selectedCamera, setSelectedCamera] = useState(0)
+
+  const [telemetryData, setTelemetryData] = useState([
+    { time: 0, velocity: 0.5, force: 2.1, temperature: 42 },
+    { time: 1, velocity: 0.8, force: 2.3, temperature: 43 },
+    { time: 2, velocity: 1.2, force: 1.9, temperature: 44 },
+    { time: 3, velocity: 0.9, force: 2.5, temperature: 42 },
+    { time: 4, velocity: 1.1, force: 2.0, temperature: 43 },
+  ])
 
   const [recordingDuration, setRecordingDuration] = useState(0)
   const [recordingName, setRecordingName] = useState("")
@@ -40,6 +52,33 @@ export default function RobotControlPage({ params }: { params: { id: string } })
   const [showRecordingSetup, setShowRecordingSetup] = useState(false)
 
   const containerVariants = createStaggerAnimation(0.1, ANIMATION.duration.medium)
+
+  const cameras = [
+    { id: 0, name: "Primary View", resolution: "1920x1080", fps: 30, active: true },
+    { id: 1, name: "Wrist Cam", resolution: "1280x720", fps: 60, active: true },
+    { id: 2, name: "Overview", resolution: "1920x1080", fps: 30, active: true },
+    { id: 3, name: "Tool Cam", resolution: "640x480", fps: 30, active: false },
+  ]
+
+  const activeCameras = cameras.filter((cam) => cam.active)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTelemetryData((prev) => {
+        const newData = [
+          ...prev.slice(-4),
+          {
+            time: prev[prev.length - 1].time + 1,
+            velocity: Math.random() * 2,
+            force: 1.5 + Math.random() * 1.5,
+            temperature: 40 + Math.random() * 8,
+          },
+        ]
+        return newData
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -51,7 +90,6 @@ export default function RobotControlPage({ params }: { params: { id: string } })
     return () => clearInterval(interval)
   }, [isRecording])
 
-  // Mock robot data - in real app, fetch based on params.id
   const robot = {
     id: params.id,
     name: "Atlas-01",
@@ -60,6 +98,39 @@ export default function RobotControlPage({ params }: { params: { id: string } })
     batteryLevel: 87,
     location: "Lab A",
     currentTask: "Teleoperation Active",
+  }
+
+  const TelemetryGauge = ({
+    value,
+    max,
+    label,
+    unit,
+    color,
+  }: {
+    value: number
+    max: number
+    label: string
+    unit: string
+    color: string
+  }) => {
+    const percentage = (value / max) * 100
+    return (
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <span className="text-caption text-muted-foreground">{label}</span>
+          <span className="text-code font-mono">
+            {value.toFixed(1)}
+            {unit}
+          </span>
+        </div>
+        <div className="w-full bg-layer-2 rounded-full h-2">
+          <div
+            className={`h-2 rounded-full transition-all duration-300 ${color}`}
+            style={{ width: `${Math.min(percentage, 100)}%` }}
+          />
+        </div>
+      </div>
+    )
   }
 
   const startRecording = () => {
@@ -73,7 +144,6 @@ export default function RobotControlPage({ params }: { params: { id: string } })
 
   const stopRecording = () => {
     setIsRecording(false)
-    // In real app, save the dataset here
     console.log("[v0] Saving dataset:", {
       name: recordingName,
       description: recordingDescription,
@@ -82,7 +152,6 @@ export default function RobotControlPage({ params }: { params: { id: string } })
       robotId: robot.id,
     })
 
-    // Reset recording state
     setRecordingDuration(0)
     setRecordingName("")
     setRecordingDescription("")
@@ -97,88 +166,148 @@ export default function RobotControlPage({ params }: { params: { id: string } })
 
   return (
     <motion.div
-      className="p-6 space-y-6 max-w-7xl mx-auto min-h-screen"
+      className="p-4 space-y-4 max-w-7xl mx-auto min-h-screen"
       variants={containerVariants}
       initial="initial"
       animate="animate"
     >
-      {/* Header */}
       <motion.div className="flex items-center justify-between" variants={ANIMATION.variants.staggerItem}>
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={() => router.push("/robots")} className="bg-transparent">
+          <Button variant="outline" size="sm" onClick={() => router.push("/robots")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Fleet
+            Back
           </Button>
           <div>
-            <h1 className="text-display font-sans">{robot.name} Control</h1>
-            <p className="text-body text-muted-foreground">Remote teleoperation interface</p>
+            <h1 className="text-title font-sans">{robot.name}</h1>
+            <p className="text-caption text-muted-foreground">Remote Control</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Badge variant={isConnected ? "default" : "destructive"} className="gap-1">
             <Wifi className="h-3 w-3" />
-            {isConnected ? "Connected" : "Disconnected"}
+            {isConnected ? "Online" : "Offline"}
           </Badge>
           <Badge variant="outline" className="gap-1">
             <Battery className="h-3 w-3" />
             {robot.batteryLevel}%
           </Badge>
+          {isRecording && (
+            <Badge variant="destructive" className="gap-1 animate-pulse">
+              <div className="w-2 h-2 bg-white rounded-full" />
+              REC {formatDuration(recordingDuration)}
+            </Badge>
+          )}
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        {/* Camera Feeds - Takes up 3/4 of the width */}
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
         <motion.div className="xl:col-span-3 space-y-4" variants={ANIMATION.variants.staggerItem}>
-          {/* Main Camera Feed */}
-          <Card className="layer-card">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-subtitle flex items-center gap-2">
-                  <Camera className="h-5 w-5" />
-                  Primary Camera
-                  {isRecording && (
-                    <Badge variant="destructive" className="gap-1 animate-pulse">
-                      <div className="w-2 h-2 bg-white rounded-full" />
-                      REC {formatDuration(recordingDuration)}
-                    </Badge>
-                  )}
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  {!isRecording ? (
-                    <Button size="sm" variant="outline" onClick={() => setShowRecordingSetup(true)} className="gap-1">
-                      <Database className="h-3 w-3" />
-                      Start Recording
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="destructive" onClick={stopRecording} className="gap-1">
-                      <Square className="h-3 w-3" />
-                      Stop Recording
-                    </Button>
-                  )}
-                  <Button size="sm" variant="outline">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="aspect-video bg-layer-2 rounded-lg flex items-center justify-center border">
-                <div className="text-center space-y-2">
-                  <Camera className="h-12 w-12 mx-auto text-muted-foreground" />
-                  <p className="text-body text-muted-foreground">Camera feed would appear here</p>
-                  <Badge variant="outline">1920x1080 @ 30fps</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Camera Controls */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant={cameraLayout === "single" ? "default" : "outline"}
+                onClick={() => setCameraLayout("single")}
+              >
+                <Maximize2 className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant={cameraLayout === "grid" ? "default" : "outline"}
+                onClick={() => setCameraLayout("grid")}
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <span className="text-caption text-muted-foreground">{activeCameras.length} cameras active</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {!isRecording ? (
+                <Button size="sm" variant="outline" onClick={() => setShowRecordingSetup(true)}>
+                  <Database className="h-4 w-4 mr-1" />
+                  Record
+                </Button>
+              ) : (
+                <Button size="sm" variant="destructive" onClick={stopRecording}>
+                  <Square className="h-4 w-4 mr-1" />
+                  Stop
+                </Button>
+              )}
+            </div>
+          </div>
 
+          {cameraLayout === "single" ? (
+            <Card className="layer-card">
+              <CardContent className="p-4">
+                <div className="aspect-video bg-layer-2 rounded-lg flex items-center justify-center border relative">
+                  <div className="text-center space-y-2">
+                    <Camera className="h-16 w-16 mx-auto text-muted-foreground" />
+                    <p className="text-body text-muted-foreground">{activeCameras[selectedCamera]?.name}</p>
+                    <Badge variant="outline">
+                      {activeCameras[selectedCamera]?.resolution} @ {activeCameras[selectedCamera]?.fps}fps
+                    </Badge>
+                  </div>
+                  {isRecording && (
+                    <div className="absolute top-4 right-4">
+                      <div className="w-3 h-3 bg-destructive rounded-full animate-pulse" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2 mt-3">
+                  {activeCameras.map((camera, index) => (
+                    <Button
+                      key={camera.id}
+                      size="sm"
+                      variant={selectedCamera === index ? "default" : "outline"}
+                      onClick={() => setSelectedCamera(index)}
+                      className="text-xs"
+                    >
+                      {camera.name}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div
+              className={`grid gap-4 ${
+                activeCameras.length === 1
+                  ? "grid-cols-1"
+                  : activeCameras.length === 2
+                    ? "grid-cols-1 md:grid-cols-2"
+                    : activeCameras.length === 3
+                      ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                      : "grid-cols-1 md:grid-cols-2"
+              }`}
+            >
+              {activeCameras.map((camera) => (
+                <Card key={camera.id} className="layer-card">
+                  <CardContent className="p-3">
+                    <div className="aspect-video bg-layer-2 rounded border flex items-center justify-center relative">
+                      <div className="text-center space-y-1">
+                        <Camera className="h-8 w-8 mx-auto text-muted-foreground" />
+                        <p className="text-caption text-muted-foreground">{camera.name}</p>
+                      </div>
+                      {isRecording && (
+                        <div className="absolute top-2 right-2">
+                          <div className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Recording Setup Modal */}
           {showRecordingSetup && (
             <Card className="layer-card border-primary/20">
               <CardHeader className="pb-3">
                 <CardTitle className="text-subtitle flex items-center gap-2">
                   <Database className="h-5 w-5" />
-                  Dataset Recording Setup
+                  Start Recording Session
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -193,10 +322,10 @@ export default function RobotControlPage({ params }: { params: { id: string } })
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="recording-tags">Tags (comma-separated)</Label>
+                    <Label htmlFor="recording-tags">Tags</Label>
                     <Input
                       id="recording-tags"
-                      placeholder="manipulation, training, demo"
+                      placeholder="manipulation, training"
                       value={recordingTags}
                       onChange={(e) => setRecordingTags(e.target.value)}
                     />
@@ -206,13 +335,13 @@ export default function RobotControlPage({ params }: { params: { id: string } })
                   <Label htmlFor="recording-description">Description</Label>
                   <Textarea
                     id="recording-description"
-                    placeholder="Describe what this recording session will capture..."
+                    placeholder="Describe this recording session..."
                     value={recordingDescription}
                     onChange={(e) => setRecordingDescription(e.target.value)}
-                    rows={3}
+                    rows={2}
                   />
                 </div>
-                <div className="flex items-center gap-2 pt-2">
+                <div className="flex items-center gap-2">
                   <Button onClick={startRecording} className="gap-2">
                     <Play className="h-4 w-4" />
                     Start Recording
@@ -224,114 +353,109 @@ export default function RobotControlPage({ params }: { params: { id: string } })
               </CardContent>
             </Card>
           )}
-
-          {/* Secondary Camera Feeds */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {["Wrist Camera", "Overview Camera"].map((cameraName, index) => (
-              <Card key={cameraName} className="layer-card">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-label flex items-center justify-between">
-                    {cameraName}
-                    {isRecording && <div className="w-2 h-2 bg-destructive rounded-full animate-pulse" />}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="aspect-video bg-layer-2 rounded border flex items-center justify-center">
-                    <Camera className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
         </motion.div>
 
-        {/* Control Panel - Takes up 1/4 of the width */}
-        <motion.div className="xl:col-span-1 space-y-4" variants={ANIMATION.variants.staggerItem}>
-          {isRecording && (
-            <Card className="layer-card border-destructive/20">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-subtitle flex items-center gap-2">
-                  <Database className="h-4 w-4 text-destructive" />
-                  Recording Active
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-label">Duration:</span>
-                  <Badge variant="destructive" className="gap-1">
-                    <Clock className="h-3 w-3" />
-                    {formatDuration(recordingDuration)}
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-label">Size:</span>
-                  <span className="text-code">{(recordingDuration * 0.5).toFixed(1)} MB</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-label">Frames:</span>
-                  <span className="text-code">{recordingDuration * 30}</span>
-                </div>
-                {recordingName && (
-                  <div className="pt-2 border-t border-border">
-                    <p className="text-xs text-muted-foreground">Saving as:</p>
-                    <p className="text-code text-xs truncate">{recordingName}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Robot Status */}
+        <motion.div className="xl:col-span-2 space-y-4" variants={ANIMATION.variants.staggerItem}>
+          {/* Quick Status */}
           <Card className="layer-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-subtitle">Robot Status</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-label">Status:</span>
-                <Badge variant="default">Online</Badge>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-subtitle">Status</h3>
+                <Badge variant="default" className="gap-1">
+                  <Activity className="h-3 w-3" />
+                  Active
+                </Badge>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-label">Mode:</span>
-                <Badge variant="outline">{controlMode}</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-label">Task:</span>
-                <span className="text-code text-right">{robot.currentTask}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-label">Location:</span>
-                <span className="text-body">{robot.location}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Control Mode */}
-          <Card className="layer-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-subtitle">Control Mode</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-4">
                 <Button
                   size="sm"
                   variant={controlMode === "manual" ? "default" : "outline"}
                   onClick={() => setControlMode("manual")}
-                  className="text-xs"
+                  className="gap-1"
                 >
-                  <Gamepad2 className="h-3 w-3 mr-1" />
+                  <Gamepad2 className="h-3 w-3" />
                   Manual
                 </Button>
                 <Button
                   size="sm"
                   variant={controlMode === "autonomous" ? "default" : "outline"}
                   onClick={() => setControlMode("autonomous")}
-                  className="text-xs"
+                  className="gap-1"
                 >
-                  <RotateCcw className="h-3 w-3 mr-1" />
+                  <RotateCcw className="h-3 w-3" />
                   Auto
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="layer-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-subtitle flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Live Telemetry
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <TelemetryGauge
+                value={telemetryData[telemetryData.length - 1]?.velocity || 0}
+                max={2}
+                label="Velocity"
+                unit="m/s"
+                color="bg-blue-500"
+              />
+              <TelemetryGauge
+                value={telemetryData[telemetryData.length - 1]?.force || 0}
+                max={3}
+                label="Force"
+                unit="N"
+                color="bg-green-500"
+              />
+              <TelemetryGauge
+                value={telemetryData[telemetryData.length - 1]?.temperature || 0}
+                max={60}
+                label="Temperature"
+                unit="°C"
+                color="bg-orange-500"
+              />
+
+              <div className="h-24 mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={telemetryData}>
+                    <XAxis dataKey="time" hide />
+                    <YAxis hide />
+                    <Line type="monotone" dataKey="velocity" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="force" stroke="#10b981" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Joint Status */}
+          <Card className="layer-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-subtitle">Joint Positions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {["Base", "Shoulder", "Elbow", "Wrist"].map((joint, index) => {
+                const angle = Math.random() * 180 - 90
+                const percentage = ((angle + 90) / 180) * 100
+                return (
+                  <div key={joint} className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-caption">{joint}</span>
+                      <span className="text-code font-mono">{angle.toFixed(1)}°</span>
+                    </div>
+                    <div className="w-full bg-layer-2 rounded-full h-1.5">
+                      <div
+                        className="h-1.5 rounded-full bg-primary transition-all duration-300"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
             </CardContent>
           </Card>
 
@@ -343,7 +467,7 @@ export default function RobotControlPage({ params }: { params: { id: string } })
                 Emergency
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2">
               <Button variant="destructive" className="w-full" size="sm">
                 <Power className="h-4 w-4 mr-2" />
                 Emergency Stop
@@ -352,29 +476,6 @@ export default function RobotControlPage({ params }: { params: { id: string } })
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Reset Position
               </Button>
-            </CardContent>
-          </Card>
-
-          {/* Joint Controls */}
-          <Card className="layer-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-subtitle">Joint Control</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {["Base", "Shoulder", "Elbow", "Wrist"].map((joint, index) => (
-                <div key={joint} className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-label">{joint}</span>
-                    <span className="text-code">{(Math.random() * 180 - 90).toFixed(1)}°</span>
-                  </div>
-                  <div className="w-full bg-layer-2 rounded-full h-1">
-                    <div
-                      className="h-1 rounded-full bg-primary transition-all"
-                      style={{ width: `${50 + Math.random() * 30}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
             </CardContent>
           </Card>
         </motion.div>
