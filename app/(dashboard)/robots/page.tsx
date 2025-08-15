@@ -10,6 +10,7 @@ import { MetricCard } from "@/components/ui/metric-card"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { ANIMATION } from "@/lib/constants"
 import { createStaggerAnimation } from "@/lib/utils/animations"
+import { useRouter } from "next/navigation"
 
 const MotionCard = motion(Card)
 
@@ -28,6 +29,7 @@ const robotTypeConfig = {
 }
 
 export default function RobotsPage() {
+  const router = useRouter()
   const onlineRobots = mockRobots.filter((r) => r.status === "online").length
   const offlineRobots = mockRobots.filter((r) => r.status === "offline").length
   const maintenanceRobots = mockRobots.filter((r) => r.status === "maintenance").length
@@ -148,7 +150,13 @@ export default function RobotsPage() {
 
                   {/* Actions */}
                   <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" className="flex-1 bg-transparent text-code">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 bg-transparent text-code"
+                      onClick={() => router.push(`/robots/${robot.id}/control`)}
+                      disabled={robot.status !== "online"}
+                    >
                       <Bot className="h-4 w-4 mr-1" />
                       Control
                     </Button>
