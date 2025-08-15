@@ -25,7 +25,6 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  Edit3,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
@@ -43,19 +42,18 @@ export default function RobotControlPage({ params }: { params: { id: string } })
 
   const [currentEpisode, setCurrentEpisode] = useState(1)
   const [currentStage, setCurrentStage] = useState(0)
-  const [recordingStages, setRecordingStages] = useState([
-    {
-      id: 0,
-      name: "Stage 1",
-      description: "",
-      tags: "",
-      taskType: "manipulation",
-      isActive: true,
-      duration: 0,
-    },
-  ])
+  const [predefinedStages, setPredefinedStages] = useState<
+    Array<{
+      id: number
+      name: string
+      description: string
+      tags: string
+      taskType: string
+      duration: number
+    }>
+  >([])
   const [showStageSetup, setShowStageSetup] = useState(false)
-  const [editingStage, setEditingStage] = useState<number | null>(null)
+  const [recordingType, setRecordingType] = useState<"single" | "staged">("single")
 
   const [telemetryData, setTelemetryData] = useState([
     { time: 0, velocity: 0.5, force: 2.1, temperature: 42 },
@@ -69,7 +67,6 @@ export default function RobotControlPage({ params }: { params: { id: string } })
   const [recordingName, setRecordingName] = useState("")
   const [recordingDescription, setRecordingDescription] = useState("")
   const [recordingTags, setRecordingTags] = useState("")
-  const [showRecordingSetup, setShowRecordingSetup] = useState(false)
 
   const containerVariants = createStaggerAnimation(0.1, ANIMATION.duration.medium)
 
@@ -105,13 +102,15 @@ export default function RobotControlPage({ params }: { params: { id: string } })
     if (isRecording) {
       interval = setInterval(() => {
         setRecordingDuration((prev) => prev + 1)
-        setRecordingStages((stages) =>
-          stages.map((stage) => (stage.id === currentStage ? { ...stage, duration: stage.duration + 1 } : stage)),
-        )
+        if (recordingType === "staged" && predefinedStages.length > 0) {
+          setPredefinedStages((stages) =>
+            stages.map((stage) => (stage.id === currentStage ? { ...stage, duration: stage.duration + 1 } : stage)),
+          )
+        }
       }, 1000)
     }
     return () => clearInterval(interval)
-  }, [isRecording, currentStage])
+  }, [isRecording, currentStage, recordingType])
 
   const robot = {
     id: params.id,
@@ -156,49 +155,37 @@ export default function RobotControlPage({ params }: { params: { id: string } })
     )
   }
 
-  const addNewStage = () => {
+  const addStageToSetup = () => {
     const newStage = {
-      id: recordingStages.length,
-      name: `Stage ${recordingStages.length + 1}`,
+      id: predefinedStages.length,
+      name: `Stage ${predefinedStages.length + 1}`,
       description: "",
       tags: "",
       taskType: "manipulation",
-      isActive: false,
       duration: 0,
     }
-    setRecordingStages([...recordingStages, newStage])
+    setPredefinedStages([...predefinedStages, newStage])
   }
 
-  const updateStage = (stageId: number, updates: Partial<(typeof recordingStages)[0]>) => {
-    setRecordingStages((stages) => stages.map((stage) => (stage.id === stageId ? { ...stage, ...updates } : stage)))
+  const updateStageInSetup = (stageId: number, updates: Partial<(typeof predefinedStages)[0]>) => {
+    setPredefinedStages((stages) => stages.map((stage) => (stage.id === stageId ? { ...stage, ...updates } : stage)))
+  }
+
+  const removeStageFromSetup = (stageId: number) => {
+    setPredefinedStages((stages) => stages.filter((stage) => stage.id !== stageId))
   }
 
   const switchToStage = (stageId: number) => {
-    if (isRecording) {
-      setRecordingStages((stages) =>
-        stages.map((stage) => ({
-          ...stage,
-          isActive: stage.id === stageId,
-        })),
-      )
+    if (isRecording && recordingType === "staged") {
       setCurrentStage(stageId)
     }
   }
 
   const nextEpisode = () => {
     setCurrentEpisode((prev) => prev + 1)
-    setRecordingStages([
-      {
-        id: 0,
-        name: "Stage 1",
-        description: "",
-        tags: "",
-        taskType: "manipulation",
-        isActive: true,
-        duration: 0,
-      },
-    ])
+    setPredefinedStages([])
     setCurrentStage(0)
+    setRecordingType("single")
   }
 
   const prevEpisode = () => {
@@ -213,49 +200,54 @@ export default function RobotControlPage({ params }: { params: { id: string } })
     }
     setIsRecording(true)
     setRecordingDuration(0)
-    setShowRecordingSetup(false)
-    setRecordingStages((stages) =>
-      stages.map((stage, index) => ({
-        ...stage,
-        isActive: index === 0,
-        duration: 0,
-      })),
-    )
-    setCurrentStage(0)
+    setShowStageSetup(false)
+
+    if (recordingType === "staged") {
+      setPredefinedStages((stages) => stages.map((stage) => ({ ...stage, duration: 0 })))
+      setCurrentStage(0)
+    }
   }
 
   const stopRecording = () => {
     setIsRecording(false)
-    console.log("[v0] Saving staged datasets:", {
-      episode: currentEpisode,
-      sessionName: recordingName,
-      description: recordingDescription,
-      tags: recordingTags.split(",").map((t) => t.trim()),
-      totalDuration: recordingDuration,
-      stages: recordingStages.map((stage) => ({
-        ...stage,
-        datasetName: `${recordingName}_${stage.name.toLowerCase().replace(/\s+/g, "_")}`,
+
+    if (recordingType === "single") {
+      console.log("[v0] Saving single dataset:", {
         episode: currentEpisode,
-      })),
-      robotId: robot.id,
-    })
+        datasetName: recordingName,
+        description: recordingDescription,
+        tags: recordingTags.split(",").map((t) => t.trim()),
+        duration: recordingDuration,
+        robotId: robot.id,
+        type: "single_dataset",
+      })
+    } else {
+      console.log("[v0] Saving staged datasets as collection:", {
+        episode: currentEpisode,
+        collectionName: recordingName,
+        description: recordingDescription,
+        tags: recordingTags.split(",").map((t) => t.trim()),
+        totalDuration: recordingDuration,
+        datasets: predefinedStages.map((stage) => ({
+          datasetName: `${recordingName}_${stage.name.toLowerCase().replace(/\s+/g, "_")}`,
+          description: stage.description,
+          tags: stage.tags.split(",").map((t) => t.trim()),
+          taskType: stage.taskType,
+          duration: stage.duration,
+          episode: currentEpisode,
+        })),
+        robotId: robot.id,
+        type: "staged_collection",
+      })
+    }
 
     setRecordingDuration(0)
     setRecordingName("")
     setRecordingDescription("")
     setRecordingTags("")
-    setRecordingStages([
-      {
-        id: 0,
-        name: "Stage 1",
-        description: "",
-        tags: "",
-        taskType: "manipulation",
-        isActive: true,
-        duration: 0,
-      },
-    ])
+    setPredefinedStages([])
     setCurrentStage(0)
+    setRecordingType("single")
   }
 
   const formatDuration = (seconds: number) => {
@@ -314,7 +306,9 @@ export default function RobotControlPage({ params }: { params: { id: string } })
           </Button>
         </div>
         <div className="text-caption text-muted-foreground">
-          {recordingStages.length} stage{recordingStages.length !== 1 ? "s" : ""} planned
+          {recordingType === "single"
+            ? "Single dataset"
+            : `${predefinedStages.length} stage${predefinedStages.length !== 1 ? "s" : ""} planned`}
         </div>
       </motion.div>
 
@@ -340,7 +334,7 @@ export default function RobotControlPage({ params }: { params: { id: string } })
             </div>
             <div className="flex items-center gap-2">
               {!isRecording ? (
-                <Button size="sm" variant="outline" onClick={() => setShowRecordingSetup(true)}>
+                <Button size="sm" variant="outline" onClick={() => setShowStageSetup(true)}>
                   <Database className="h-4 w-4 mr-1" />
                   Record
                 </Button>
@@ -419,93 +413,40 @@ export default function RobotControlPage({ params }: { params: { id: string } })
             )}
           </div>
 
-          {isRecording && (
+          {isRecording && recordingType === "staged" && predefinedStages.length > 0 && (
             <Card className="layer-card border-primary/20">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-subtitle">Recording Stages - Episode {currentEpisode}</h3>
-                  <Button size="sm" variant="outline" onClick={addNewStage}>
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add Stage
-                  </Button>
+                  <h3 className="text-subtitle">Active Stages - Episode {currentEpisode}</h3>
+                  <Badge variant="outline">
+                    Stage {currentStage + 1} of {predefinedStages.length}
+                  </Badge>
                 </div>
-                <div className="space-y-3">
-                  {recordingStages.map((stage) => (
-                    <div
+                <div className="flex flex-wrap gap-2">
+                  {predefinedStages.map((stage, index) => (
+                    <Button
                       key={stage.id}
-                      className={`p-3 rounded-lg border ${stage.isActive ? "border-primary bg-primary/5" : "border-border"}`}
+                      size="sm"
+                      variant={currentStage === index ? "default" : "outline"}
+                      onClick={() => switchToStage(index)}
+                      className="gap-2"
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant={stage.isActive ? "default" : "outline"}
-                            onClick={() => switchToStage(stage.id)}
-                            className="gap-2"
-                          >
-                            {stage.name}
-                            <span className="text-xs opacity-70">{formatDuration(stage.duration)}</span>
-                            {stage.isActive && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingStage(editingStage === stage.id ? null : stage.id)}
-                          >
-                            <Edit3 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <Badge variant="outline">{stage.taskType}</Badge>
-                      </div>
-
-                      {editingStage === stage.id && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
-                          <Input
-                            placeholder="Stage name"
-                            value={stage.name}
-                            onChange={(e) => updateStage(stage.id, { name: e.target.value })}
-                            size="sm"
-                          />
-                          <Input
-                            placeholder="Task type"
-                            value={stage.taskType}
-                            onChange={(e) => updateStage(stage.id, { taskType: e.target.value })}
-                            size="sm"
-                          />
-                          <Input
-                            placeholder="Tags (comma separated)"
-                            value={stage.tags}
-                            onChange={(e) => updateStage(stage.id, { tags: e.target.value })}
-                            size="sm"
-                          />
-                          <div className="md:col-span-3">
-                            <Textarea
-                              placeholder="Stage description"
-                              value={stage.description}
-                              onChange={(e) => updateStage(stage.id, { description: e.target.value })}
-                              rows={2}
-                              className="text-sm"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {stage.description && editingStage !== stage.id && (
-                        <p className="text-caption text-muted-foreground mt-1">{stage.description}</p>
-                      )}
-                    </div>
+                      {stage.name}
+                      <span className="text-xs opacity-70">{formatDuration(stage.duration)}</span>
+                      {currentStage === index && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />}
+                    </Button>
                   ))}
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {showRecordingSetup && (
+          {showStageSetup && (
             <Card className="layer-card border-primary/20">
               <CardHeader className="pb-3">
                 <CardTitle className="text-subtitle flex items-center gap-2">
                   <Database className="h-5 w-5" />
-                  Start Recording Episode {currentEpisode}
+                  Setup Recording - Episode {currentEpisode}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -539,28 +480,105 @@ export default function RobotControlPage({ params }: { params: { id: string } })
                     rows={2}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Initial Stages</Label>
-                  <div className="text-caption text-muted-foreground mb-2">
-                    Each stage will create a separate dataset. You can add more stages and edit details during
-                    recording.
-                  </div>
+
+                <div className="space-y-3">
+                  <Label>Recording Type</Label>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={addNewStage}>
-                      <Plus className="h-3 w-3 mr-1" />
-                      Add Stage
+                    <Button
+                      size="sm"
+                      variant={recordingType === "single" ? "default" : "outline"}
+                      onClick={() => setRecordingType("single")}
+                    >
+                      Single Dataset
                     </Button>
-                    <span className="text-caption text-muted-foreground self-center">
-                      {recordingStages.length} stage{recordingStages.length !== 1 ? "s" : ""} planned
-                    </span>
+                    <Button
+                      size="sm"
+                      variant={recordingType === "staged" ? "default" : "outline"}
+                      onClick={() => setRecordingType("staged")}
+                    >
+                      Staged Collection
+                    </Button>
                   </div>
+                  <p className="text-caption text-muted-foreground">
+                    {recordingType === "single"
+                      ? "Record one continuous dataset"
+                      : "Record multiple stages as separate datasets in a collection"}
+                  </p>
                 </div>
+
+                {recordingType === "staged" && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Stages Setup</Label>
+                      <Button size="sm" variant="outline" onClick={addStageToSetup}>
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add Stage
+                      </Button>
+                    </div>
+
+                    {predefinedStages.length === 0 ? (
+                      <div className="text-center py-4 text-muted-foreground">
+                        <p className="text-caption">No stages defined yet</p>
+                        <p className="text-xs">Add stages to create a multi-dataset collection</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {predefinedStages.map((stage) => (
+                          <div key={stage.id} className="p-3 border rounded-lg space-y-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <Input
+                                placeholder="Stage name"
+                                value={stage.name}
+                                onChange={(e) => updateStageInSetup(stage.id, { name: e.target.value })}
+                                size="sm"
+                              />
+                              <Input
+                                placeholder="Task type"
+                                value={stage.taskType}
+                                onChange={(e) => updateStageInSetup(stage.id, { taskType: e.target.value })}
+                                size="sm"
+                              />
+                            </div>
+                            <Input
+                              placeholder="Tags (comma separated)"
+                              value={stage.tags}
+                              onChange={(e) => updateStageInSetup(stage.id, { tags: e.target.value })}
+                              size="sm"
+                            />
+                            <div className="flex gap-2">
+                              <Textarea
+                                placeholder="Stage description"
+                                value={stage.description}
+                                onChange={(e) => updateStageInSetup(stage.id, { description: e.target.value })}
+                                rows={2}
+                                className="text-sm flex-1"
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => removeStageFromSetup(stage.id)}
+                                className="self-start"
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2">
-                  <Button onClick={startRecording} className="gap-2">
+                  <Button
+                    onClick={startRecording}
+                    className="gap-2"
+                    disabled={recordingType === "staged" && predefinedStages.length === 0}
+                  >
                     <Play className="h-4 w-4" />
                     Start Recording
                   </Button>
-                  <Button variant="outline" onClick={() => setShowRecordingSetup(false)}>
+                  <Button variant="outline" onClick={() => setShowStageSetup(false)}>
                     Cancel
                   </Button>
                 </div>
