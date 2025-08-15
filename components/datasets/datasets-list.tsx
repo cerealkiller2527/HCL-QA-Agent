@@ -4,6 +4,7 @@ import { memo } from "react"
 
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { CustomDropdown } from "@/components/ui/custom-dropdown"
 import {
@@ -19,6 +20,7 @@ import {
   MoreHorizontal,
   X,
   MousePointer2,
+  Search,
 } from "lucide-react"
 import {
   AlertDialog,
@@ -371,6 +373,8 @@ export function DatasetsList() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [overId, setOverId] = useState<string | null>(null)
 
+  const [searchQuery, setSearchQuery] = useState("")
+
   const [selectedDatasets, setSelectedDatasets] = useState<Set<string>>(new Set())
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -383,7 +387,20 @@ export function DatasetsList() {
     return datasets.filter((dataset) => !collections.some((collection) => collection.datasetIds.includes(dataset.id)))
   }, [datasets, collections])
 
-  const displayedDatasets = uncategorizedDatasets
+  const displayedDatasets = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return uncategorizedDatasets
+    }
+
+    const query = searchQuery.toLowerCase()
+    return uncategorizedDatasets.filter(
+      (dataset) =>
+        dataset.name.toLowerCase().includes(query) ||
+        dataset.description.toLowerCase().includes(query) ||
+        dataset.robotType.toLowerCase().includes(query) ||
+        dataset.tags.some((tag) => tag.toLowerCase().includes(query)),
+    )
+  }, [uncategorizedDatasets, searchQuery])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -582,6 +599,23 @@ export function DatasetsList() {
           </div>
         </motion.div>
 
+        <motion.div className="flex items-center space-x-4" variants={ANIMATION.variants.staggerItem}>
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search datasets..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          {searchQuery && (
+            <div className="text-caption text-muted-foreground">
+              {displayedDatasets.length} of {uncategorizedDatasets.length} datasets
+            </div>
+          )}
+        </motion.div>
+
         {/* Drag and Drop Instructions */}
         {!isSelectionMode && collections.length > 0 && displayedDatasets.length > 0 && (
           <motion.div
@@ -630,6 +664,19 @@ export function DatasetsList() {
                 />
               ))}
             </motion.div>
+          </motion.div>
+        ) : searchQuery ? (
+          <motion.div className="text-center py-16" variants={ANIMATION.variants.staggerItem}>
+            <div className="mx-auto w-24 h-24 bg-layer-2 rounded-full flex items-center justify-center mb-6">
+              <Search className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-title mb-2">No datasets found</h3>
+            <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
+              No datasets match your search for "{searchQuery}". Try adjusting your search terms.
+            </p>
+            <Button variant="outline" onClick={() => setSearchQuery("")}>
+              Clear Search
+            </Button>
           </motion.div>
         ) : (
           <motion.div className="text-center py-16" variants={ANIMATION.variants.staggerItem}>
