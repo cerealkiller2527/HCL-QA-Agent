@@ -110,16 +110,16 @@ export function DatasetViewer({ datasetId }: DatasetViewerProps) {
           <p className="text-muted-foreground font-sans text-sm truncate">{dataset.description}</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium font-sans">Episode:</span>
+          <div className="flex items-center gap-2 bg-layer-2 px-3 py-2 rounded-lg border border-border">
+            <span className="text-sm font-medium font-sans text-foreground">Episode:</span>
             <CustomDropdown
               value={selectedEpisode.toString()}
               onValueChange={(value) => setSelectedEpisode(Number(value))}
               placeholder="Select Episode"
-              className="w-32"
+              className="w-36 bg-layer-1 border-border"
               options={mockEpisodes.map((ep) => ({
                 value: ep.id.toString(),
-                label: ep.name,
+                label: `${ep.name} (${formatDuration(ep.duration)})`,
               }))}
             />
           </div>
