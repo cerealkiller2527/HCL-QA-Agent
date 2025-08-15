@@ -18,29 +18,24 @@ import {
 import {
   ArrowLeft,
   Camera,
-  Gamepad2,
   Power,
   RotateCcw,
   Square,
-  Play,
   Battery,
   Wifi,
   AlertTriangle,
   Database,
   Maximize2,
   Grid3X3,
-  Activity,
   Plus,
   ChevronLeft,
   ChevronRight,
   Trash2,
-  Settings,
   Circle,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { ANIMATION } from "@/lib/constants"
-import { createStaggerAnimation } from "@/lib/utils/animations"
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts"
 
 export default function RobotControlPage({ params }: { params: { id: string } }) {
@@ -59,27 +54,17 @@ export default function RobotControlPage({ params }: { params: { id: string } })
       name: string
       description: string
       tags: string
-      taskType: string
       duration: number
     }>
   >([])
-  const [showStageSetup, setShowStageSetup] = useState(false)
+  const [showRecordingSetup, setShowRecordingSetup] = useState(false)
   const [recordingType, setRecordingType] = useState<"single" | "staged">("single")
-
-  const [telemetryData, setTelemetryData] = useState([
-    { time: 0, velocity: 0.5, force: 2.1, temperature: 42 },
-    { time: 1, velocity: 0.8, force: 2.3, temperature: 43 },
-    { time: 2, velocity: 1.2, force: 1.9, temperature: 44 },
-    { time: 3, velocity: 0.9, force: 2.5, temperature: 42 },
-    { time: 4, velocity: 1.1, force: 2.0, temperature: 43 },
-  ])
 
   const [recordingDuration, setRecordingDuration] = useState(0)
   const [recordingName, setRecordingName] = useState("")
   const [recordingDescription, setRecordingDescription] = useState("")
   const [recordingTags, setRecordingTags] = useState("")
-
-  const containerVariants = createStaggerAnimation(0.1, ANIMATION.duration.medium)
+  const [telemetryData, setTelemetryData] = useState([{ time: 0, velocity: 0, force: 0, temperature: 0 }])
 
   const cameras = [
     { id: 0, name: "Primary View", resolution: "1920x1080", fps: 30, active: true },
@@ -166,23 +151,22 @@ export default function RobotControlPage({ params }: { params: { id: string } })
     )
   }
 
-  const addStageToSetup = () => {
+  const addStage = () => {
     const newStage = {
       id: predefinedStages.length,
       name: `Stage ${predefinedStages.length + 1}`,
       description: "",
       tags: "",
-      taskType: "manipulation",
       duration: 0,
     }
     setPredefinedStages([...predefinedStages, newStage])
   }
 
-  const updateStageInSetup = (stageId: number, updates: Partial<(typeof predefinedStages)[0]>) => {
+  const updateStage = (stageId: number, updates: Partial<(typeof predefinedStages)[0]>) => {
     setPredefinedStages((stages) => stages.map((stage) => (stage.id === stageId ? { ...stage, ...updates } : stage)))
   }
 
-  const removeStageFromSetup = (stageId: number) => {
+  const removeStage = (stageId: number) => {
     setPredefinedStages((stages) => stages.filter((stage) => stage.id !== stageId))
   }
 
@@ -211,7 +195,7 @@ export default function RobotControlPage({ params }: { params: { id: string } })
     }
     setIsRecording(true)
     setRecordingDuration(0)
-    setShowStageSetup(false)
+    setShowRecordingSetup(false)
 
     if (recordingType === "staged") {
       setPredefinedStages((stages) => stages.map((stage) => ({ ...stage, duration: 0 })))
@@ -261,17 +245,6 @@ export default function RobotControlPage({ params }: { params: { id: string } })
     setRecordingType("single")
   }
 
-  const handleStageSetupClose = (open: boolean) => {
-    if (!open) {
-      setRecordingName("")
-      setRecordingDescription("")
-      setRecordingTags("")
-      setPredefinedStages([])
-      setRecordingType("single")
-    }
-    setShowStageSetup(open)
-  }
-
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
@@ -281,77 +254,73 @@ export default function RobotControlPage({ params }: { params: { id: string } })
   return (
     <motion.div
       className="min-h-screen bg-background p-6"
-      variants={containerVariants}
+      variants={ANIMATION.variants.staggerItem}
       initial="initial"
       animate="animate"
     >
       <div className="max-w-7xl mx-auto space-y-6">
         <motion.div
-          className="flex items-center justify-between bg-layer-1 rounded-xl p-6 border border-border"
+          className="flex items-center justify-between layer-card p-4"
           variants={ANIMATION.variants.staggerItem}
         >
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <Button variant="outline" size="sm" onClick={() => router.push("/robots")} className="gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back to Robots
+              Back
             </Button>
-            <div className="border-l border-border pl-6">
-              <h1 className="text-display font-sans text-primary">{robot.name}</h1>
-              <p className="text-body text-muted-foreground">Remote Control Interface</p>
+            <div>
+              <h1 className="text-title font-sans">{robot.name}</h1>
+              <p className="text-caption text-muted-foreground">Remote Control</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <Badge variant={isConnected ? "default" : "destructive"} className="gap-2 px-3 py-1">
+            <Badge variant={isConnected ? "default" : "destructive"} className="gap-2">
               <Wifi className="h-4 w-4" />
               {isConnected ? "Connected" : "Disconnected"}
             </Badge>
-            <Badge variant="outline" className="gap-2 px-3 py-1">
+            <Badge variant="outline" className="gap-2">
               <Battery className="h-4 w-4" />
               {robot.batteryLevel}%
             </Badge>
             {isRecording && (
-              <Badge variant="destructive" className="gap-2 px-3 py-1 animate-pulse">
+              <Badge variant="destructive" className="gap-2 animate-pulse">
                 <Circle className="h-3 w-3 fill-current" />
-                Recording {formatDuration(recordingDuration)}
+                {formatDuration(recordingDuration)}
               </Badge>
             )}
           </div>
         </motion.div>
 
         <motion.div
-          className="flex items-center justify-between bg-layer-1 rounded-xl p-4 border border-border"
+          className="flex items-center justify-between layer-card p-4"
           variants={ANIMATION.variants.staggerItem}
         >
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={prevEpisode} disabled={currentEpisode <= 1}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="bg-primary/10 border border-primary/20 rounded-lg px-4 py-2">
-                <span className="text-title text-primary">Episode {currentEpisode}</span>
-              </div>
-              <Button size="sm" variant="outline" onClick={nextEpisode}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+          <div className="flex items-center gap-3">
+            <Button size="sm" variant="outline" onClick={prevEpisode} disabled={currentEpisode <= 1}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="bg-primary/10 border border-primary/20 rounded-lg px-3 py-1">
+              <span className="text-body font-medium">Episode {currentEpisode}</span>
             </div>
+            <Button size="sm" variant="outline" onClick={nextEpisode}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="text-body text-muted-foreground">
-              {recordingType === "single"
-                ? "Single dataset mode"
-                : `${predefinedStages.length} stage${predefinedStages.length !== 1 ? "s" : ""} configured`}
-            </div>
+          <div className="flex items-center gap-3">
+            {recordingType === "staged" && predefinedStages.length > 0 && (
+              <Badge variant="outline">{predefinedStages.length} stages</Badge>
+            )}
             {!isRecording ? (
-              <Button variant="default" onClick={() => setShowStageSetup(true)} className="gap-2">
+              <Button variant="default" onClick={() => setShowRecordingSetup(true)} className="gap-2">
                 <Database className="h-4 w-4" />
-                Start Recording
+                Record
               </Button>
             ) : (
               <Button variant="destructive" onClick={stopRecording} className="gap-2">
                 <Square className="h-4 w-4" />
-                Stop Recording
+                Stop
               </Button>
             )}
           </div>
@@ -360,10 +329,10 @@ export default function RobotControlPage({ params }: { params: { id: string } })
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
           <motion.div className="xl:col-span-3 space-y-6" variants={ANIMATION.variants.staggerItem}>
             <Card className="layer-card">
-              <CardHeader className="pb-4">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-title flex items-center gap-2">
-                    <Camera className="h-5 w-5" />
+                  <CardTitle className="text-subtitle flex items-center gap-2">
+                    <Camera className="h-4 w-4" />
                     Camera Feeds
                   </CardTitle>
                   <div className="flex items-center gap-2">
@@ -381,30 +350,23 @@ export default function RobotControlPage({ params }: { params: { id: string } })
                     >
                       <Grid3X3 className="h-4 w-4" />
                     </Button>
-                    <Badge variant="outline" className="ml-2">
-                      {activeCameras.length} active
-                    </Badge>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="h-80">
                   {cameraLayout === "single" ? (
-                    <div className="h-full space-y-4">
-                      <div className="flex-1 bg-layer-2 rounded-lg flex items-center justify-center border-2 border-dashed border-border relative h-64">
-                        <div className="text-center space-y-3">
-                          <Camera className="h-20 w-20 mx-auto text-muted-foreground" />
-                          <div>
-                            <p className="text-title text-foreground">{activeCameras[selectedCamera]?.name}</p>
-                            <Badge variant="outline" className="mt-2">
-                              {activeCameras[selectedCamera]?.resolution} @ {activeCameras[selectedCamera]?.fps}fps
-                            </Badge>
-                          </div>
+                    <div className="space-y-3">
+                      <div className="h-64 bg-layer-2 rounded-lg border-2 border-dashed border-border flex items-center justify-center relative">
+                        <div className="text-center">
+                          <Camera className="h-16 w-16 mx-auto text-muted-foreground mb-2" />
+                          <p className="text-body">{activeCameras[selectedCamera]?.name}</p>
+                          <Badge variant="outline" className="mt-1 text-xs">
+                            {activeCameras[selectedCamera]?.resolution}
+                          </Badge>
                         </div>
                         {isRecording && (
-                          <div className="absolute top-4 right-4">
-                            <div className="w-4 h-4 bg-destructive rounded-full animate-pulse" />
-                          </div>
+                          <div className="absolute top-3 right-3 w-3 h-3 bg-destructive rounded-full animate-pulse" />
                         )}
                       </div>
                       <div className="flex gap-2">
@@ -422,14 +384,14 @@ export default function RobotControlPage({ params }: { params: { id: string } })
                     </div>
                   ) : (
                     <div
-                      className={`grid gap-4 h-full ${
+                      className={`grid gap-3 h-full ${
                         activeCameras.length === 1
                           ? "grid-cols-1"
                           : activeCameras.length === 2
-                            ? "grid-cols-1 md:grid-cols-2"
+                            ? "grid-cols-2"
                             : activeCameras.length === 3
-                              ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                              : "grid-cols-1 md:grid-cols-2"
+                              ? "grid-cols-3"
+                              : "grid-cols-2"
                       }`}
                     >
                       {activeCameras.map((camera) => (
@@ -437,17 +399,12 @@ export default function RobotControlPage({ params }: { params: { id: string } })
                           key={camera.id}
                           className="bg-layer-2 rounded-lg border-2 border-dashed border-border flex items-center justify-center relative"
                         >
-                          <div className="text-center space-y-2">
-                            <Camera className="h-12 w-12 mx-auto text-muted-foreground" />
-                            <p className="text-body text-foreground">{camera.name}</p>
-                            <Badge variant="outline" className="text-xs">
-                              {camera.resolution}
-                            </Badge>
+                          <div className="text-center">
+                            <Camera className="h-10 w-10 mx-auto text-muted-foreground mb-1" />
+                            <p className="text-caption">{camera.name}</p>
                           </div>
                           {isRecording && (
-                            <div className="absolute top-3 right-3">
-                              <div className="w-3 h-3 bg-destructive rounded-full animate-pulse" />
-                            </div>
+                            <div className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full animate-pulse" />
                           )}
                         </div>
                       ))}
@@ -459,29 +416,24 @@ export default function RobotControlPage({ params }: { params: { id: string } })
 
             {isRecording && recordingType === "staged" && predefinedStages.length > 0 && (
               <Card className="layer-card border-primary/30 bg-primary/5">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-title flex items-center gap-2">
-                      <Activity className="h-5 w-5 text-primary" />
-                      Recording Stages
-                    </h3>
-                    <Badge variant="default" className="bg-primary">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-subtitle">Recording Stages</h3>
+                    <Badge variant="default">
                       Stage {currentStage + 1} of {predefinedStages.length}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="flex gap-2 flex-wrap">
                     {predefinedStages.map((stage, index) => (
                       <Button
                         key={stage.id}
+                        size="sm"
                         variant={currentStage === index ? "default" : "outline"}
                         onClick={() => switchToStage(index)}
-                        className="h-auto p-4 flex flex-col items-start gap-2"
+                        className="gap-2"
                       >
-                        <div className="flex items-center justify-between w-full">
-                          <span className="font-medium">{stage.name}</span>
-                          {currentStage === index && <Circle className="w-3 h-3 fill-current animate-pulse" />}
-                        </div>
-                        <span className="text-xs text-muted-foreground">{formatDuration(stage.duration)}</span>
+                        {stage.name}
+                        {currentStage === index && <Circle className="w-2 h-2 fill-current animate-pulse" />}
                       </Button>
                     ))}
                   </div>
@@ -489,194 +441,112 @@ export default function RobotControlPage({ params }: { params: { id: string } })
               </Card>
             )}
 
-            <Dialog open={showStageSetup} onOpenChange={handleStageSetupClose}>
-              <DialogContent className="sm:max-w-4xl bg-layer-1 border-border">
-                <DialogHeader className="pb-6">
-                  <DialogTitle className="text-display flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <Database className="h-6 w-6 text-primary" />
-                    </div>
+            <Dialog open={showRecordingSetup} onOpenChange={setShowRecordingSetup}>
+              <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Database className="h-5 w-5" />
                     Recording Setup
                   </DialogTitle>
-                  <DialogDescription className="text-body text-muted-foreground">
-                    Configure your recording session for Episode {currentEpisode}. Choose between single dataset or
-                    staged collection recording.
-                  </DialogDescription>
+                  <DialogDescription>Configure recording for Episode {currentEpisode}</DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <h3 className="text-title text-foreground border-b border-border pb-2">Session Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="recording-name" className="text-body-medium">
-                          Session Name *
-                        </Label>
-                        <Input
-                          id="recording-name"
-                          placeholder="e.g., Pick and Place Training"
-                          value={recordingName}
-                          onChange={(e) => setRecordingName(e.target.value)}
-                          className="bg-layer-2 border-border focus:border-primary h-11"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="recording-tags" className="text-body-medium">
-                          Tags
-                        </Label>
-                        <Input
-                          id="recording-tags"
-                          placeholder="manipulation, training, demo"
-                          value={recordingTags}
-                          onChange={(e) => setRecordingTags(e.target.value)}
-                          className="bg-layer-2 border-border focus:border-primary h-11"
-                        />
-                      </div>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Name</Label>
+                      <Input
+                        placeholder="Recording name"
+                        value={recordingName}
+                        onChange={(e) => setRecordingName(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="recording-description" className="text-body-medium">
-                        Description
-                      </Label>
-                      <Textarea
-                        id="recording-description"
-                        placeholder="Describe this recording session..."
-                        value={recordingDescription}
-                        onChange={(e) => setRecordingDescription(e.target.value)}
-                        className="bg-layer-2 border-border focus:border-primary resize-none"
-                        rows={3}
+                      <Label>Tags</Label>
+                      <Input
+                        placeholder="manipulation, demo"
+                        value={recordingTags}
+                        onChange={(e) => setRecordingTags(e.target.value)}
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <h3 className="text-title text-foreground border-b border-border pb-2">Recording Type</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Card
-                        className={`cursor-pointer transition-all ${
-                          recordingType === "single"
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
-                        }`}
-                        onClick={() => setRecordingType("single")}
-                      >
-                        <CardContent className="p-6">
-                          <div className="flex items-start gap-3">
-                            <div
-                              className={`w-4 h-4 rounded-full border-2 mt-1 ${
-                                recordingType === "single" ? "border-primary bg-primary" : "border-border"
-                              }`}
-                            >
-                              {recordingType === "single" && <div className="w-2 h-2 bg-white rounded-full m-0.5" />}
-                            </div>
-                            <div>
-                              <h4 className="text-subtitle font-medium">Single Dataset</h4>
-                              <p className="text-body text-muted-foreground mt-1">
-                                Record one continuous dataset for the entire session
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Textarea
+                      placeholder="Describe this recording..."
+                      value={recordingDescription}
+                      onChange={(e) => setRecordingDescription(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
 
-                      <Card
-                        className={`cursor-pointer transition-all ${
-                          recordingType === "staged"
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
-                        }`}
-                        onClick={() => setRecordingType("staged")}
+                  <div className="space-y-3">
+                    <Label>Recording Type</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        variant={recordingType === "single" ? "default" : "outline"}
+                        onClick={() => setRecordingType("single")}
+                        className="h-auto p-3 flex-col gap-1"
                       >
-                        <CardContent className="p-6">
-                          <div className="flex items-start gap-3">
-                            <div
-                              className={`w-4 h-4 rounded-full border-2 mt-1 ${
-                                recordingType === "staged" ? "border-primary bg-primary" : "border-border"
-                              }`}
-                            >
-                              {recordingType === "staged" && <div className="w-2 h-2 bg-white rounded-full m-0.5" />}
-                            </div>
-                            <div>
-                              <h4 className="text-subtitle font-medium">Staged Collection</h4>
-                              <p className="text-body text-muted-foreground mt-1">
-                                Create multiple datasets within one recording session
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                        <span className="font-medium">Single Dataset</span>
+                        <span className="text-xs text-muted-foreground">One continuous recording</span>
+                      </Button>
+                      <Button
+                        variant={recordingType === "staged" ? "default" : "outline"}
+                        onClick={() => setRecordingType("staged")}
+                        className="h-auto p-3 flex-col gap-1"
+                      >
+                        <span className="font-medium">Staged Collection</span>
+                        <span className="text-xs text-muted-foreground">Multiple datasets</span>
+                      </Button>
                     </div>
                   </div>
 
                   {recordingType === "staged" && (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between border-b border-border pb-2">
-                        <h3 className="text-title text-foreground">Stages Configuration</h3>
-                        <Button variant="outline" onClick={addStageToSetup} className="gap-2 bg-transparent">
-                          <Plus className="h-4 w-4" />
-                          Add Stage
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label>Stages</Label>
+                        <Button size="sm" variant="outline" onClick={addStage} className="gap-1 bg-transparent">
+                          <Plus className="h-3 w-3" />
+                          Add
                         </Button>
                       </div>
 
                       {predefinedStages.length === 0 ? (
-                        <div className="text-center py-12 bg-layer-2 rounded-xl border-2 border-dashed border-border">
-                          <Settings className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                          <h4 className="text-subtitle text-foreground mb-2">No stages configured</h4>
-                          <p className="text-body text-muted-foreground mb-4">
-                            Add stages to create multiple datasets within your recording session
-                          </p>
-                          <Button variant="outline" onClick={addStageToSetup} className="gap-2 bg-transparent">
-                            <Plus className="h-4 w-4" />
-                            Add Your First Stage
+                        <div className="text-center py-8 bg-layer-2 rounded-lg border-2 border-dashed border-border">
+                          <p className="text-caption text-muted-foreground mb-2">No stages configured</p>
+                          <Button size="sm" variant="outline" onClick={addStage}>
+                            Add First Stage
                           </Button>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
                           {predefinedStages.map((stage, index) => (
-                            <Card key={stage.id} className="layer-card">
-                              <CardContent className="p-4 space-y-4">
-                                <div className="flex items-center justify-between">
-                                  <Badge variant="outline" className="text-xs font-medium">
-                                    Stage {index + 1}
-                                  </Badge>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => removeStageFromSetup(stage.id)}
-                                    className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-
-                                <div className="space-y-3">
-                                  <Input
-                                    placeholder="Stage name"
-                                    value={stage.name}
-                                    onChange={(e) => updateStageInSetup(stage.id, { name: e.target.value })}
-                                    className="bg-layer-1 border-border text-sm h-9"
-                                  />
-                                  <Input
-                                    placeholder="Task type"
-                                    value={stage.taskType}
-                                    onChange={(e) => updateStageInSetup(stage.id, { taskType: e.target.value })}
-                                    className="bg-layer-1 border-border text-sm h-9"
-                                  />
-                                  <Input
-                                    placeholder="Tags (comma separated)"
-                                    value={stage.tags}
-                                    onChange={(e) => updateStageInSetup(stage.id, { tags: e.target.value })}
-                                    className="bg-layer-1 border-border text-sm h-9"
-                                  />
-                                  <Textarea
-                                    placeholder="Stage description..."
-                                    value={stage.description}
-                                    onChange={(e) => updateStageInSetup(stage.id, { description: e.target.value })}
-                                    rows={2}
-                                    className="bg-layer-1 border-border text-sm resize-none"
-                                  />
-                                </div>
-                              </CardContent>
-                            </Card>
+                            <div key={stage.id} className="flex gap-2 items-center p-2 bg-layer-2 rounded-lg">
+                              <div className="flex-1 grid grid-cols-2 gap-2">
+                                <Input
+                                  placeholder="Stage name"
+                                  value={stage.name}
+                                  onChange={(e) => updateStage(stage.id, { name: e.target.value })}
+                                  className="h-8 text-sm"
+                                />
+                                <Input
+                                  placeholder="Tags"
+                                  value={stage.tags}
+                                  onChange={(e) => updateStage(stage.id, { tags: e.target.value })}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => removeStage(stage.id)}
+                                className="h-8 w-8 p-0 text-destructive"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
                           ))}
                         </div>
                       )}
@@ -684,16 +554,14 @@ export default function RobotControlPage({ params }: { params: { id: string } })
                   )}
                 </div>
 
-                <DialogFooter className="pt-6 border-t border-border">
-                  <Button variant="outline" onClick={() => handleStageSetupClose(false)}>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowRecordingSetup(false)}>
                     Cancel
                   </Button>
                   <Button
                     onClick={startRecording}
                     disabled={!recordingName.trim() || (recordingType === "staged" && predefinedStages.length === 0)}
-                    className="gap-2 bg-primary hover:bg-primary/90"
                   >
-                    <Play className="h-4 w-4" />
                     Start Recording
                   </Button>
                 </DialogFooter>
@@ -701,33 +569,26 @@ export default function RobotControlPage({ params }: { params: { id: string } })
             </Dialog>
           </motion.div>
 
-          <motion.div className="xl:col-span-1 space-y-6" variants={ANIMATION.variants.staggerItem}>
+          <motion.div className="xl:col-span-1 space-y-4" variants={ANIMATION.variants.staggerItem}>
             <Card className="layer-card">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-subtitle">Status</h3>
-                  <Badge variant="default" className="gap-1">
-                    <Activity className="h-3 w-3" />
-                    Active
-                  </Badge>
+                  <h3 className="text-subtitle">Control Mode</h3>
+                  <Badge variant="default">Active</Badge>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-2">
                   <Button
                     size="sm"
                     variant={controlMode === "manual" ? "default" : "outline"}
                     onClick={() => setControlMode("manual")}
-                    className="gap-1"
                   >
-                    <Gamepad2 className="h-3 w-3" />
                     Manual
                   </Button>
                   <Button
                     size="sm"
                     variant={controlMode === "autonomous" ? "default" : "outline"}
                     onClick={() => setControlMode("autonomous")}
-                    className="gap-1"
                   >
-                    <RotateCcw className="h-3 w-3" />
                     Auto
                   </Button>
                 </div>
@@ -735,36 +596,11 @@ export default function RobotControlPage({ params }: { params: { id: string } })
             </Card>
 
             <Card className="layer-card">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-subtitle flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Live Telemetry
-                </CardTitle>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-subtitle">Telemetry</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <TelemetryGauge
-                  value={telemetryData[telemetryData.length - 1]?.velocity || 0}
-                  max={2}
-                  label="Velocity"
-                  unit="m/s"
-                  color="bg-blue-500"
-                />
-                <TelemetryGauge
-                  value={telemetryData[telemetryData.length - 1]?.force || 0}
-                  max={3}
-                  label="Force"
-                  unit="N"
-                  color="bg-green-500"
-                />
-                <TelemetryGauge
-                  value={telemetryData[telemetryData.length - 1]?.temperature || 0}
-                  max={60}
-                  label="Temperature"
-                  unit="°C"
-                  color="bg-orange-500"
-                />
-
-                <div className="h-24 mt-4">
+              <CardContent className="space-y-3">
+                <div className="h-16">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={telemetryData}>
                       <XAxis dataKey="time" hide />
@@ -774,37 +610,21 @@ export default function RobotControlPage({ params }: { params: { id: string } })
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="layer-card">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-subtitle">Joint Positions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {["Base", "Shoulder", "Elbow", "Wrist"].map((joint, index) => {
-                  const angle = Math.random() * 180 - 90
-                  const percentage = ((angle + 90) / 180) * 100
-                  return (
-                    <div key={joint} className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-caption">{joint}</span>
-                        <span className="text-code font-mono">{angle.toFixed(1)}°</span>
-                      </div>
-                      <div className="w-full bg-layer-2 rounded-full h-1.5">
-                        <div
-                          className="h-1.5 rounded-full bg-primary transition-all duration-300"
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="text-center p-2 bg-layer-2 rounded">
+                    <div className="text-muted-foreground">Velocity</div>
+                    <div className="font-mono">1.2 m/s</div>
+                  </div>
+                  <div className="text-center p-2 bg-layer-2 rounded">
+                    <div className="text-muted-foreground">Force</div>
+                    <div className="font-mono">2.1 N</div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
             <Card className="layer-card border-destructive/20">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <CardTitle className="text-subtitle flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-destructive" />
                   Emergency
@@ -817,7 +637,7 @@ export default function RobotControlPage({ params }: { params: { id: string } })
                 </Button>
                 <Button variant="outline" className="w-full bg-transparent" size="sm">
                   <RotateCcw className="h-4 w-4 mr-2" />
-                  Reset Position
+                  Reset
                 </Button>
               </CardContent>
             </Card>
