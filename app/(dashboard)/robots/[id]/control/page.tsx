@@ -23,6 +23,9 @@ import {
   Grid3X3,
   Activity,
   Plus,
+  ChevronLeft,
+  ChevronRight,
+  Edit3,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
@@ -38,11 +41,21 @@ export default function RobotControlPage({ params }: { params: { id: string } })
   const [cameraLayout, setCameraLayout] = useState<"single" | "grid">("grid")
   const [selectedCamera, setSelectedCamera] = useState(0)
 
+  const [currentEpisode, setCurrentEpisode] = useState(1)
   const [currentStage, setCurrentStage] = useState(0)
   const [recordingStages, setRecordingStages] = useState([
-    { id: 0, name: "Stage 1", description: "", isActive: true, duration: 0 },
+    {
+      id: 0,
+      name: "Stage 1",
+      description: "",
+      tags: "",
+      taskType: "manipulation",
+      isActive: true,
+      duration: 0,
+    },
   ])
   const [showStageSetup, setShowStageSetup] = useState(false)
+  const [editingStage, setEditingStage] = useState<number | null>(null)
 
   const [telemetryData, setTelemetryData] = useState([
     { time: 0, velocity: 0.5, force: 2.1, temperature: 42 },
@@ -148,10 +161,16 @@ export default function RobotControlPage({ params }: { params: { id: string } })
       id: recordingStages.length,
       name: `Stage ${recordingStages.length + 1}`,
       description: "",
+      tags: "",
+      taskType: "manipulation",
       isActive: false,
       duration: 0,
     }
     setRecordingStages([...recordingStages, newStage])
+  }
+
+  const updateStage = (stageId: number, updates: Partial<(typeof recordingStages)[0]>) => {
+    setRecordingStages((stages) => stages.map((stage) => (stage.id === stageId ? { ...stage, ...updates } : stage)))
   }
 
   const switchToStage = (stageId: number) => {
@@ -166,9 +185,31 @@ export default function RobotControlPage({ params }: { params: { id: string } })
     }
   }
 
+  const nextEpisode = () => {
+    setCurrentEpisode((prev) => prev + 1)
+    setRecordingStages([
+      {
+        id: 0,
+        name: "Stage 1",
+        description: "",
+        tags: "",
+        taskType: "manipulation",
+        isActive: true,
+        duration: 0,
+      },
+    ])
+    setCurrentStage(0)
+  }
+
+  const prevEpisode = () => {
+    if (currentEpisode > 1) {
+      setCurrentEpisode((prev) => prev - 1)
+    }
+  }
+
   const startRecording = () => {
     if (!recordingName.trim()) {
-      setRecordingName(`${robot.name}_session_${Date.now()}`)
+      setRecordingName(`${robot.name}_episode_${currentEpisode}_${Date.now()}`)
     }
     setIsRecording(true)
     setRecordingDuration(0)
@@ -186,11 +227,16 @@ export default function RobotControlPage({ params }: { params: { id: string } })
   const stopRecording = () => {
     setIsRecording(false)
     console.log("[v0] Saving staged datasets:", {
+      episode: currentEpisode,
       sessionName: recordingName,
       description: recordingDescription,
       tags: recordingTags.split(",").map((t) => t.trim()),
       totalDuration: recordingDuration,
-      stages: recordingStages,
+      stages: recordingStages.map((stage) => ({
+        ...stage,
+        datasetName: `${recordingName}_${stage.name.toLowerCase().replace(/\s+/g, "_")}`,
+        episode: currentEpisode,
+      })),
       robotId: robot.id,
     })
 
@@ -198,7 +244,17 @@ export default function RobotControlPage({ params }: { params: { id: string } })
     setRecordingName("")
     setRecordingDescription("")
     setRecordingTags("")
-    setRecordingStages([{ id: 0, name: "Stage 1", description: "", isActive: true, duration: 0 }])
+    setRecordingStages([
+      {
+        id: 0,
+        name: "Stage 1",
+        description: "",
+        tags: "",
+        taskType: "manipulation",
+        isActive: true,
+        duration: 0,
+      },
+    ])
     setCurrentStage(0)
   }
 
@@ -210,7 +266,7 @@ export default function RobotControlPage({ params }: { params: { id: string } })
 
   return (
     <motion.div
-      className="p-4 space-y-4 max-w-7xl mx-auto min-h-screen"
+      className="p-4 space-y-4 max-w-7xl mx-auto"
       variants={containerVariants}
       initial="initial"
       animate="animate"
@@ -245,9 +301,25 @@ export default function RobotControlPage({ params }: { params: { id: string } })
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 h-[calc(100vh-12rem)]">
-        <motion.div className="xl:col-span-3 space-y-4 flex flex-col" variants={ANIMATION.variants.staggerItem}>
-          {/* Camera Controls */}
+      <motion.div className="flex items-center justify-between" variants={ANIMATION.variants.staggerItem}>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={prevEpisode} disabled={currentEpisode <= 1}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Badge variant="outline" className="px-3 py-1">
+            Episode {currentEpisode}
+          </Badge>
+          <Button size="sm" variant="outline" onClick={nextEpisode}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="text-caption text-muted-foreground">
+          {recordingStages.length} stage{recordingStages.length !== 1 ? "s" : ""} planned
+        </div>
+      </motion.div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+        <motion.div className="xl:col-span-3 space-y-4" variants={ANIMATION.variants.staggerItem}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button
@@ -281,7 +353,7 @@ export default function RobotControlPage({ params }: { params: { id: string } })
             </div>
           </div>
 
-          <div className="flex-1 min-h-0">
+          <div className="h-96">
             {cameraLayout === "single" ? (
               <Card className="layer-card h-full">
                 <CardContent className="p-4 h-full flex flex-col">
@@ -351,38 +423,89 @@ export default function RobotControlPage({ params }: { params: { id: string } })
             <Card className="layer-card border-primary/20">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-subtitle">Recording Stages</h3>
+                  <h3 className="text-subtitle">Recording Stages - Episode {currentEpisode}</h3>
                   <Button size="sm" variant="outline" onClick={addNewStage}>
                     <Plus className="h-3 w-3 mr-1" />
                     Add Stage
                   </Button>
                 </div>
-                <div className="flex gap-2 flex-wrap">
+                <div className="space-y-3">
                   {recordingStages.map((stage) => (
-                    <Button
+                    <div
                       key={stage.id}
-                      size="sm"
-                      variant={stage.isActive ? "default" : "outline"}
-                      onClick={() => switchToStage(stage.id)}
-                      className="gap-2"
+                      className={`p-3 rounded-lg border ${stage.isActive ? "border-primary bg-primary/5" : "border-border"}`}
                     >
-                      {stage.name}
-                      <span className="text-xs opacity-70">{formatDuration(stage.duration)}</span>
-                      {stage.isActive && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />}
-                    </Button>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant={stage.isActive ? "default" : "outline"}
+                            onClick={() => switchToStage(stage.id)}
+                            className="gap-2"
+                          >
+                            {stage.name}
+                            <span className="text-xs opacity-70">{formatDuration(stage.duration)}</span>
+                            {stage.isActive && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingStage(editingStage === stage.id ? null : stage.id)}
+                          >
+                            <Edit3 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <Badge variant="outline">{stage.taskType}</Badge>
+                      </div>
+
+                      {editingStage === stage.id && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                          <Input
+                            placeholder="Stage name"
+                            value={stage.name}
+                            onChange={(e) => updateStage(stage.id, { name: e.target.value })}
+                            size="sm"
+                          />
+                          <Input
+                            placeholder="Task type"
+                            value={stage.taskType}
+                            onChange={(e) => updateStage(stage.id, { taskType: e.target.value })}
+                            size="sm"
+                          />
+                          <Input
+                            placeholder="Tags (comma separated)"
+                            value={stage.tags}
+                            onChange={(e) => updateStage(stage.id, { tags: e.target.value })}
+                            size="sm"
+                          />
+                          <div className="md:col-span-3">
+                            <Textarea
+                              placeholder="Stage description"
+                              value={stage.description}
+                              onChange={(e) => updateStage(stage.id, { description: e.target.value })}
+                              rows={2}
+                              className="text-sm"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {stage.description && editingStage !== stage.id && (
+                        <p className="text-caption text-muted-foreground mt-1">{stage.description}</p>
+                      )}
+                    </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Recording Setup Modal */}
           {showRecordingSetup && (
             <Card className="layer-card border-primary/20">
               <CardHeader className="pb-3">
                 <CardTitle className="text-subtitle flex items-center gap-2">
                   <Database className="h-5 w-5" />
-                  Start Recording Session
+                  Start Recording Episode {currentEpisode}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -419,7 +542,8 @@ export default function RobotControlPage({ params }: { params: { id: string } })
                 <div className="space-y-2">
                   <Label>Initial Stages</Label>
                   <div className="text-caption text-muted-foreground mb-2">
-                    You can add more stages during recording. Each stage will create a separate dataset.
+                    Each stage will create a separate dataset. You can add more stages and edit details during
+                    recording.
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={addNewStage}>
@@ -446,7 +570,6 @@ export default function RobotControlPage({ params }: { params: { id: string } })
         </motion.div>
 
         <motion.div className="xl:col-span-1 space-y-4 flex flex-col" variants={ANIMATION.variants.staggerItem}>
-          {/* Quick Status */}
           <Card className="layer-card">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
@@ -522,7 +645,6 @@ export default function RobotControlPage({ params }: { params: { id: string } })
             </CardContent>
           </Card>
 
-          {/* Joint Status */}
           <Card className="layer-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-subtitle">Joint Positions</CardTitle>
@@ -549,7 +671,6 @@ export default function RobotControlPage({ params }: { params: { id: string } })
             </CardContent>
           </Card>
 
-          {/* Emergency Controls */}
           <Card className="layer-card border-destructive/20">
             <CardHeader className="pb-3">
               <CardTitle className="text-subtitle flex items-center gap-2">
