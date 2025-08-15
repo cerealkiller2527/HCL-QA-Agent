@@ -563,13 +563,13 @@ export function DatasetsList() {
         {/* Header */}
         <motion.div className="flex items-center justify-between" variants={ANIMATION.variants.staggerItem}>
           <div className="space-y-1">
-            <h1 className="text-3xl font-semibold font-sans">Datasets</h1>
-            <p className="text-muted-foreground font-sans">Manage your robotics training data</p>
+            <h1 className="text-display">Datasets</h1>
+            <p className="text-body text-muted-foreground">Manage your robotics training data</p>
           </div>
           <div className="flex space-x-3">
             {isSelectionMode ? (
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-muted-foreground font-mono">{selectedDatasets.size} selected</span>
+                <span className="text-caption text-muted-foreground">{selectedDatasets.size} selected</span>
                 <Button
                   variant="outline"
                   size="sm"
@@ -583,7 +583,7 @@ export function DatasetsList() {
                   size="sm"
                   onClick={handleMassDelete}
                   disabled={selectedDatasets.size === 0}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 bg-transparent"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 bg-transparent"
                 >
                   <Trash2 className="h-4 w-4 mr-1" />
                   Delete ({selectedDatasets.size})
@@ -595,10 +595,10 @@ export function DatasetsList() {
               </div>
             ) : (
               <>
-                <Button variant="outline" className="bg-transparent" onClick={() => setIsSelectionMode(true)}>
+                <Button variant="outline" onClick={() => setIsSelectionMode(true)}>
                   Select
                 </Button>
-                <Button variant="outline" className="bg-transparent" onClick={() => setShowCollectionModal(true)}>
+                <Button variant="outline" onClick={() => setShowCollectionModal(true)}>
                   <FolderPlus className="h-4 w-4 mr-2" />
                   New Collection
                 </Button>
@@ -618,14 +618,14 @@ export function DatasetsList() {
             variants={ANIMATION.variants.staggerItem}
           >
             <MousePointer2 className="h-4 w-4 text-primary" />
-            <p className="text-sm text-primary font-medium">Drag and drop datasets onto collections to organize them</p>
+            <p className="text-caption text-primary">Drag and drop datasets onto collections to organize them</p>
           </motion.div>
         )}
 
         {/* Collections */}
         {collections.length > 0 && (
           <motion.div variants={ANIMATION.variants.staggerItem}>
-            <h2 className="text-lg font-semibold font-sans mb-4">Collections</h2>
+            <h2 className="text-title mb-4">Collections</h2>
             <div className="space-y-4">
               {collections.map((collection) => (
                 <DroppableCollection
@@ -678,8 +678,8 @@ export function DatasetsList() {
             <div className="mx-auto w-24 h-24 bg-layer-2 rounded-full flex items-center justify-center mb-6">
               <FolderPlus className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-semibold font-sans mb-2">No datasets found</h3>
-            <p className="text-muted-foreground mb-6 font-sans max-w-md mx-auto">
+            <h3 className="text-title mb-2">No datasets found</h3>
+            <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
               {hasActiveFilters
                 ? "Try adjusting your filters to see more results"
                 : "Get started by creating your first dataset"}
@@ -738,7 +738,7 @@ export function DatasetsList() {
 
       <DragOverlay>
         {draggedDataset ? (
-          <div className="opacity-90 rotate-2 scale-105 transition-transform">
+          <div style={{ transform: "translate3d(0,0,0) rotate(2deg) scale(1.05)", opacity: 0.9 }}>
             <DatasetCard dataset={draggedDataset} showDeleteButton={false} />
           </div>
         ) : null}

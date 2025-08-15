@@ -79,12 +79,12 @@ export function CustomDropdown({ trigger, items, align = "end", className }: Cus
                     type="button"
                     onClick={() => handleItemClick(item)}
                     className={cn(
-                      "flex w-full items-center px-3 py-2.5 text-sm font-body text-left transition-all duration-150",
+                      "flex w-full items-center px-3 py-2.5 text-caption text-left transition-all duration-150",
                       "hover:bg-layer-hover focus:bg-layer-hover focus:outline-none",
                       "active:bg-layer-active active:scale-[0.98]",
                       item.destructive
-                        ? "text-destructive hover:bg-destructive/20 hover:text-destructive-foreground focus:bg-destructive/20 focus:text-destructive-foreground"
-                        : "text-foreground hover:text-foreground-hover focus:text-foreground-hover",
+                        ? "text-destructive hover:bg-destructive/20 hover:text-destructive focus:bg-destructive/20 focus:text-destructive"
+                        : "text-foreground hover:text-foreground focus:text-foreground",
                     )}
                   >
                     {item.icon && (
@@ -97,7 +97,7 @@ export function CustomDropdown({ trigger, items, align = "end", className }: Cus
                         {item.icon}
                       </span>
                     )}
-                    <span className="font-body-medium">{item.label}</span>
+                    <span className="font-medium">{item.label}</span>
                   </button>
                 </div>
               ))}

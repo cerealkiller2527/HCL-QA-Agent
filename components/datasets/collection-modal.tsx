@@ -21,14 +21,14 @@ interface CollectionModalProps {
 }
 
 const colors = [
-  { name: "Blue", value: "bg-blue-500", ring: "ring-blue-500" },
-  { name: "Green", value: "bg-green-500", ring: "ring-green-500" },
+  { name: "Primary", value: "bg-primary", ring: "ring-primary" },
+  { name: "Success", value: "bg-green-500", ring: "ring-green-500" },
+  { name: "Warning", value: "bg-yellow-500", ring: "ring-yellow-500" },
+  { name: "Danger", value: "bg-red-500", ring: "ring-red-500" },
+  { name: "Info", value: "bg-blue-500", ring: "ring-blue-500" },
   { name: "Purple", value: "bg-purple-500", ring: "ring-purple-500" },
-  { name: "Orange", value: "bg-orange-500", ring: "ring-orange-500" },
-  { name: "Red", value: "bg-red-500", ring: "ring-red-500" },
-  { name: "Cyan", value: "bg-cyan-500", ring: "ring-cyan-500" },
   { name: "Pink", value: "bg-pink-500", ring: "ring-pink-500" },
-  { name: "Indigo", value: "bg-indigo-500", ring: "ring-indigo-500" },
+  { name: "Cyan", value: "bg-cyan-500", ring: "ring-cyan-500" },
 ]
 
 export function CollectionModal({ open, onOpenChange, onCreateCollection }: CollectionModalProps) {
@@ -63,10 +63,10 @@ export function CollectionModal({ open, onOpenChange, onCreateCollection }: Coll
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-layer-1 border-border">
         <DialogHeader>
-          <DialogTitle className="font-sans">Create New Collection</DialogTitle>
-          <DialogDescription className="font-sans">
+          <DialogTitle className="text-title">Create New Collection</DialogTitle>
+          <DialogDescription className="text-body text-muted-foreground">
             Create a collection to organize your datasets. You can drag and drop datasets into collections.
           </DialogDescription>
         </DialogHeader>
@@ -74,7 +74,7 @@ export function CollectionModal({ open, onOpenChange, onCreateCollection }: Coll
         <div className="space-y-6 py-4">
           {/* Name Input */}
           <div className="space-y-2">
-            <Label htmlFor="collection-name" className="font-sans font-medium">
+            <Label htmlFor="collection-name" className="text-body-medium">
               Collection Name
             </Label>
             <Input
@@ -82,29 +82,29 @@ export function CollectionModal({ open, onOpenChange, onCreateCollection }: Coll
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter collection name..."
-              className="font-sans"
+              className="bg-layer-2 border-border focus:border-primary"
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleCreate()}
             />
           </div>
 
           {/* Description Input */}
           <div className="space-y-2">
-            <Label htmlFor="collection-description" className="font-sans font-medium">
-              Description <span className="text-muted-foreground font-normal">(optional)</span>
+            <Label htmlFor="collection-description" className="text-body-medium">
+              Description <span className="text-muted-foreground text-body">(optional)</span>
             </Label>
             <Textarea
               id="collection-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what this collection contains..."
-              className="font-sans resize-none"
+              className="bg-layer-2 border-border focus:border-primary resize-none"
               rows={3}
             />
           </div>
 
           {/* Color Picker */}
           <div className="space-y-3">
-            <Label className="font-sans font-medium">Collection Color</Label>
+            <Label className="text-body-medium">Collection Color</Label>
             <div className="grid grid-cols-4 gap-3">
               {colors.map((color) => (
                 <button
@@ -114,7 +114,7 @@ export function CollectionModal({ open, onOpenChange, onCreateCollection }: Coll
                     ${color.value}
                     ${
                       selectedColor === color.value
-                        ? `ring-2 ${color.ring} ring-offset-2 ring-offset-background scale-105`
+                        ? `ring-2 ${color.ring} ring-offset-2 ring-offset-layer-1 scale-105`
                         : "hover:scale-105 hover:shadow-md"
                     }
                   `}
@@ -133,10 +133,10 @@ export function CollectionModal({ open, onOpenChange, onCreateCollection }: Coll
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)} className="font-sans">
+          <Button variant="outline" onClick={() => handleOpenChange(false)} className="text-body">
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={!name.trim()} className="font-sans">
+          <Button onClick={handleCreate} disabled={!name.trim()} className="text-body bg-primary hover:bg-primary/90">
             Create Collection
           </Button>
         </DialogFooter>
