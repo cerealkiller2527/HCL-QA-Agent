@@ -115,7 +115,7 @@ export default function RobotControlPage({ params }: { params: { id: string } })
   }) => {
     const percentage = (value / max) * 100
     return (
-      <div className="space-y-2">
+      <div className="space-y-1">
         <div className="flex justify-between items-center">
           <span className="text-caption text-muted-foreground">{label}</span>
           <span className="text-code font-mono">
@@ -123,9 +123,9 @@ export default function RobotControlPage({ params }: { params: { id: string } })
             {unit}
           </span>
         </div>
-        <div className="w-full bg-layer-2 rounded-full h-2">
+        <div className="w-full bg-layer-2 rounded-full h-1.5">
           <div
-            className={`h-2 rounded-full transition-all duration-300 ${color}`}
+            className={`h-1.5 rounded-full transition-all duration-300 ${color}`}
             style={{ width: `${Math.min(percentage, 100)}%` }}
           />
         </div>
@@ -166,7 +166,7 @@ export default function RobotControlPage({ params }: { params: { id: string } })
 
   return (
     <motion.div
-      className="p-4 space-y-4 max-w-7xl mx-auto min-h-screen"
+      className="p-3 space-y-3 max-w-7xl mx-auto min-h-screen"
       variants={containerVariants}
       initial="initial"
       animate="animate"
@@ -201,8 +201,8 @@ export default function RobotControlPage({ params }: { params: { id: string } })
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
-        <motion.div className="xl:col-span-3 space-y-4" variants={ANIMATION.variants.staggerItem}>
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-3">
+        <motion.div className="xl:col-span-3 space-y-3" variants={ANIMATION.variants.staggerItem}>
           {/* Camera Controls */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -239,7 +239,7 @@ export default function RobotControlPage({ params }: { params: { id: string } })
 
           {cameraLayout === "single" ? (
             <Card className="layer-card">
-              <CardContent className="p-4">
+              <CardContent className="p-3">
                 <div className="aspect-video bg-layer-2 rounded-lg flex items-center justify-center border relative">
                   <div className="text-center space-y-2">
                     <Camera className="h-16 w-16 mx-auto text-muted-foreground" />
@@ -254,7 +254,7 @@ export default function RobotControlPage({ params }: { params: { id: string } })
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2 mt-3">
+                <div className="flex gap-2 mt-2">
                   {activeCameras.map((camera, index) => (
                     <Button
                       key={camera.id}
@@ -271,7 +271,7 @@ export default function RobotControlPage({ params }: { params: { id: string } })
             </Card>
           ) : (
             <div
-              className={`grid gap-4 ${
+              className={`grid gap-3 ${
                 activeCameras.length === 1
                   ? "grid-cols-1"
                   : activeCameras.length === 2
@@ -283,7 +283,7 @@ export default function RobotControlPage({ params }: { params: { id: string } })
             >
               {activeCameras.map((camera) => (
                 <Card key={camera.id} className="layer-card">
-                  <CardContent className="p-3">
+                  <CardContent className="p-2">
                     <div className="aspect-video bg-layer-2 rounded border flex items-center justify-center relative">
                       <div className="text-center space-y-1">
                         <Camera className="h-8 w-8 mx-auto text-muted-foreground" />
@@ -304,14 +304,14 @@ export default function RobotControlPage({ params }: { params: { id: string } })
           {/* Recording Setup Modal */}
           {showRecordingSetup && (
             <Card className="layer-card border-primary/20">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <CardTitle className="text-subtitle flex items-center gap-2">
                   <Database className="h-5 w-5" />
                   Start Recording Session
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="recording-name">Dataset Name</Label>
                     <Input
@@ -355,18 +355,18 @@ export default function RobotControlPage({ params }: { params: { id: string } })
           )}
         </motion.div>
 
-        <motion.div className="xl:col-span-2 space-y-4" variants={ANIMATION.variants.staggerItem}>
+        <motion.div className="xl:col-span-2 space-y-3" variants={ANIMATION.variants.staggerItem}>
           {/* Quick Status */}
           <Card className="layer-card">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-2">
                 <h3 className="text-subtitle">Status</h3>
                 <Badge variant="default" className="gap-1">
                   <Activity className="h-3 w-3" />
                   Active
                 </Badge>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   size="sm"
                   variant={controlMode === "manual" ? "default" : "outline"}
@@ -390,13 +390,13 @@ export default function RobotControlPage({ params }: { params: { id: string } })
           </Card>
 
           <Card className="layer-card">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-subtitle flex items-center gap-2">
                 <Activity className="h-4 w-4" />
                 Live Telemetry
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <TelemetryGauge
                 value={telemetryData[telemetryData.length - 1]?.velocity || 0}
                 max={2}
@@ -419,7 +419,7 @@ export default function RobotControlPage({ params }: { params: { id: string } })
                 color="bg-orange-500"
               />
 
-              <div className="h-24 mt-4">
+              <div className="h-20 mt-3">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={telemetryData}>
                     <XAxis dataKey="time" hide />
@@ -434,10 +434,10 @@ export default function RobotControlPage({ params }: { params: { id: string } })
 
           {/* Joint Status */}
           <Card className="layer-card">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-subtitle">Joint Positions</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2">
               {["Base", "Shoulder", "Elbow", "Wrist"].map((joint, index) => {
                 const angle = Math.random() * 180 - 90
                 const percentage = ((angle + 90) / 180) * 100
@@ -461,7 +461,7 @@ export default function RobotControlPage({ params }: { params: { id: string } })
 
           {/* Emergency Controls */}
           <Card className="layer-card border-destructive/20">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-subtitle flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-destructive" />
                 Emergency
