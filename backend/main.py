@@ -234,9 +234,10 @@ def list_datasets(
             code="FETCH_ERROR"
         )
 
-# Get specific episode data (most specific route first)
-@app.get("/api/v1/datasets/{owner}/{dataset_name}/episodes/{episode_id}", response_model=EpisodeDataResponse)
+# Get specific episode data with TanStack Query support
+@app.get("/api/v1/datasets/{owner}/{dataset_name}/episodes/{episode_id}")
 def get_episode_data(
+    response: Response,
     owner: str,
     dataset_name: str,
     episode_id: int,
@@ -250,15 +251,26 @@ def get_episode_data(
     
     repo_id = f"{owner}/{dataset_name}"
     try:
+        # Add cache headers for TanStack Query
+        response.headers["Cache-Control"] = "public, max-age=600"  # 10 minutes for episode data
+        
         episode_data = hf_service.get_episode_data(repo_id, episode_id)
         if not episode_data:
-            raise HTTPException(status_code=404, detail=f"Episode {episode_id} not found")
-        return episode_data
-    except HTTPException:
-        raise
+            return error_response(
+                message=f"Episode {episode_id} not found",
+                code="EPISODE_NOT_FOUND"
+            )
+        
+        return success_response(
+            data=episode_data,
+            meta={"repo_id": repo_id, "episode_id": episode_id}
+        )
     except Exception as e:
         logger.error(f"Error fetching episode {episode_id} for {repo_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return error_response(
+            message="Failed to fetch episode data",
+            code="FETCH_ERROR"
+        )
 
 # Get dataset episodes with TanStack Query support
 @app.get("/api/v1/datasets/{owner}/{dataset_name}/episodes")
@@ -503,6 +515,7 @@ def get_enhanced_episode_data(
 
 @app.get("/api/v1/datasets/{owner}/{dataset_name}/episodes/{episode_id}/telemetry", dependencies=[Depends(check_rate_limit)])
 def get_episode_telemetry(
+    response: Response,
     owner: str,
     dataset_name: str,
     episode_id: int,
@@ -512,7 +525,7 @@ def get_episode_telemetry(
     max_points: int = 1000,  # Maximum points to return
     format: str = "json"  # Output format: json or csv
 ):
-    """Get enhanced telemetry data for a specific episode"""
+    """Get enhanced telemetry data for a specific episode with TanStack Query support"""
     # Validate inputs
     owner = validators.validate_repo_owner(owner)
     dataset_name = validators.validate_dataset_name(dataset_name)
@@ -523,7 +536,13 @@ def get_episode_telemetry(
         # Validate format parameter
         format_lower = format.lower()
         if format_lower not in ["json", "csv"]:
-            raise HTTPException(status_code=400, detail="Format must be 'json' or 'csv'")
+            return error_response(
+                message="Format must be 'json' or 'csv'",
+                code="INVALID_FORMAT"
+            )
+        
+        # Add cache headers for TanStack Query
+        response.headers["Cache-Control"] = "public, max-age=120"  # 2 minutes for telemetry
         
         # Parse features if provided
         feature_list = None
@@ -541,36 +560,48 @@ def get_episode_telemetry(
         
         if format_lower == "csv":
             if not telemetry_data:
-                raise HTTPException(status_code=404, detail=f"Telemetry data not found for {repo_id}/episode_{episode_id}")
+                return error_response(
+                    message=f"Telemetry data not found for {repo_id}/episode_{episode_id}",
+                    code="TELEMETRY_NOT_FOUND"
+                )
             
             # Return CSV data with appropriate content type
-            from fastapi.responses import Response
-            return Response(
+            from fastapi.responses import Response as FastAPIResponse
+            return FastAPIResponse(
                 content=telemetry_data,
                 media_type="text/csv",
                 headers={
-                    "Content-Disposition": f"attachment; filename=episode_{episode_id}_telemetry.csv"
+                    "Content-Disposition": f"attachment; filename=episode_{episode_id}_telemetry.csv",
+                    "Cache-Control": "public, max-age=120"
                 }
             )
         else:
             # JSON format
             if not telemetry_data:
-                raise HTTPException(status_code=404, detail=f"Telemetry data not found for {repo_id}/episode_{episode_id}")
+                return error_response(
+                    message=f"Telemetry data not found for {repo_id}/episode_{episode_id}",
+                    code="TELEMETRY_NOT_FOUND"
+                )
             
-            return {
-                "data": telemetry_data,
-                "count": len(telemetry_data),
-                "downsample_factor": downsample or 1,
-                "max_points": max_points,
-                "features_requested": feature_list,
-                "format": "json"
-            }
+            return success_response(
+                data=telemetry_data,
+                meta={
+                    "repo_id": repo_id,
+                    "episode_id": episode_id,
+                    "count": len(telemetry_data),
+                    "downsample_factor": downsample or 1,
+                    "max_points": max_points,
+                    "features_requested": feature_list,
+                    "format": "json"
+                }
+            )
         
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Error fetching telemetry for {repo_id}/{episode_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return error_response(
+            message="Failed to fetch telemetry data",
+            code="FETCH_ERROR"
+        )
 
 # Memory estimation endpoint
 @app.get("/api/v1/datasets/{owner}/{dataset_name}/episodes/{episode_id}/memory-estimate", dependencies=[Depends(check_rate_limit)])
