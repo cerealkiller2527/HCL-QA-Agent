@@ -6,25 +6,18 @@
 import { mockRobots } from "@/lib/data/mock-datasets"
 import type { Robot } from "@/lib/types/dataset"
 import datasetsApi from "@/lib/api/datasets.api"
-import type { Dataset as ApiDataset, DatasetWithMetrics } from "@/lib/api/schemas/dataset.schema"
-
-// Format file size utility
-function formatFileSize(bytes: number): string {
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  if (bytes === 0) return "0 B";
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i];
-}
+import type { Dataset as ApiDataset } from "@/lib/api/schemas/dataset.schema"
 
 // Type adapter to convert API response to frontend Dataset type
-function adaptApiDataset(apiDataset: ApiDataset): DatasetWithMetrics {
+function adaptApiDataset(apiDataset: ApiDataset): any {
   return {
     ...apiDataset,
     // Convert createdAt string to Date object if needed by components
+    createdAt: new Date(apiDataset.createdAt),
     updatedAt: new Date(apiDataset.createdAt), // Use createdAt as updatedAt for now
     
     // Ensure all required fields have values
-    size: formatFileSize(apiDataset.fileSize || 0),
+    size: apiDataset.fileSize?.toString() || "0 B",
     metadata: {
       recordingEnvironment: "HuggingFace Hub",
       robotModel: apiDataset.robotType || "Unknown",
@@ -45,12 +38,14 @@ function adaptApiDataset(apiDataset: ApiDataset): DatasetWithMetrics {
 }
 
 class DataService {
+  private USE_MOCK_DATA = false; // Set to true to use mock data for testing
+  
   // Dataset operations
   async getDatasets(filters?: { 
     search?: string; 
     status?: string; 
     robotType?: string 
-  }): Promise<DatasetWithMetrics[]> {
+  }): Promise<any[]> {
     try {
       // Fetch all datasets from API
       const apiDatasets = await datasetsApi.getAll();
@@ -93,7 +88,7 @@ class DataService {
     }
   }
 
-  async getDataset(id: string): Promise<DatasetWithMetrics | null> {
+  async getDataset(id: string): Promise<any | null> {
     try {
       const apiDataset = await datasetsApi.getById(id);
       if (!apiDataset) return null;
@@ -154,35 +149,6 @@ class DataService {
   // Health check
   async checkApiHealth(): Promise<boolean> {
     return datasetsApi.checkHealth();
-  }
-
-  // Dataset-specific operations
-  async getDatasetEpisodes(datasetId: string) {
-    try {
-      return await datasetsApi.getEpisodes(datasetId);
-    } catch (error) {
-      console.error(`Failed to fetch episodes for ${datasetId}:`, error);
-      return [];
-    }
-  }
-
-  async getEpisodeData(datasetId: string, episodeId: number) {
-    try {
-      return await datasetsApi.getEpisodeData(datasetId, episodeId);
-    } catch (error) {
-      console.error(`Failed to fetch episode data for ${datasetId}/${episodeId}:`, error);
-      return null;
-    }
-  }
-
-  async deleteDataset(datasetId: string): Promise<boolean> {
-    try {
-      await datasetsApi.delete(datasetId);
-      return true;
-    } catch (error) {
-      console.error(`Failed to delete dataset ${datasetId}:`, error);
-      return false;
-    }
   }
 }
 
