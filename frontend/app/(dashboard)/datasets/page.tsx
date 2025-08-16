@@ -1,22 +1,12 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Plus,
   FolderPlus,
-  Folder,
-  FolderOpen,
-  ChevronDown,
-  ChevronRight,
-  Eye,
-  ArrowLeft,
   Trash2,
-  MoreHorizontal,
   X,
   MousePointer2,
   Search,
@@ -39,40 +29,20 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
-  type DragStartEvent,
-  type DragEndEvent,
-  type DragOverEvent,
   closestCenter,
 } from "@dnd-kit/core"
-import { useDraggable, useDroppable } from "@dnd-kit/core"
-import { useRouter } from "next/navigation"
+import { useDraggable } from "@dnd-kit/core"
 
 // Components
-import { DatasetCard } from "@/components/datasets/common/dataset-card"
+import { DatasetCard } from "@/components/datasets/dataset-card"
 import { CollectionModal } from "@/components/datasets/collections/collection-modal"
-import { CustomDropdown } from "@/components/ui/custom-dropdown"
+import { CollectionList } from "@/components/datasets/collections/collection-list"
 
-// Data & Utils
+// Hooks & Utils
 import { useDatasets } from "@/lib/hooks/use-datasets"
+import { useDatasetsPage } from "@/components/datasets/hooks/use-datasets-page"
 import { ANIMATION } from "@/lib/constants"
 import { createStaggerAnimation } from "@/lib/utils/animations"
-import { cn } from "@/lib/utils"
-
-// Helper function
-function formatFileSize(bytes: number): string {
-  const sizes = ["B", "KB", "MB", "GB", "TB"]
-  if (bytes === 0 || !bytes) return "Size unavailable"
-  const i = Math.floor(Math.log(bytes) / Math.log(1024))
-  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i]
-}
-
-interface Collection {
-  id: string
-  name: string
-  description: string
-  color: string
-  datasetIds: string[]
-}
 
 // Draggable Dataset Component
 function DraggableDataset({
@@ -121,210 +91,43 @@ function DraggableDataset({
   )
 }
 
-// Collection Component
-function CollectionView({
-  collection,
-  datasets,
-  isExpanded,
-  isOver,
-  onToggleExpansion,
-  onRemoveFromCollection,
-  onDeleteDataset,
-}: {
-  collection: Collection
-  datasets: any[]
-  isExpanded: boolean
-  isOver: boolean
-  onToggleExpansion: () => void
-  onRemoveFromCollection: (datasetId: string) => void
-  onDeleteDataset: (datasetId: string) => void
-}) {
-  const router = useRouter()
-  const { setNodeRef } = useDroppable({ id: collection.id })
-  
-  const collectionDatasets = useMemo(() => {
-    return collection.datasetIds.map((id) => datasets.find((d) => d.id === id)).filter(Boolean)
-  }, [collection.datasetIds, datasets])
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={cn(
-        "rounded-xl border-2 overflow-hidden transition-all duration-200",
-        isOver ? "border-primary bg-primary/5 shadow-lg" : "border-border bg-layer-2"
-      )}
-    >
-      {/* Collection Header */}
-      <div className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className={`w-12 h-12 rounded-xl ${collection.color} flex items-center justify-center`}>
-              {isExpanded ? <FolderOpen className="h-6 w-6 text-white" /> : <Folder className="h-6 w-6 text-white" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold font-sans text-lg">{collection.name}</h3>
-              <p className="text-sm text-muted-foreground">
-                {collection.datasetIds.length} dataset{collection.datasetIds.length !== 1 ? "s" : ""}
-              </p>
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onToggleExpansion}>
-            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </Button>
-        </div>
-
-        {collection.description && <p className="text-sm text-muted-foreground mt-3">{collection.description}</p>}
-
-        {/* Collection Preview (when collapsed) */}
-        {!isExpanded && collection.datasetIds.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {collection.datasetIds.slice(0, 6).map((datasetId) => {
-              const dataset = datasets.find((d) => d.id === datasetId)
-              return dataset ? (
-                <div
-                  key={datasetId}
-                  className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20"
-                >
-                  <div className="w-6 h-6 rounded-md bg-primary/30 flex items-center justify-center text-xs font-mono font-semibold text-primary-foreground">
-                    {dataset.name.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="text-xs font-medium text-primary truncate max-w-20">{dataset.name}</span>
-                </div>
-              ) : null
-            })}
-            {collection.datasetIds.length > 6 && (
-              <div className="flex items-center px-3 py-1.5 rounded-lg bg-muted border border-border">
-                <span className="text-xs text-muted-foreground font-semibold">
-                  +{collection.datasetIds.length - 6} more
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Expanded Collection Content */}
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: "auto" }}
-            exit={{ height: 0 }}
-            className="border-t border-border overflow-hidden"
-          >
-            <div className="p-6 pt-4 space-y-4">
-              {collectionDatasets.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {collectionDatasets.map((dataset) => (
-                    <div
-                      key={dataset.id}
-                      className="group relative p-4 bg-background rounded-lg border border-border hover:bg-layer-2 hover:border-primary/30 transition-all duration-200 hover:shadow-sm"
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold font-mono text-sm truncate">{dataset.name}</h4>
-                            <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                              {dataset.description}
-                            </p>
-                          </div>
-                          <CustomDropdown
-                            trigger={
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            }
-                            items={[
-                              {
-                                label: "View Dataset",
-                                icon: <Eye className="h-4 w-4" />,
-                                onClick: () => router.push(`/datasets/${dataset.id}`),
-                              },
-                              {
-                                label: "Remove from Collection",
-                                icon: <ArrowLeft className="h-4 w-4" />,
-                                onClick: () => onRemoveFromCollection(dataset.id),
-                              },
-                              {
-                                label: "Delete Dataset",
-                                icon: <Trash2 className="h-4 w-4" />,
-                                onClick: () => onDeleteDataset(dataset.id),
-                                destructive: true,
-                                separator: true,
-                              },
-                            ]}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground font-mono">{formatFileSize(dataset.fileSize)}</span>
-                          <span className="text-muted-foreground font-mono">{(dataset.frameCount || 0).toLocaleString()} frames</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Folder className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">No datasets in this collection</p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {isOver && (
-        <div className="absolute inset-0 flex items-center justify-center bg-primary/10 backdrop-blur-sm z-10 pointer-events-none rounded-xl">
-          <div className="text-center p-4">
-            <Plus className="h-6 w-6 text-primary mx-auto mb-1" />
-            <p className="text-primary font-semibold text-sm">Add to collection</p>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
 export default function DatasetsPage() {
-  const router = useRouter()
-  
-  // State Management
-  const [collections, setCollections] = useState<Collection[]>([])
-  const [showCollectionModal, setShowCollectionModal] = useState(false)
-  const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set())
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const [overId, setOverId] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedDatasets, setSelectedDatasets] = useState<Set<string>>(new Set())
-  const [isSelectionMode, setIsSelectionMode] = useState(false)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [datasetToDelete, setDatasetToDelete] = useState<string | null>(null)
-  const [showMassDeleteDialog, setShowMassDeleteDialog] = useState(false)
-
   // Fetch datasets from API
-  const { data: datasets, loading, error, refetch } = useDatasets({
-    search: searchQuery || undefined
-  })
+  const { data: datasets, loading, error, refetch } = useDatasets()
   
-  // Use empty array if no data yet
-  const allDatasets = datasets || []
-
-  // Computed Values
-  const uncategorizedDatasets = useMemo(() => {
-    return allDatasets.filter((dataset) => !collections.some((collection) => collection.datasetIds.includes(dataset.id)))
-  }, [allDatasets, collections])
-
-  const displayedDatasets = useMemo(() => {
-    // Since we're already filtering by search in the API call, just return uncategorized datasets
-    return uncategorizedDatasets
-  }, [uncategorizedDatasets])
+  // Use the datasets page hook for state management
+  const {
+    collections,
+    expandedCollections,
+    showCollectionModal,
+    activeId,
+    overId,
+    searchQuery,
+    selectedDatasets,
+    isSelectionMode,
+    showDeleteDialog,
+    datasetToDelete,
+    showMassDeleteDialog,
+    displayedDatasets,
+    draggedDataset,
+    setCollections,
+    createCollection,
+    setShowCollectionModal,
+    toggleCollectionExpansion,
+    removeFromCollection,
+    setSearchQuery,
+    toggleDatasetSelection,
+    selectAllDatasets,
+    clearSelection,
+    setIsSelectionMode,
+    handleDeleteDataset,
+    setShowDeleteDialog,
+    setDatasetToDelete,
+    setShowMassDeleteDialog,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd,
+  } = useDatasetsPage({ datasets: datasets || [] })
 
   // Drag and Drop Setup
   const sensors = useSensors(
@@ -333,101 +136,8 @@ export default function DatasetsPage() {
     })
   )
 
-  // Handlers
-  const createCollection = useCallback((collectionData: Omit<Collection, "id" | "datasetIds">) => {
-    const newCollection: Collection = {
-      id: Date.now().toString(),
-      ...collectionData,
-      datasetIds: [],
-    }
-    setCollections((prev) => [...prev, newCollection])
-  }, [])
-
-  const toggleCollectionExpansion = useCallback((collectionId: string) => {
-    setExpandedCollections((prev) => {
-      const newExpanded = new Set(prev)
-      if (newExpanded.has(collectionId)) {
-        newExpanded.delete(collectionId)
-      } else {
-        newExpanded.add(collectionId)
-      }
-      return newExpanded
-    })
-  }, [])
-
-  const removeFromCollection = useCallback((collectionId: string, datasetId: string) => {
-    setCollections((prevCollections) =>
-      prevCollections.map((collection) =>
-        collection.id === collectionId
-          ? { ...collection, datasetIds: collection.datasetIds.filter((id) => id !== datasetId) }
-          : collection
-      )
-    )
-  }, [])
-
-  const toggleDatasetSelection = useCallback((datasetId: string) => {
-    setSelectedDatasets((prev) => {
-      const newSelected = new Set(prev)
-      if (newSelected.has(datasetId)) {
-        newSelected.delete(datasetId)
-      } else {
-        newSelected.add(datasetId)
-      }
-      return newSelected
-    })
-  }, [])
-
-  const handleDeleteDataset = useCallback((datasetId: string) => {
-    setDatasetToDelete(datasetId)
-    setShowDeleteDialog(true)
-  }, [])
-
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    setActiveId(event.active.id as string)
-  }, [])
-
-  const handleDragOver = useCallback((event: DragOverEvent) => {
-    const { over } = event
-    setOverId(over ? (over.id as string) : null)
-  }, [])
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event
-      if (over && active.id !== over.id) {
-        const datasetId = active.id as string
-        const collectionId = over.id as string
-        const targetCollection = collections.find((c) => c.id === collectionId)
-        if (targetCollection) {
-          setCollections((prevCollections) =>
-            prevCollections.map((collection) =>
-              collection.id === collectionId
-                ? { ...collection, datasetIds: [...new Set([...collection.datasetIds, datasetId])] }
-                : collection
-            )
-          )
-        }
-      }
-      setActiveId(null)
-      setOverId(null)
-    },
-    [collections]
-  )
-
-  const draggedDataset = useMemo(() => {
-    return activeId ? allDatasets.find((d) => d.id === activeId) : null
-  }, [activeId, allDatasets])
-
-  const selectAllDatasets = useCallback(() => {
-    setSelectedDatasets(new Set(displayedDatasets.map((d) => d.id)))
-  }, [displayedDatasets])
-
-  const clearSelection = useCallback(() => {
-    setSelectedDatasets(new Set())
-    setIsSelectionMode(false)
-  }, [])
-
-  const confirmDeleteDataset = useCallback(async () => {
+  // Delete confirmation handlers
+  const confirmDeleteDataset = async () => {
     if (datasetToDelete) {
       try {
         // Import the API client
@@ -455,9 +165,9 @@ export default function DatasetsPage() {
     }
     setDatasetToDelete(null)
     setShowDeleteDialog(false)
-  }, [datasetToDelete, refetch])
+  }
 
-  const confirmMassDelete = useCallback(async () => {
+  const confirmMassDelete = async () => {
     try {
       // Import the API client
       const { datasetsApi } = await import('@/lib/api/datasets.api')
@@ -498,7 +208,7 @@ export default function DatasetsPage() {
     
     clearSelection()
     setShowMassDeleteDialog(false)
-  }, [selectedDatasets, clearSelection, refetch])
+  }
 
   const containerVariants = createStaggerAnimation(0.1)
 
@@ -592,25 +302,17 @@ export default function DatasetsPage() {
         )}
 
         {/* Collections */}
-        {collections.length > 0 && (
-          <motion.div variants={ANIMATION.variants.staggerItem}>
-            <h2 className="text-title mb-4">Collections</h2>
-            <div className="space-y-4">
-              {collections.map((collection) => (
-                <CollectionView
-                  key={collection.id}
-                  collection={collection}
-                  datasets={allDatasets}
-                  isExpanded={expandedCollections.has(collection.id)}
-                  isOver={overId === collection.id}
-                  onToggleExpansion={() => toggleCollectionExpansion(collection.id)}
-                  onRemoveFromCollection={(datasetId) => removeFromCollection(collection.id, datasetId)}
-                  onDeleteDataset={handleDeleteDataset}
-                />
-              ))}
-            </div>
-          </motion.div>
-        )}
+        <motion.div variants={ANIMATION.variants.staggerItem}>
+          <CollectionList
+            collections={collections}
+            datasets={datasets || []}
+            expandedIds={expandedCollections}
+            overId={overId}
+            onToggleExpanded={toggleCollectionExpansion}
+            onRemoveFromCollection={removeFromCollection}
+            onDeleteDataset={handleDeleteDataset}
+          />
+        </motion.div>
 
         {/* Datasets Grid */}
         {loading ? (

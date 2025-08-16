@@ -3,7 +3,7 @@
  * This file demonstrates that all fixes are working correctly
  */
 
-import { DatasetCard } from "./components/datasets/common/dataset-card"
+import { DatasetCard } from "./components/datasets/dataset-card"
 
 // Test datasets that cover all the edge cases we fixed
 const testDatasets = [

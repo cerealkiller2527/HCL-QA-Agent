@@ -22,7 +22,7 @@ import {
   FileText,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { formatDate } from "@/lib/utils/date"
+import { formatDate } from "@/lib/utils/dataset-utils"
 import { ANIMATION } from "@/lib/constants"
 import { Dataset } from "@/lib/api/schemas/dataset.schema"
 
