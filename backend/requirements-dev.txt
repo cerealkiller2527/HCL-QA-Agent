@@ -1,0 +1,13 @@
+# Development and linting dependencies
+black==23.12.1
+flake8==7.0.0
+mypy==1.8.0
+isort==5.13.2
+
+# Flake8 plugins with compatible versions
+flake8-bugbear==24.12.12
+flake8-comprehensions==3.14.0
+flake8-simplify==0.21.0
+
+# Type stubs
+types-requests==2.31.0.20240125

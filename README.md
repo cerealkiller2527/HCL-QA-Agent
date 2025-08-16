@@ -1,83 +1,158 @@
-# HCL-QA-Agent - Industrial Robot Workflow Automation Platform
+# HCL-QA-Agent - LeRobot Dataset Viewer Platform
 
-## Project Structure
+A professional dataset viewer inspired by LeRobot, featuring frame-accurate video playback, multi-camera synchronization, and real-time telemetry visualization.
+
+## 🎯 Project Overview
+
+This platform provides a comprehensive interface for viewing and analyzing robotics datasets from HuggingFace Hub, with a focus on LeRobot-compatible datasets.
+
+## 📁 Project Structure
 
 ```
 HCL-QA-Agent/
-├── frontend/          # Next.js frontend application
-├── backend/           # FastAPI backend server
-├── lerobot/          # LeRobot fork (robotics library)
-├── sync-frontend.sh  # Script to sync from frontend branch
-└── push-frontend-changes.sh  # Script to push changes to frontend branch
+├── frontend/              # Next.js 14 frontend application
+│   ├── app/(dashboard)/   # App router pages
+│   ├── components/        # Reusable UI components
+│   └── lib/              # Utilities, hooks, and API client
+├── backend/              # FastAPI backend server  
+│   ├── services/         # Business logic services
+│   ├── schemas/          # Pydantic data models
+│   └── utils/           # Helper utilities
+└── docs/                # Documentation and guides
 ```
 
-## Architecture
+## 🚀 Features
 
-This project uses a three-layer architecture:
+- 🎥 **Frame-accurate video playback** with LeRobot-inspired controls
+- 🎮 **Multi-camera synchronization** for robotics datasets  
+- 📊 **Real-time telemetry visualization** (joints, end-effector, gripper)
+- 🤖 **Episode navigation** with task metadata
+- 🔍 **Dataset browser** with HuggingFace Hub integration
+- 📱 **Responsive design** with professional UX
+- 🛡️ **Type-safe** with comprehensive validation
 
-1. **Frontend (Next.js)**: Visual workflow editor, teleoperation controls, dataset viewer
-2. **Backend (FastAPI)**: LeRobot wrapper, WebSocket management, API orchestration  
-3. **LeRobot Core**: Unmodified robotics library handling actual robot control
+## 🛠️ Technology Stack
 
-## Development Setup
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS, Radix UI
+- **Backend**: FastAPI, Python 3.8+, Pydantic, HuggingFace Hub
+- **Validation**: Zod (frontend), Pydantic (backend)
+- **Robotics**: LeRobot dataset format compatibility
 
-### Frontend
+## 🏁 Quick Start
+
+### Prerequisites
+- Node.js 18+ and npm
+- Python 3.8+
+- HuggingFace token ([get here](https://huggingface.co/settings/tokens))
+
+### 1. Backend Setup
 ```bash
-cd frontend
-pnpm install
-pnpm dev
-# Runs on http://localhost:3000
+cd backend/
+
+# Install dependencies
+make install
+
+# Configure environment
+cp .env .env.local
+# Edit .env.local and add: HF_TOKEN=your_actual_token
+
+# Run server
+make run
+# Server starts at http://localhost:8000
 ```
 
-### Backend
+### 2. Frontend Setup
 ```bash
-cd backend
-pip install -r requirements.txt
-python main.py
-# Runs on http://localhost:8000
+cd frontend/
+
+# Install dependencies
+npm install
+
+# Configure environment
+# Edit .env.local and add your API URL and HF token
+
+# Run development server
+npm run dev
+# Frontend starts at http://localhost:3000
 ```
 
-### LeRobot
+### 3. Access the Application
+- **Dataset Browser**: http://localhost:3000/datasets
+- **Dataset Viewer**: http://localhost:3000/datasets/[dataset-id]
+- **API Documentation**: http://localhost:8000/docs
+
+## 🧪 Development
+
+### Frontend Commands
 ```bash
-cd lerobot
-pip install -e .
+npm run dev          # Start development server
+npm run build        # Build for production  
+npm run lint         # Run ESLint
+npm run format       # Format with Prettier
+npm run type-check   # TypeScript type checking
 ```
 
-## Branch Management
-
-- `main`: Production branch
-- `integration-frontend-backend`: Main development branch
-- `feature-frontend-dataset-viewer`: Frontend-only branch
-- `frontend-prototype`: Original frontend prototype
-
-### Syncing Frontend
-
-To pull latest changes from frontend branch:
+### Backend Commands
 ```bash
-./sync-frontend.sh
+make help           # Show all available commands
+make install-dev    # Install with development dependencies
+make lint          # Run all linting tools
+make format        # Format code with black/isort
+make type-check    # Run mypy type checking
+make test          # Run tests
+make dev           # Run server in development mode
 ```
 
-To push frontend changes back to frontend branch:
-```bash
-./push-frontend-changes.sh
-```
+## 📋 Architecture
 
-## Features
+### Frontend Architecture
+- **App Router**: Next.js 14 with proper routing
+- **Component Design**: Reusable UI components with TypeScript
+- **State Management**: React hooks with custom data fetching
+- **API Integration**: Type-safe client with runtime validation
 
-- 🤖 Visual workflow editor for robot programming
-- 📊 Dataset viewer with HuggingFace integration
-- 🎮 Teleoperation interface
-- 📹 Multi-camera support
-- 🧠 Multiple policy support (ACT, Diffusion, TDMPC, VQ-BeT)
-- 📦 Dataset recording and management
+### Backend Architecture
+- **Service Layer**: Clean separation of business logic
+- **Data Validation**: Pydantic models for request/response
+- **Error Handling**: Comprehensive error responses
+- **API Documentation**: Auto-generated OpenAPI docs
 
-## Technology Stack
+## 🎯 Key Features
 
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS, Shadcn/ui
-- **Backend**: FastAPI, Python 3.10+, HuggingFace Hub
-- **Robotics**: LeRobot, PyTorch, OpenCV
-- **Visualization**: Rerun SDK
+### LeRobot Dataset Viewer
+- **Timestamp Management**: Frame-accurate seeking at any FPS
+- **Video Synchronization**: Multi-camera synchronized playback
+- **Telemetry Display**: Real-time robot state visualization
+- **Episode Navigation**: Browse episodes with metadata
+- **Professional Controls**: Speed adjustment, timeline scrubbing
 
-## License
+### User Experience
+- **Loading States**: Skeleton UI for smooth experience
+- **Error Handling**: User-friendly error messages
+- **Responsive Design**: Works on all screen sizes
+- **Breadcrumb Navigation**: Clear navigation hierarchy
+
+## 📚 Documentation
+
+- **[Setup Guide](SETUP_GUIDE.md)**: Comprehensive setup instructions
+- **[Code Review Report](FINAL_CODE_REVIEW_REPORT.md)**: Latest code quality assessment
+- **API Docs**: Available at `/docs` when backend is running
+
+## 🧹 Code Quality
+
+This project maintains high code quality through:
+- **ESLint + Prettier** for frontend code formatting
+- **Black + Flake8 + MyPy** for Python code quality
+- **TypeScript** for type safety
+- **Comprehensive testing** setup
+
+## 🤝 Contributing
+
+1. Follow the established code formatting (run linters)
+2. Add tests for new features
+3. Update documentation as needed
+4. Ensure type safety throughout
+
+## 📄 License
 
 This project is licensed under the Apache 2.0 License.
