@@ -13,7 +13,9 @@ import pandas as pd
 import time
 import sys
 import os
-from ..config import config
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import config
 
 logger = logging.getLogger(__name__)
 
