@@ -1,301 +1,489 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CustomSelect } from "@/components/ui/custom-select"
-import { CameraViewer } from "@/components/datasets/viewer/camera-viewer"
-import { EpisodeSelector } from "@/components/datasets/viewer/episode-selector"
-import { DatasetStats } from "@/components/datasets/viewer/dataset-stats"
-import { TelemetryChart } from "@/components/datasets/viewer/telemetry-chart"
-import { Play, Pause, SkipBack, SkipForward, Download, Settings, ArrowLeft, BarChart3, Activity, Loader2 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { ANIMATION } from "@/lib/constants"
-import { createStaggerAnimation } from "@/lib/utils/animations"
-// Import shared formatting utilities
+import { Badge } from "@/components/ui/badge"
+import { Loader2, Play, Pause, SkipBack, SkipForward, RotateCcw, Camera, Activity, Clock, Gauge } from "lucide-react"
 import { formatFileSize, formatDuration } from "@/lib/utils/format"
-// Import real API hooks
+import { TimestampManager, VideoSyncManager, timestampUtils } from "@/lib/utils/timestamp"
 import { useDataset, useDatasetEpisodes, useEpisodeData } from "@/lib/hooks/use-datasets"
-import Link from "next/link"
-
-// Removed mock data - now using real API data
-
-// Import shared formatting utilities
-import { formatFileSize, formatDuration } from "@/lib/utils/format"
+import type { CameraStream } from "@/lib/api/schemas/validation"
 
 interface DatasetViewerProps {
   datasetId: string
 }
 
+interface TelemetryPoint {
+  timestamp: number
+  jointPositions?: number[]
+  jointVelocities?: number[]
+  endEffectorPosition?: number[]
+  gripperState?: number
+  [key: string]: any
+}
+
 export function DatasetViewer({ datasetId }: DatasetViewerProps) {
+  // Playback state
   const [isPlaying, setIsPlaying] = useState(false)
-  const [currentFrame, setCurrentFrame] = useState([0])
+  const [currentFrame, setCurrentFrame] = useState(0)
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [selectedEpisode, setSelectedEpisode] = useState(0)
+  const [selectedCamera, setSelectedCamera] = useState<string>("camera_top")
 
-  // Fetch real dataset data from API
+  // Video refs for synchronization
+  const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({})
+  const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Data fetching
   const { data: dataset, loading: datasetLoading, error: datasetError } = useDataset(datasetId)
   const { data: episodes, loading: episodesLoading } = useDatasetEpisodes(datasetId)
   const { data: episodeData, loading: episodeDataLoading } = useEpisodeData(datasetId, selectedEpisode)
 
-  const containerVariants = createStaggerAnimation()
+  // Calculate FPS and create timestamp managers
+  const fps = dataset?.fps || 30
+  const timestampManager = useMemo(() => new TimestampManager(fps), [fps])
+  
+  // Get camera names for synchronization
+  const cameraNames = useMemo(() => {
+    return episodeData?.videoUrls?.map(url => url.camera) || ["camera_top", "camera_front", "camera_wrist"]
+  }, [episodeData?.videoUrls])
 
-  // Update selected episode when episodes are loaded
+  const videoSyncManager = useMemo(() => 
+    new VideoSyncManager(fps, cameraNames), 
+    [fps, cameraNames]
+  )
+
+  // Auto-select first episode when episodes load
   useEffect(() => {
     if (episodes && episodes.length > 0 && selectedEpisode === 0) {
       setSelectedEpisode(episodes[0].id)
     }
   }, [episodes, selectedEpisode])
 
-  // Show loading state
+  // Auto-select first camera when video URLs load
+  useEffect(() => {
+    if (episodeData?.videoUrls && episodeData.videoUrls.length > 0) {
+      setSelectedCamera(episodeData.videoUrls[0].camera)
+    }
+  }, [episodeData?.videoUrls])
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (playbackIntervalRef.current) {
+        clearInterval(playbackIntervalRef.current)
+      }
+    }
+  }, [])
+
+  // Handle playback control
+  const handlePlayPause = () => {
+    if (isPlaying) {
+      // Pause all videos
+      Object.values(videoRefs.current).forEach(video => {
+        if (video) video.pause()
+      })
+      if (playbackIntervalRef.current) {
+        clearInterval(playbackIntervalRef.current)
+        playbackIntervalRef.current = null
+      }
+    } else {
+      // Play all videos synchronized
+      const seekTimes = videoSyncManager.calculateSeekTimes(currentFrame)
+      Object.entries(videoRefs.current).forEach(([camera, video]) => {
+        if (video && seekTimes[camera] !== undefined) {
+          video.currentTime = seekTimes[camera]
+          video.playbackRate = playbackSpeed
+          video.play()
+        }
+      })
+
+      // Start frame counter
+      playbackIntervalRef.current = setInterval(() => {
+        setCurrentFrame(prev => {
+          const nextFrame = prev + playbackSpeed
+          const maxFrames = dataset?.frameCount || 0
+          return Math.min(nextFrame, maxFrames - 1)
+        })
+      }, timestampManager.getFrameDuration() * 1000)
+    }
+    setIsPlaying(!isPlaying)
+  }
+
+  // Handle frame seeking
+  const handleFrameSeek = (frame: number) => {
+    const maxFrames = dataset?.frameCount || 0
+    const boundedFrame = Math.max(0, Math.min(frame, maxFrames - 1))
+    setCurrentFrame(boundedFrame)
+
+    // Synchronize all video seeks
+    const seekTimes = videoSyncManager.calculateSeekTimes(boundedFrame)
+    Object.entries(videoRefs.current).forEach(([camera, video]) => {
+      if (video && seekTimes[camera] !== undefined) {
+        video.currentTime = seekTimes[camera]
+      }
+    })
+  }
+
+  // Handle timeline scrubbing
+  const handleTimelineChange = (value: number[]) => {
+    handleFrameSeek(value[0])
+  }
+
+  // Reset to beginning
+  const handleReset = () => {
+    setIsPlaying(false)
+    handleFrameSeek(0)
+    if (playbackIntervalRef.current) {
+      clearInterval(playbackIntervalRef.current)
+      playbackIntervalRef.current = null
+    }
+  }
+
+  // Frame navigation
+  const handleNextFrame = () => handleFrameSeek(currentFrame + 1)
+  const handlePrevFrame = () => handleFrameSeek(currentFrame - 1)
+
   if (datasetLoading) {
     return (
-      <div className="p-8">
-        <div className="text-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <h2 className="font-sans text-2xl font-bold mb-2">Loading dataset...</h2>
-          <p className="text-muted-foreground">Please wait while we fetch the dataset information.</p>
-        </div>
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading dataset...</span>
       </div>
     )
   }
 
-  // Show error state
   if (datasetError || !dataset) {
     return (
-      <div className="p-8">
-        <div className="text-center py-16">
-          <h2 className="font-sans text-2xl font-bold mb-2">Dataset not found</h2>
-          <p className="text-muted-foreground mb-4">The requested dataset could not be found.</p>
-          <Link href="/datasets">
-            <Button>Back to Datasets</Button>
-          </Link>
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold">Dataset not found</h3>
+          <p className="text-muted-foreground">The requested dataset could not be loaded.</p>
         </div>
       </div>
     )
   }
 
-  const currentTime = (currentFrame[0] / dataset.frameCount) * dataset.duration
+  // Calculate current time and episode info
+  const currentTime = timestampManager.frameToTimestamp(currentFrame)
+  const totalDuration = timestampManager.getTotalDuration(dataset.frameCount)
   const currentEpisode = episodes?.find((ep) => ep.id === selectedEpisode)
-  
-  // Use real telemetry data if available, fallback to empty array
   const telemetryData = episodeData?.telemetryData || []
-  const currentData = telemetryData[Math.min(currentFrame[0], telemetryData.length - 1)] || {}
+  const currentTelemetry: TelemetryPoint = telemetryData[Math.min(currentFrame, telemetryData.length - 1)] || {}
   
-  // Use real camera data if available, fallback to mock for demo
-  const cameraStreams = episodeData?.videoUrls?.map(url => ({
+  // Create camera streams from real data or fallback
+  const cameraStreams: CameraStream[] = episodeData?.videoUrls?.map(url => ({
     id: url.camera,
     name: url.camera,
     resolution: url.resolution || "Unknown",
-    fps: url.fps || 30,
-    active: true
+    fps: url.fps || fps,
+    active: true,
+    url: url.url
   })) || [
-    { id: "main", name: "Main Camera", resolution: "1920x1080", fps: 30, active: true },
-    { id: "wrist", name: "Wrist Camera", resolution: "640x480", fps: 15, active: true },
+    { id: "camera_top", name: "Top Camera", resolution: "640x480", fps: 30, active: true },
+    { id: "camera_front", name: "Front Camera", resolution: "640x480", fps: 30, active: true },
+    { id: "camera_wrist", name: "Wrist Camera", resolution: "640x480", fps: 30, active: true },
   ]
 
+  // Generate timeline sync points
+  const syncPoints = timestampManager.getSyncPoints(dataset.frameCount)
+
   return (
-    <motion.div className="p-6 space-y-4 min-h-screen" variants={containerVariants} initial="initial" animate="animate">
-      {/* Header */}
-      <motion.div className="flex items-center gap-4" variants={ANIMATION.variants.staggerItem}>
-        <Link href="/datasets">
-          <Button variant="ghost" size="icon" className="h-9 w-9">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div className="flex-1 min-w-0">
-          <h1 className="font-sans text-2xl font-bold truncate">{dataset.name}</h1>
-          <p className="text-muted-foreground font-sans text-sm truncate">{dataset.description}</p>
+    <div className="space-y-6">
+      {/* Dataset Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">{dataset.name}</h1>
+          <p className="text-muted-foreground">{dataset.description}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-layer-2 px-2.5 py-1.5 rounded-lg border border-border">
-            <span className="text-sm font-medium font-sans text-foreground">Episode:</span>
-            <CustomSelect
-              value={selectedEpisode.toString()}
-              onValueChange={(value) => setSelectedEpisode(Number(value))}
-              placeholder="Select"
-              className="w-24 h-8"
-              options={(episodes || []).map((ep) => ({
-                value: ep.id.toString(),
-                label: `${ep.id} (${formatDuration(ep.duration)})`,
-              }))}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-1" />
-              Settings
-            </Button>
-            <Button size="sm" className="bg-primary hover:bg-primary/90">
-              <Download className="h-4 w-4 mr-1" />
-              Export
-            </Button>
-          </div>
+        <div className="flex items-center gap-4">
+          <Badge variant="secondary">
+            <Activity className="w-4 h-4 mr-1" />
+            {dataset.status}
+          </Badge>
+          <Badge variant="outline">
+            <Clock className="w-4 h-4 mr-1" />
+            {formatDuration(totalDuration)}
+          </Badge>
         </div>
-      </motion.div>
-
-      {/* Episode Selection */}
-      <motion.div variants={ANIMATION.variants.staggerItem}>
-        <EpisodeSelector
-          episodes={episodes || []}
-          selectedEpisode={selectedEpisode}
-          onEpisodeSelect={setSelectedEpisode}
-          formatDuration={formatDuration}
-        />
-      </motion.div>
-
-      {/* Main Content */}
-      <div className="grid grid-cols-1 xl:grid-cols-6 gap-4">
-        <motion.div className="xl:col-span-5 space-y-4" variants={ANIMATION.variants.staggerItem}>
-          <CameraViewer streams={cameraStreams} currentFrame={currentFrame[0]} totalFrames={dataset.frameCount} />
-
-          {/* Playback Controls */}
-          <Card className="layer-card">
-            <CardContent className="p-4 space-y-4">
-              <Slider
-                value={currentFrame}
-                onValueChange={setCurrentFrame}
-                max={dataset.frameCount - 1}
-                step={1}
-                className="w-full"
-              />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentFrame([Math.max(0, currentFrame[0] - 100)])}
-                  >
-                    <SkipBack className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsPlaying(!isPlaying)}
-                    className={cn(isPlaying && "bg-primary text-primary-foreground")}
-                  >
-                    {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentFrame([Math.min(dataset.frameCount - 1, currentFrame[0] + 100)])}
-                  >
-                    <SkipForward className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground font-mono">
-                    {formatDuration(Math.floor(currentTime))} /{" "}
-                    {formatDuration(currentEpisode?.duration || dataset.duration)}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground font-sans">Speed:</span>
-                    <CustomSelect
-                      value={playbackSpeed.toString()}
-                      onValueChange={(value) => setPlaybackSpeed(Number(value))}
-                      placeholder="1x"
-                      className="w-20"
-                      options={[
-                        { value: "0.25", label: "0.25x" },
-                        { value: "0.5", label: "0.5x" },
-                        { value: "1", label: "1x" },
-                        { value: "2", label: "2x" },
-                        { value: "4", label: "4x" },
-                      ]}
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Sidebar */}
-        <motion.div variants={ANIMATION.variants.staggerItem}>
-                      <DatasetStats
-              duration={currentEpisode?.duration || dataset.duration}
-              activeCameras={cameraStreams.filter((c) => c.active).length}
-              frameCount={dataset.frameCount}
-              size={formatFileSize(dataset.fileSize)}
-              tags={dataset.tags}
-              formatDuration={formatDuration}
-              formatFileSize={formatFileSize}
-            />
-        </motion.div>
       </div>
 
-      {/* Telemetry Section */}
-      <motion.div variants={ANIMATION.variants.staggerItem}>
-        <Card className="layer-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-sans flex items-center gap-2 text-lg">
-              <BarChart3 className="h-4 w-4 text-blue-500" />
-              Telemetry Data
+      {/* Episode Selector */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gauge className="h-5 w-5" />
+            Episode Navigation
+          </CardTitle>
+          <CardDescription>
+            Select episode and navigate through robot demonstration data
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm font-medium">Episode</label>
+              <Select value={selectedEpisode.toString()} onValueChange={(value) => setSelectedEpisode(parseInt(value))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {episodes?.map((episode) => (
+                    <SelectItem key={episode.id} value={episode.id.toString()}>
+                      Episode {episode.id} ({formatDuration(episode.duration || 0)})
+                    </SelectItem>
+                  )) || (
+                    <SelectItem value="0">Loading episodes...</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">Camera View</label>
+              <Select value={selectedCamera} onValueChange={setSelectedCamera}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {cameraStreams.map((stream) => (
+                    <SelectItem key={stream.id} value={stream.id}>
+                      <div className="flex items-center gap-2">
+                        <Camera className="h-4 w-4" />
+                        {stream.name} ({stream.resolution})
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Playback Speed</label>
+              <Select value={playbackSpeed.toString()} onValueChange={(value) => setPlaybackSpeed(parseFloat(value))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0.25">0.25x</SelectItem>
+                  <SelectItem value="0.5">0.5x</SelectItem>
+                  <SelectItem value="1">1x</SelectItem>
+                  <SelectItem value="1.5">1.5x</SelectItem>
+                  <SelectItem value="2">2x</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Video Player */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              Camera: {cameraStreams.find(s => s.id === selectedCamera)?.name || selectedCamera}
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
-            <Tabs defaultValue="arm1" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="arm1">Arm 1</TabsTrigger>
-                <TabsTrigger value="arm2">Arm 2</TabsTrigger>
-                <TabsTrigger value="gripper">Gripper</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="arm1" className="mt-4">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <TelemetryChart
-                    title="Shoulder Joints"
-                    data={telemetryData}
-                    lines={[
-                      { dataKey: "shoulder_pan_action", color: "#ef4444", name: "shoulder_pan.pos" },
-                      { dataKey: "shoulder_lift_action", color: "#22c55e", name: "shoulder_lift.pos" },
-                    ]}
-                    currentData={currentData}
-                    yDomain={[-100, 100]}
-                  />
-
-                  <TelemetryChart
-                    title="Wrist Joints"
-                    data={telemetryData}
-                    lines={[
-                      { dataKey: "wrist_flex_action", color: "#ef4444", name: "wrist_flex.pos" },
-                      { dataKey: "wrist_roll_action", color: "#06b6d4", name: "wrist_roll.pos" },
-                    ]}
-                    currentData={currentData}
-                    yDomain={[-50, 135]}
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="arm2" className="mt-4">
-                <div className="h-48 bg-layer-2 rounded-lg flex items-center justify-center border border-border">
-                  <div className="text-center space-y-2">
-                    <Activity className="h-6 w-6 text-muted-foreground mx-auto" />
-                    <p className="text-muted-foreground font-sans">Arm 2 Telemetry</p>
-                    <p className="text-sm text-muted-foreground font-sans">Multi-arm data visualization</p>
+          <CardContent>
+            <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+              {/* Video elements for each camera (hidden except selected) */}
+              {cameraStreams.map((stream) => (
+                <video
+                  key={stream.id}
+                  ref={(el) => {
+                    if (el) videoRefs.current[stream.id] = el
+                  }}
+                  className={`w-full h-full object-contain ${stream.id === selectedCamera ? 'block' : 'hidden'}`}
+                  poster="/api/placeholder/640/480"
+                  controls={false}
+                  muted
+                >
+                  {stream.url && <source src={stream.url} type="video/mp4" />}
+                  <div className="flex items-center justify-center h-full text-white">
+                    Video not available
                   </div>
-                </div>
-              </TabsContent>
+                </video>
+              ))}
+              
+              {/* Video overlay with frame info */}
+              <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-1 rounded text-sm font-mono">
+                Frame: {timestampUtils.formatFrameCount(currentFrame, dataset.frameCount)}
+              </div>
+              <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded text-sm font-mono">
+                Time: {timestampUtils.formatTimestamp(currentTime)}
+              </div>
+            </div>
 
-              <TabsContent value="gripper" className="mt-4">
-                <TelemetryChart
-                  title="Gripper Position"
-                  data={telemetryData}
-                  lines={[{ dataKey: "gripper_action", color: "#ef4444", name: "gripper.pos" }]}
-                  currentData={currentData}
-                  yDomain={[0, 100]}
+            {/* Timeline and Controls */}
+            <div className="mt-4 space-y-4">
+              {/* Timeline Slider */}
+              <div className="space-y-2">
+                <Slider
+                  value={[currentFrame]}
+                  onValueChange={handleTimelineChange}
+                  max={dataset.frameCount - 1}
+                  step={1}
+                  className="w-full"
                 />
-              </TabsContent>
-            </Tabs>
+                {/* Sync points display */}
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>0:00</span>
+                  {syncPoints.slice(1, -1).map((point, idx) => (
+                    <span key={idx}>{point.description}</span>
+                  ))}
+                  <span>{timestampUtils.formatTimestamp(totalDuration)}</span>
+                </div>
+              </div>
+
+              {/* Playback Controls */}
+              <div className="flex items-center justify-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleReset}>
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={handlePrevFrame}>
+                  <SkipBack className="h-4 w-4" />
+                </Button>
+                <Button onClick={handlePlayPause}>
+                  {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleNextFrame}>
+                  <SkipForward className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      </motion.div>
-    </motion.div>
+
+        {/* Robot Telemetry */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Robot State
+            </CardTitle>
+            <CardDescription>
+              Real-time telemetry data at frame {currentFrame}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Joint Positions */}
+              {currentTelemetry.jointPositions && (
+                <div>
+                  <h4 className="font-medium text-sm mb-2">Joint Positions</h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    {currentTelemetry.jointPositions.slice(0, 6).map((pos, idx) => (
+                      <div key={idx} className="bg-muted rounded p-2 text-center">
+                        <div className="text-xs text-muted-foreground">J{idx + 1}</div>
+                        <div className="font-mono text-sm">{pos.toFixed(3)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* End Effector Position */}
+              {currentTelemetry.endEffectorPosition && (
+                <div>
+                  <h4 className="font-medium text-sm mb-2">End Effector</h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['X', 'Y', 'Z'].map((axis, idx) => (
+                      <div key={axis} className="bg-muted rounded p-2 text-center">
+                        <div className="text-xs text-muted-foreground">{axis}</div>
+                        <div className="font-mono text-sm">
+                          {currentTelemetry.endEffectorPosition?.[idx]?.toFixed(3) || '0.000'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Gripper State */}
+              {currentTelemetry.gripperState !== undefined && (
+                <div>
+                  <h4 className="font-medium text-sm mb-2">Gripper</h4>
+                  <div className="bg-muted rounded p-3 text-center">
+                    <div className="text-2xl font-mono">
+                      {currentTelemetry.gripperState > 0.5 ? '🤏' : '✋'}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {(currentTelemetry.gripperState * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Episode Info */}
+              {currentEpisode && (
+                <div className="pt-4 border-t">
+                  <h4 className="font-medium text-sm mb-2">Episode Info</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span>Duration:</span>
+                      <span>{formatDuration(currentEpisode.duration || 0)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Status:</span>
+                      <Badge variant={currentEpisode.status === "completed" ? "default" : "secondary"}>
+                        {currentEpisode.status}
+                      </Badge>
+                    </div>
+                    {currentEpisode.tasks && currentEpisode.tasks.length > 0 && (
+                      <div>
+                        <span className="text-muted-foreground">Tasks:</span>
+                        <div className="mt-1">
+                          {currentEpisode.tasks.map((task, idx) => (
+                            <Badge key={idx} variant="outline" className="mr-1 mb-1">
+                              {task}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Dataset Statistics */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Dataset Statistics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold">{dataset.episodeCount || episodes?.length || 0}</div>
+              <div className="text-sm text-muted-foreground">Episodes</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{dataset.frameCount.toLocaleString()}</div>
+              <div className="text-sm text-muted-foreground">Frames</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{formatDuration(totalDuration)}</div>
+              <div className="text-sm text-muted-foreground">Duration</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{formatFileSize(dataset.fileSize)}</div>
+              <div className="text-sm text-muted-foreground">Size</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{fps} FPS</div>
+              <div className="text-sm text-muted-foreground">Frame Rate</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
