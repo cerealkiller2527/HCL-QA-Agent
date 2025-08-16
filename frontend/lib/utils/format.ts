@@ -1,42 +1,120 @@
+/**
+ * Shared formatting utilities
+ * Eliminates code duplication across components
+ */
+
+/**
+ * Format file size from bytes to human readable string
+ * @param bytes - File size in bytes
+ * @returns Formatted string (e.g., "2.4 GB", "156 MB")
+ */
 export function formatFileSize(bytes: number): string {
-  const units = ["B", "KB", "MB", "GB", "TB"]
-  let size = bytes
-  let unitIndex = 0
-
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024
-    unitIndex++
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  
+  if (bytes === 0 || !bytes) {
+    return "Size unavailable";
   }
-
-  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`
+  
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const formattedSize = Math.round((bytes / Math.pow(1024, i)) * 100) / 100;
+  
+  return `${formattedSize} ${sizes[i]}`;
 }
 
+/**
+ * Format duration from seconds to human readable string
+ * @param seconds - Duration in seconds
+ * @returns Formatted string (e.g., "1:23:45", "23:45", "0:05")
+ */
 export function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
-
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  return `${hours}h ${minutes}m`
+  if (seconds < 0) return "0:00";
+  
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  }
+  
+  return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
 
+/**
+ * Format time for recording displays (includes milliseconds)
+ * @param seconds - Time in seconds
+ * @returns Formatted string (e.g., "1:23:45.678")
+ */
+export function formatTime(seconds: number): string {
+  if (seconds < 0) return "0:00.000";
+  
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  const milliseconds = Math.floor((seconds % 1) * 1000);
+  
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}.${milliseconds.toString().padStart(3, "0")}`;
+  }
+  
+  return `${minutes}:${secs.toString().padStart(2, "0")}.${milliseconds.toString().padStart(3, "0")}`;
+}
+
+/**
+ * Format date to readable string
+ * @param date - Date string or Date object
+ * @returns Formatted date string
+ */
+export function formatDate(date: string | Date): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  if (isNaN(dateObj.getTime())) {
+    return 'Invalid date';
+  }
+  
+  return dateObj.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+/**
+ * Format date with time to readable string
+ * @param date - Date string or Date object
+ * @returns Formatted date and time string
+ */
+export function formatDateTime(date: string | Date): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  if (isNaN(dateObj.getTime())) {
+    return 'Invalid date';
+  }
+  
+  return dateObj.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * Format number with commas as thousands separators
+ * @param num - Number to format
+ * @returns Formatted number string (e.g., "1,234,567")
+ */
 export function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-  return num.toString()
+  return num.toLocaleString('en-US');
 }
 
-export function formatRelativeTime(date: Date): string {
-  const now = new Date()
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-
-  if (diffInSeconds < 60) return `${diffInSeconds} seconds ago`
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`
-
-  const diffInDays = Math.floor(diffInSeconds / 86400)
-  if (diffInDays < 30) return `${diffInDays} days ago`
-  if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`
-
-  return `${Math.floor(diffInDays / 365)} years ago`
+/**
+ * Format percentage with optional decimal places
+ * @param value - Number between 0-100
+ * @param decimals - Number of decimal places (default: 1)
+ * @returns Formatted percentage string (e.g., "85.5%")
+ */
+export function formatPercentage(value: number, decimals: number = 1): string {
+  return `${value.toFixed(decimals)}%`;
 }

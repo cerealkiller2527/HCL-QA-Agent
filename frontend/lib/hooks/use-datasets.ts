@@ -2,7 +2,7 @@
 
 import { useData } from "./use-data"
 import datasetsApi from "@/lib/api/datasets.api"
-import type { Dataset } from "@/lib/api/schemas/dataset.schema"
+import type { Dataset, Episode, EpisodeData } from "@/lib/api/schemas/validation"
 
 export function useDatasets(filters?: { search?: string; status?: string; robotType?: string }) {
   return useData<Dataset[]>({
@@ -48,4 +48,36 @@ export function useDataset(id: string) {
     fetcher: () => datasetsApi.getById(id),
     dependencies: [id],
   })
+}
+
+export function useDatasetEpisodes(datasetId: string) {
+  return useData<Episode[]>({
+    fetcher: () => datasetId ? datasetsApi.getEpisodes(datasetId) : Promise.resolve([]),
+    dependencies: [datasetId],
+  })
+}
+
+export function useEpisodeData(datasetId: string, episodeId: number | null) {
+  return useData<EpisodeData | null>({
+    fetcher: () => 
+      datasetId && episodeId !== null 
+        ? datasetsApi.getEpisodeData(datasetId, episodeId)
+        : Promise.resolve(null),
+    dependencies: [datasetId, episodeId],
+  })
+}
+
+export function useApiHealth() {
+  return useData<{ status: string; timestamp: string }>({
+    fetcher: () => datasetsApi.checkHealth(),
+    dependencies: [],
+  })
+}
+
+export function useDatasetOperations() {
+  return {
+    delete: datasetsApi.delete.bind(datasetsApi),
+    deleteMultiple: datasetsApi.deleteMultiple.bind(datasetsApi),
+    getSize: datasetsApi.getById.bind(datasetsApi), // Get dataset details including size
+  }
 }

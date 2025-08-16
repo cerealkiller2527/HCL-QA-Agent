@@ -26,12 +26,8 @@ const priorityConfig = {
   critical: { color: "bg-destructive text-destructive-foreground" },
 }
 
-function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  if (hours > 0) return `${hours}h ${minutes}m`
-  return `${minutes}m`
-}
+// Import shared formatting utilities
+import { formatDuration } from "@/lib/utils/format"
 
 function getElapsedTime(startTime: Date): string {
   const now = new Date()

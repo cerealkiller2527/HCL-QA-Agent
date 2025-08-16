@@ -4,12 +4,11 @@
  */
 
 import { mockRobots } from "@/lib/data/mock-datasets"
-import type { Robot } from "@/lib/types/dataset"
 import datasetsApi from "@/lib/api/datasets.api"
-import type { Dataset as ApiDataset } from "@/lib/api/schemas/dataset.schema"
+import type { Dataset as ApiDataset, DatasetWithMetrics, Robot } from "@/lib/api/schemas/validation"
 
 // Type adapter to convert API response to frontend Dataset type
-function adaptApiDataset(apiDataset: ApiDataset): any {
+function adaptApiDataset(apiDataset: ApiDataset): DatasetWithMetrics {
   return {
     ...apiDataset,
     // Convert createdAt string to Date object if needed by components
