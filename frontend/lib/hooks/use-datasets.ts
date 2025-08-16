@@ -2,7 +2,7 @@
 
 import { useData } from "./use-data"
 import datasetsApi from "@/lib/api/datasets.api"
-import type { Dataset } from "@/lib/api/schemas/dataset.schema"
+import type { Dataset, Episode, EpisodeData } from "@/lib/api/schemas/validation"
 
 export function useDatasets(filters?: { search?: string; status?: string; robotType?: string }) {
   return useData<Dataset[]>({

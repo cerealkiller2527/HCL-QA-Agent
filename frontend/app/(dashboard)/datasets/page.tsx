@@ -58,13 +58,8 @@ import { ANIMATION } from "@/lib/constants"
 import { createStaggerAnimation } from "@/lib/utils/animations"
 import { cn } from "@/lib/utils"
 
-// Helper function
-function formatFileSize(bytes: number): string {
-  const sizes = ["B", "KB", "MB", "GB", "TB"]
-  if (bytes === 0 || !bytes) return "Size unavailable"
-  const i = Math.floor(Math.log(bytes) / Math.log(1024))
-  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i]
-}
+// Import shared utilities
+import { formatFileSize } from "@/lib/utils/format"
 
 interface Collection {
   id: string
@@ -433,8 +428,8 @@ export default function DatasetsPage() {
         // Import the API client
         const { datasetsApi } = await import('@/lib/api/datasets.api')
         
-        // Delete from HuggingFace
-        await datasetsApi.deleteDataset(datasetToDelete)
+        // Delete from HuggingFace using validated API
+        await datasetsApi.delete(datasetToDelete)
         
         // Remove from collections
         setCollections((prev) =>
@@ -444,13 +439,18 @@ export default function DatasetsPage() {
           }))
         )
         
-        // Refresh the datasets list
+        // Refresh the datasets list to reflect changes
         refetch()
         
+        // Show success message to user
         console.log(`Successfully deleted dataset: ${datasetToDelete}`)
+        // Could add a toast notification here in the future
+        
       } catch (error) {
         console.error(`Failed to delete dataset: ${error}`)
-        alert(`Failed to delete dataset. You may not have permission to delete this dataset.`)
+        // Show user-friendly error message
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        alert(`Failed to delete dataset: ${errorMessage}`)
       }
     }
     setDatasetToDelete(null)
@@ -462,38 +462,40 @@ export default function DatasetsPage() {
       // Import the API client
       const { datasetsApi } = await import('@/lib/api/datasets.api')
       
-      // Delete all selected datasets from HuggingFace
-      const deletePromises = Array.from(selectedDatasets).map(id => 
-        datasetsApi.deleteDataset(id).catch(err => {
-          console.error(`Failed to delete ${id}:`, err)
-          return false
-        })
-      )
+      // Convert Set to Array for batch deletion
+      const datasetIds = Array.from(selectedDatasets);
       
-      const results = await Promise.all(deletePromises)
-      const successCount = results.filter(r => r === true).length
+      // Use efficient batch delete method with detailed error reporting
+      const results = await datasetsApi.deleteMultiple(datasetIds)
       
-      if (successCount > 0) {
-        // Remove from collections
+      if (results.success.length > 0) {
+        // Remove successfully deleted datasets from collections
         setCollections((prev) =>
           prev.map((collection) => ({
             ...collection,
-            datasetIds: collection.datasetIds.filter((id) => !selectedDatasets.has(id)),
+            datasetIds: collection.datasetIds.filter((id) => !results.success.includes(id)),
           }))
         )
         
-        // Refresh the datasets list
+        // Refresh the datasets list to reflect changes
         refetch()
         
-        console.log(`Successfully deleted ${successCount} datasets`)
+        console.log(`Successfully deleted ${results.success.length} datasets:`, results.success)
       }
       
-      if (successCount < selectedDatasets.size) {
-        alert(`Only ${successCount} out of ${selectedDatasets.size} datasets were deleted. You may not have permission to delete some datasets.`)
+      // Show detailed results to user
+      if (results.failed.length > 0) {
+        const failedList = results.failed.map(f => `${f.id}: ${f.error}`).join('\n');
+        alert(`${results.success.length} datasets deleted successfully.\n\nFailed to delete ${results.failed.length} datasets:\n${failedList}`);
+      } else if (results.success.length > 0) {
+        alert(`Successfully deleted all ${results.success.length} selected datasets.`);
+      } else {
+        alert('No datasets were deleted. Please check permissions and try again.');
       }
     } catch (error) {
       console.error(`Failed to delete datasets:`, error)
-      alert(`Failed to delete datasets. Please try again.`)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to delete datasets: ${errorMessage}`)
     }
     
     clearSelection()

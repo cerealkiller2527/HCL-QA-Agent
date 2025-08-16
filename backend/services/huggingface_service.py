@@ -13,8 +13,7 @@ import pandas as pd
 import time
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import config
+from ..config import config
 
 logger = logging.getLogger(__name__)
 
@@ -115,21 +114,28 @@ class HuggingFaceService:
     def _transform_dataset_to_response(self, dataset, meta_info: Optional[Dict] = None, 
                                       actual_size: Optional[int] = None) -> Dict[str, Any]:
         """Transform HuggingFace dataset to API response format"""
+        # Build base dataset information
+        base_data = self._build_base_dataset_data(dataset, actual_size)
+        
+        # Add metadata information
+        metadata = self._extract_dataset_metadata(dataset)
+        base_data.update(metadata)
+        
+        # Apply LeRobot-specific metadata if available
+        if meta_info:
+            lerobot_data = self._build_lerobot_metadata(meta_info)
+            base_data.update(lerobot_data)
+        
+        return base_data
+    
+    def _build_base_dataset_data(self, dataset, actual_size: Optional[int]) -> Dict[str, Any]:
+        """Build base dataset data from HuggingFace dataset object"""
         # Convert datetime to ISO string format
         created_at = dataset.lastModified if dataset.lastModified else datetime.now()
         if isinstance(created_at, datetime):
             created_at = created_at.isoformat()
         
-        # Extract metadata from tags
-        tag_metadata = self._extract_metadata_from_tags(dataset)
-        
-        # Extract metadata from card data
-        card_metadata = self._extract_card_metadata(dataset)
-        
-        # Combine languages from both sources
-        languages = tag_metadata["languages"] or card_metadata.get("languages")
-        
-        transformed = {
+        return {
             "id": dataset.id,
             "name": dataset.id.split("/")[-1],
             "description": getattr(dataset, 'description', '') or '',
@@ -139,8 +145,23 @@ class HuggingFaceService:
             "author": dataset.author,
             "likes": getattr(dataset, 'likes', 0),
             "downloads": getattr(dataset, 'downloads', 0),
-            
-            # Additional HuggingFace metadata
+            "fileSize": actual_size if actual_size else 0,
+            # Default values
+            "status": "ready",
+            "robotType": "so101",
+            "frameCount": 0,
+            "duration": 0,
+        }
+    
+    def _extract_dataset_metadata(self, dataset) -> Dict[str, Any]:
+        """Extract and combine metadata from tags and card data"""
+        tag_metadata = self._extract_metadata_from_tags(dataset)
+        card_metadata = self._extract_card_metadata(dataset)
+        
+        # Combine languages from both sources
+        languages = tag_metadata["languages"] or card_metadata.get("languages")
+        
+        return {
             "languages": languages if languages else None,
             "taskCategories": tag_metadata["task_categories"] if tag_metadata["task_categories"] else None,
             "taskIds": tag_metadata["task_ids"] if tag_metadata["task_ids"] else None,
@@ -151,90 +172,107 @@ class HuggingFaceService:
             "prettyName": card_metadata.get("pretty_name"),
             "license": tag_metadata["license_info"],
             "citation": card_metadata.get("citation"),
-            
-            # Default values - will be overridden if metadata exists
-            "status": "ready",
-            "robotType": "so101",
-            "frameCount": 0,
-            "duration": 0,
-            "fileSize": actual_size if actual_size else 0,
+        }
+    
+    def _build_lerobot_metadata(self, meta_info: Dict) -> Dict[str, Any]:
+        """Build LeRobot-specific metadata"""
+        lerobot_data = {
+            "frameCount": meta_info.get("total_frames", 0),
+            "duration": meta_info.get("total_frames", 0) / meta_info.get("fps", config.DEFAULT_FPS),
+            "episodeCount": meta_info.get("total_episodes", 0),
+            "fps": meta_info.get("fps", config.DEFAULT_FPS),
         }
         
-        # If LeRobot metadata exists, use it
-        if meta_info:
-            transformed.update({
-                "frameCount": meta_info.get("total_frames", 0),
-                "duration": meta_info.get("total_frames", 0) / meta_info.get("fps", config.DEFAULT_FPS),
-                "episodeCount": meta_info.get("total_episodes", 0),
-                "fps": meta_info.get("fps", config.DEFAULT_FPS),
-            })
-            
-            # Try to determine robot type from metadata
-            if "robotType" in meta_info:
-                transformed["robotType"] = meta_info["robotType"]
+        # Try to determine robot type from metadata
+        if "robotType" in meta_info:
+            lerobot_data["robotType"] = meta_info["robotType"]
         
-        return transformed
+        return lerobot_data
     
     def get_user_datasets(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """Get all datasets accessible to the authenticated user with caching"""
         cache_key = f"datasets_{limit}"
         
         # Check cache first
-        if cache_key in self._cache:
-            cached_data, cache_time = self._cache[cache_key]
-            if datetime.now() - cache_time < self._cache_ttl:
-                logger.debug("Using cached datasets")
-                return cached_data
+        cached_result = self._get_cached_datasets(cache_key)
+        if cached_result is not None:
+            return cached_result
         
         try:
-            user_info = self.get_user_info()
-            username = user_info["username"]
-            
-            # Get user's own datasets
-            user_datasets = list(self.api.list_datasets(author=username))
-            
-            # Also get datasets from user's organizations
-            for org in user_info.get("organizations", []):
-                org_datasets = list(self.api.list_datasets(author=org["name"]))
-                user_datasets.extend(org_datasets)
-            
-            # Remove duplicates based on id
-            seen = set()
-            unique_datasets = []
-            for dataset in user_datasets:
-                if dataset.id not in seen:
-                    seen.add(dataset.id)
-                    unique_datasets.append(dataset)
+            # Fetch and process datasets
+            datasets = self._fetch_user_and_org_datasets()
+            unique_datasets = self._remove_duplicate_datasets(datasets)
             
             # Apply limit if specified
             if limit:
                 unique_datasets = unique_datasets[:limit]
             
-            # Transform to frontend-friendly format
-            transformed_datasets = []
-            for dataset in unique_datasets:
-                # Try to get additional metadata
-                meta_info = self._get_lerobot_metadata(dataset.id)
-                
-                # Try to get actual size from datasets-server
-                actual_size = self.get_dataset_size(dataset.id)
-                
-                # Transform dataset using helper method
-                transformed = self._transform_dataset_to_response(dataset, meta_info, actual_size)
-                transformed_datasets.append(transformed)
+            # Transform datasets to API format
+            transformed_datasets = self._transform_datasets_batch(unique_datasets)
             
-            # Cache the result
+            # Cache and return results
             self._cache[cache_key] = (transformed_datasets, datetime.now())
             return transformed_datasets
             
         except Exception as e:
             logger.error(f"Error getting user datasets: {e}")
-            # Return cached data if available, even if expired
-            if cache_key in self._cache:
-                cached_data, _ = self._cache[cache_key]
+            return self._get_fallback_datasets(cache_key)
+    
+    def _get_cached_datasets(self, cache_key: str) -> Optional[List[Dict[str, Any]]]:
+        """Check cache for existing datasets"""
+        if cache_key in self._cache:
+            cached_data, cache_time = self._cache[cache_key]
+            if datetime.now() - cache_time < self._cache_ttl:
+                logger.debug("Using cached datasets")
                 return cached_data
-            # Return empty list instead of raising to prevent frontend crashes
-            return []
+        return None
+    
+    def _fetch_user_and_org_datasets(self) -> List:
+        """Fetch datasets from user and their organizations"""
+        user_info = self.get_user_info()
+        username = user_info["username"]
+        
+        # Get user's own datasets
+        user_datasets = list(self.api.list_datasets(author=username))
+        
+        # Also get datasets from user's organizations
+        for org in user_info.get("organizations", []):
+            org_datasets = list(self.api.list_datasets(author=org["name"]))
+            user_datasets.extend(org_datasets)
+        
+        return user_datasets
+    
+    def _remove_duplicate_datasets(self, datasets: List) -> List:
+        """Remove duplicate datasets based on ID"""
+        seen = set()
+        unique_datasets = []
+        for dataset in datasets:
+            if dataset.id not in seen:
+                seen.add(dataset.id)
+                unique_datasets.append(dataset)
+        return unique_datasets
+    
+    def _transform_datasets_batch(self, datasets: List) -> List[Dict[str, Any]]:
+        """Transform multiple datasets to API format"""
+        transformed_datasets = []
+        for dataset in datasets:
+            # Try to get additional metadata
+            meta_info = self._get_lerobot_metadata(dataset.id)
+            actual_size = self.get_dataset_size(dataset.id)
+            
+            # Transform dataset using helper method
+            transformed = self._transform_dataset_to_response(dataset, meta_info, actual_size)
+            transformed_datasets.append(transformed)
+        return transformed_datasets
+    
+    def _get_fallback_datasets(self, cache_key: str) -> List[Dict[str, Any]]:
+        """Get fallback datasets when fetch fails"""
+        # Return cached data if available, even if expired
+        if cache_key in self._cache:
+            cached_data, _ = self._cache[cache_key]
+            return cached_data
+        # Return empty list instead of raising to prevent frontend crashes
+        return []
     
     def _get_lerobot_metadata(self, repo_id: str) -> Optional[Dict[str, Any]]:
         """Fetch LeRobot-specific metadata from meta/info.json"""

@@ -24,7 +24,7 @@ import {
 import { cn } from "@/lib/utils"
 import { formatDate } from "@/lib/utils/date"
 import { ANIMATION } from "@/lib/constants"
-import { Dataset } from "@/lib/api/schemas/dataset.schema"
+import { Dataset } from "@/lib/api/schemas/validation"
 
 const statusConfig = {
   ready: { icon: CheckCircle, color: "text-green-500", bg: "bg-green-500/10", label: "Ready" },
@@ -41,19 +41,8 @@ const robotTypeConfig = {
   custom: { label: "Custom", color: "bg-muted text-muted-foreground" },
 }
 
-function formatFileSize(bytes: number): string {
-  const sizes = ["B", "KB", "MB", "GB", "TB"]
-  if (bytes === 0 || !bytes) return "Size unavailable"
-  const i = Math.floor(Math.log(bytes) / Math.log(1024))
-  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i]
-}
-
-function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  if (hours > 0) return `${hours}h ${minutes}m`
-  return `${minutes}m`
-}
+// Import shared formatting utilities
+import { formatFileSize, formatDuration } from "@/lib/utils/format"
 
 function parseDate(dateInput: string | Date): Date {
   return typeof dateInput === 'string' ? new Date(dateInput) : dateInput

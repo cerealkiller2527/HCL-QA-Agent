@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,59 +11,20 @@ import { CameraViewer } from "@/components/datasets/viewer/camera-viewer"
 import { EpisodeSelector } from "@/components/datasets/viewer/episode-selector"
 import { DatasetStats } from "@/components/datasets/viewer/dataset-stats"
 import { TelemetryChart } from "@/components/datasets/viewer/telemetry-chart"
-import { Play, Pause, SkipBack, SkipForward, Download, Settings, ArrowLeft, BarChart3, Activity } from "lucide-react"
-import { mockDatasets } from "@/lib/data/mock-datasets"
+import { Play, Pause, SkipBack, SkipForward, Download, Settings, ArrowLeft, BarChart3, Activity, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ANIMATION } from "@/lib/constants"
 import { createStaggerAnimation } from "@/lib/utils/animations"
+// Import shared formatting utilities
+import { formatFileSize, formatDuration } from "@/lib/utils/format"
+// Import real API hooks
+import { useDataset, useDatasetEpisodes, useEpisodeData } from "@/lib/hooks/use-datasets"
 import Link from "next/link"
 
-// Mock data
-const mockEpisodes = [
-  { id: 1, name: "Episode 1", duration: 45, status: "completed" },
-  { id: 2, name: "Episode 2", duration: 52, status: "completed" },
-  { id: 3, name: "Episode 3", duration: 38, status: "completed" },
-  { id: 4, name: "Episode 4", duration: 41, status: "processing" },
-  { id: 5, name: "Episode 5", duration: 47, status: "failed" },
-]
+// Removed mock data - now using real API data
 
-const mockCameraStreams = [
-  { id: "main", name: "Main Camera", resolution: "1920x1080", fps: 30, active: true },
-  { id: "wrist", name: "Wrist Camera", resolution: "640x480", fps: 15, active: true },
-  { id: "overhead", name: "Overhead View", resolution: "1280x720", fps: 24, active: true },
-  { id: "side", name: "Side Camera", resolution: "640x480", fps: 15, active: false },
-]
-
-const mockTelemetryData = Array.from({ length: 78 }, (_, i) => ({
-  time: i,
-  shoulder_pan_action: Math.sin(i * 0.1) * 50 + Math.random() * 10,
-  shoulder_pan_obs: Math.sin(i * 0.1) * 45 + Math.random() * 8,
-  shoulder_lift_action: Math.cos(i * 0.08) * 30 + Math.random() * 5,
-  shoulder_lift_obs: Math.cos(i * 0.08) * 25 + Math.random() * 4,
-  elbow_flex_action: Math.sin(i * 0.12) * 40 - 20 + Math.random() * 8,
-  elbow_flex_obs: Math.sin(i * 0.12) * 35 - 18 + Math.random() * 6,
-  wrist_flex_action: Math.cos(i * 0.15) * 60 + 20 + Math.random() * 12,
-  wrist_flex_obs: Math.cos(i * 0.15) * 55 + 18 + Math.random() * 10,
-  wrist_roll_action: Math.sin(i * 0.18) * 25 - 10 + Math.random() * 5,
-  wrist_roll_obs: Math.sin(i * 0.18) * 22 - 8 + Math.random() * 4,
-  gripper_action: i < 20 ? 0 : i < 40 ? 75 : i < 60 ? 50 : 75,
-  gripper_obs: i < 20 ? 2 : i < 40 ? 72 : i < 60 ? 48 : 73,
-}))
-
-function formatFileSize(bytes: number): string {
-  const sizes = ["B", "KB", "MB", "GB", "TB"]
-  if (bytes === 0) return "0 B"
-  const i = Math.floor(Math.log(bytes) / Math.log(1024))
-  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i]
-}
-
-function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const secs = seconds % 60
-  if (hours > 0) return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
-  return `${minutes}:${secs.toString().padStart(2, "0")}`
-}
+// Import shared formatting utilities
+import { formatFileSize, formatDuration } from "@/lib/utils/format"
 
 interface DatasetViewerProps {
   datasetId: string
@@ -73,12 +34,37 @@ export function DatasetViewer({ datasetId }: DatasetViewerProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentFrame, setCurrentFrame] = useState([0])
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
-  const [selectedEpisode, setSelectedEpisode] = useState(1)
+  const [selectedEpisode, setSelectedEpisode] = useState(0)
 
-  const dataset = mockDatasets.find((d) => d.id === datasetId)
+  // Fetch real dataset data from API
+  const { data: dataset, loading: datasetLoading, error: datasetError } = useDataset(datasetId)
+  const { data: episodes, loading: episodesLoading } = useDatasetEpisodes(datasetId)
+  const { data: episodeData, loading: episodeDataLoading } = useEpisodeData(datasetId, selectedEpisode)
+
   const containerVariants = createStaggerAnimation()
 
-  if (!dataset) {
+  // Update selected episode when episodes are loaded
+  useEffect(() => {
+    if (episodes && episodes.length > 0 && selectedEpisode === 0) {
+      setSelectedEpisode(episodes[0].id)
+    }
+  }, [episodes, selectedEpisode])
+
+  // Show loading state
+  if (datasetLoading) {
+    return (
+      <div className="p-8">
+        <div className="text-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <h2 className="font-sans text-2xl font-bold mb-2">Loading dataset...</h2>
+          <p className="text-muted-foreground">Please wait while we fetch the dataset information.</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (datasetError || !dataset) {
     return (
       <div className="p-8">
         <div className="text-center py-16">
@@ -93,8 +79,23 @@ export function DatasetViewer({ datasetId }: DatasetViewerProps) {
   }
 
   const currentTime = (currentFrame[0] / dataset.frameCount) * dataset.duration
-  const currentEpisode = mockEpisodes.find((ep) => ep.id === selectedEpisode)
-  const currentData = mockTelemetryData[Math.min(currentFrame[0], mockTelemetryData.length - 1)]
+  const currentEpisode = episodes?.find((ep) => ep.id === selectedEpisode)
+  
+  // Use real telemetry data if available, fallback to empty array
+  const telemetryData = episodeData?.telemetryData || []
+  const currentData = telemetryData[Math.min(currentFrame[0], telemetryData.length - 1)] || {}
+  
+  // Use real camera data if available, fallback to mock for demo
+  const cameraStreams = episodeData?.videoUrls?.map(url => ({
+    id: url.camera,
+    name: url.camera,
+    resolution: url.resolution || "Unknown",
+    fps: url.fps || 30,
+    active: true
+  })) || [
+    { id: "main", name: "Main Camera", resolution: "1920x1080", fps: 30, active: true },
+    { id: "wrist", name: "Wrist Camera", resolution: "640x480", fps: 15, active: true },
+  ]
 
   return (
     <motion.div className="p-6 space-y-4 min-h-screen" variants={containerVariants} initial="initial" animate="animate">
@@ -117,7 +118,7 @@ export function DatasetViewer({ datasetId }: DatasetViewerProps) {
               onValueChange={(value) => setSelectedEpisode(Number(value))}
               placeholder="Select"
               className="w-24 h-8"
-              options={mockEpisodes.map((ep) => ({
+              options={(episodes || []).map((ep) => ({
                 value: ep.id.toString(),
                 label: `${ep.id} (${formatDuration(ep.duration)})`,
               }))}
@@ -139,7 +140,7 @@ export function DatasetViewer({ datasetId }: DatasetViewerProps) {
       {/* Episode Selection */}
       <motion.div variants={ANIMATION.variants.staggerItem}>
         <EpisodeSelector
-          episodes={mockEpisodes}
+          episodes={episodes || []}
           selectedEpisode={selectedEpisode}
           onEpisodeSelect={setSelectedEpisode}
           formatDuration={formatDuration}
@@ -149,7 +150,7 @@ export function DatasetViewer({ datasetId }: DatasetViewerProps) {
       {/* Main Content */}
       <div className="grid grid-cols-1 xl:grid-cols-6 gap-4">
         <motion.div className="xl:col-span-5 space-y-4" variants={ANIMATION.variants.staggerItem}>
-          <CameraViewer streams={mockCameraStreams} currentFrame={currentFrame[0]} totalFrames={dataset.frameCount} />
+          <CameraViewer streams={cameraStreams} currentFrame={currentFrame[0]} totalFrames={dataset.frameCount} />
 
           {/* Playback Controls */}
           <Card className="layer-card">
@@ -217,15 +218,15 @@ export function DatasetViewer({ datasetId }: DatasetViewerProps) {
 
         {/* Sidebar */}
         <motion.div variants={ANIMATION.variants.staggerItem}>
-          <DatasetStats
-            duration={currentEpisode?.duration || dataset.duration}
-            activeCameras={mockCameraStreams.filter((c) => c.active).length}
-            frameCount={dataset.frameCount}
-            size={dataset.size}
-            tags={dataset.tags}
-            formatDuration={formatDuration}
-            formatFileSize={formatFileSize}
-          />
+                      <DatasetStats
+              duration={currentEpisode?.duration || dataset.duration}
+              activeCameras={cameraStreams.filter((c) => c.active).length}
+              frameCount={dataset.frameCount}
+              size={formatFileSize(dataset.fileSize)}
+              tags={dataset.tags}
+              formatDuration={formatDuration}
+              formatFileSize={formatFileSize}
+            />
         </motion.div>
       </div>
 
@@ -250,7 +251,7 @@ export function DatasetViewer({ datasetId }: DatasetViewerProps) {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <TelemetryChart
                     title="Shoulder Joints"
-                    data={mockTelemetryData}
+                    data={telemetryData}
                     lines={[
                       { dataKey: "shoulder_pan_action", color: "#ef4444", name: "shoulder_pan.pos" },
                       { dataKey: "shoulder_lift_action", color: "#22c55e", name: "shoulder_lift.pos" },
@@ -261,7 +262,7 @@ export function DatasetViewer({ datasetId }: DatasetViewerProps) {
 
                   <TelemetryChart
                     title="Wrist Joints"
-                    data={mockTelemetryData}
+                    data={telemetryData}
                     lines={[
                       { dataKey: "wrist_flex_action", color: "#ef4444", name: "wrist_flex.pos" },
                       { dataKey: "wrist_roll_action", color: "#06b6d4", name: "wrist_roll.pos" },
@@ -285,7 +286,7 @@ export function DatasetViewer({ datasetId }: DatasetViewerProps) {
               <TabsContent value="gripper" className="mt-4">
                 <TelemetryChart
                   title="Gripper Position"
-                  data={mockTelemetryData}
+                  data={telemetryData}
                   lines={[{ dataKey: "gripper_action", color: "#ef4444", name: "gripper.pos" }]}
                   currentData={currentData}
                   yDomain={[0, 100]}
