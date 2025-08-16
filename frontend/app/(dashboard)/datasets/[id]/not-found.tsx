@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { DatabaseX, Search, ArrowLeft, FolderOpen } from "lucide-react"
+import { Database, Search, ArrowLeft, FolderOpen } from "lucide-react"
 import Link from "next/link"
 
 export default function DatasetNotFound() {
@@ -13,7 +13,7 @@ export default function DatasetNotFound() {
     },
     {
       label: "Not Found",
-      icon: <DatabaseX className="h-4 w-4" />
+      icon: <Database className="h-4 w-4" />
     }
   ]
 
@@ -29,7 +29,7 @@ export default function DatasetNotFound() {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-4">
-              <DatabaseX className="h-6 w-6 text-muted-foreground" />
+              <Database className="h-6 w-6 text-muted-foreground" />
             </div>
             <CardTitle>Dataset Not Found</CardTitle>
             <CardDescription>
