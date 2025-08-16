@@ -9,12 +9,21 @@ from enum import Enum
 
 
 class RobotType(str, Enum):
-    """Robot type enumeration"""
+    """Robot type enumeration - enhanced with LeRobot types"""
     ARM = "arm"
     MOBILE = "mobile"
     HUMANOID = "humanoid"
+    SO100 = "so100"
     SO101 = "so101"
+    BIMANUAL = "bimanual"
     CUSTOM = "custom"
+    # Specific robot models from LeRobot
+    ALOHA = "aloha"
+    KOCH = "koch"
+    LEKIWI = "lekiwi"
+    VIPERX = "viperx"
+    STRETCH3 = "stretch3"
+    HOPE_JR = "hope_jr"
 
 
 class DatasetStatus(str, Enum):
@@ -86,12 +95,38 @@ class DatasetResponse(BaseModel):
         }
 
 
+class FeatureInfo(BaseModel):
+    """Enhanced feature information from LeRobot"""
+    name: str = Field(..., description="Feature name (e.g., 'observation.state')")
+    dtype: str = Field(..., description="Data type (float32, video, etc.)")
+    shape: List[int] = Field(..., description="Feature dimensions")
+    names: Optional[List[str]] = Field(None, description="Named dimensions (joint names, etc.)")
+    feature_type: str = Field(..., description="Feature category (state, visual, action, etc.)")
+    
+class VideoInfo(BaseModel):
+    """Video metadata information"""
+    codec: Optional[str] = Field(None, description="Video codec (h264, etc.)")
+    fps: Optional[int] = Field(None, description="Frames per second")
+    resolution: Optional[str] = Field(None, description="Video resolution")
+    pixel_format: Optional[str] = Field(None, description="Pixel format")
+    is_depth: bool = Field(False, description="Is depth camera")
+
 class DatasetDetailResponse(DatasetResponse):
     """Extended dataset response with additional details"""
-    features: Optional[List[str]] = Field(None, description="Available data features")
+    features: Optional[Dict[str, FeatureInfo]] = Field(None, description="Complete feature definitions")
     videoKeys: Optional[List[str]] = Field(None, description="Available video streams")
     sensors: Optional[List[Dict[str, Any]]] = Field(None, description="Sensor configurations")
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+    
+    # Enhanced LeRobot fields
+    codebaseVersion: Optional[str] = Field(None, description="LeRobot version")
+    totalChunks: Optional[int] = Field(None, description="Number of data chunks")
+    chunksSize: Optional[int] = Field(None, description="Episodes per chunk")
+    dataPath: Optional[str] = Field(None, description="Data file path pattern")
+    videoPath: Optional[str] = Field(None, description="Video file path pattern")
+    splits: Optional[Dict[str, str]] = Field(None, description="Train/test splits")
+    multiRobot: bool = Field(False, description="Has multiple robots/arms")
+    videoInfo: Optional[Dict[str, VideoInfo]] = Field(None, description="Video metadata by camera")
 
 
 class EpisodeResponse(BaseModel):
