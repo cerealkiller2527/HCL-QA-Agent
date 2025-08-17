@@ -7,7 +7,7 @@ from huggingface_hub import HfApi
 import requests
 import json
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from datetime import datetime, timedelta
 import pandas as pd
 import time
