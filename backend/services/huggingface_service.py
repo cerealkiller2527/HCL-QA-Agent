@@ -298,6 +298,9 @@ class HuggingFaceService:
             
             # Add additional detail fields specific to detailed view
             if meta_info:
+                # Store full features metadata for internal use (telemetry processing)
+                details["_features_metadata"] = meta_info.get("features", {})
+                # Provide simple feature list for API response
                 details.update({
                     "features": list(meta_info.get("features", {}).keys()),
                     "videoKeys": [k for k, v in meta_info.get("features", {}).items() 
@@ -412,31 +415,57 @@ class HuggingFaceService:
         telemetry_data = []
         
         try:
+            logger.info(f"🔍 Starting telemetry fetch for {repo_id}/{episode_id}")
+            logger.info(f"🔍 Meta info keys: {list(meta_info.keys())}")
+            logger.info(f"🔍 Data path in meta: {meta_info.get('data_path', 'NOT FOUND')}")
             if "data_path" in meta_info:
                 data_path = meta_info["data_path"]
                 chunk = episode_id // meta_info.get("chunks_size", 1000)
-                parquet_path = data_path.format(
-                    episode_chunk=chunk,
-                    episode_index=episode_id
-                )
+                logger.info(f"🔍 Data path template: {data_path}")
+                logger.info(f"🔍 Episode {episode_id}, chunks_size: {meta_info.get('chunks_size', 1000)}, chunk: {chunk}")
+                # Format parquet path template (handle different LeRobot dataset formats)
+                try:
+                    parquet_path = data_path.format(
+                        episode_chunk=chunk,
+                        episode_index=episode_id
+                    )
+                except KeyError:
+                    # Some datasets use different template variables
+                    try:
+                        parquet_path = data_path.format(
+                            chunk_index=chunk,
+                            file_index=episode_id
+                        )
+                    except KeyError:
+                        # Try chunk_index with episode_index
+                        parquet_path = data_path.format(
+                            chunk_index=chunk,
+                            episode_index=episode_id
+                        )
                 parquet_url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/{parquet_path}"
+                logger.info(f"🔍 Parquet URL: {parquet_url}")
                 
                 # Selective column loading based on LeRobot approach
                 selected_columns = self._select_telemetry_columns(meta_info, features)
+                # Insert timestamp at the beginning like LeRobot does (line 271)
+                selected_columns.insert(0, "timestamp")
+                logger.info(f"🔍 Selected columns: {selected_columns}")
                 
-                # Read parquet file with pandas - only selected columns
+                # Read parquet file using requests first, then pandas from memory
+                # This avoids the header formatting issues with pandas' internal HTTP handling
+                import io
+                import numpy as np
+                response = requests.get(parquet_url, headers=self.headers, timeout=30)
+                response.raise_for_status()
+                
+                # Read parquet from memory buffer
+                parquet_buffer = io.BytesIO(response.content)
+                
                 if selected_columns:
-                    df = pd.read_parquet(
-                        parquet_url, 
-                        columns=selected_columns,
-                        storage_options={"headers": self.headers}
-                    )
+                    df = pd.read_parquet(parquet_buffer, columns=selected_columns)
                 else:
                     # Fallback to reading all columns and filtering
-                    df = pd.read_parquet(
-                        parquet_url, 
-                        storage_options={"headers": self.headers}
-                    )
+                    df = pd.read_parquet(parquet_buffer)
                     # Filter to only numeric, 1D columns for visualization
                     numeric_cols = []
                     for col in df.columns:
@@ -455,41 +484,143 @@ class HuggingFaceService:
                     step = max(1, len(df) // max_points)
                     df = df.iloc[::step]
                 
-                # Convert to frontend format
+                # Convert to frontend format following LeRobot's exact approach
+                logger.info(f"🔍 DataFrame columns: {list(df.columns)}")
+                logger.info(f"🔍 DataFrame shape: {df.shape}")
+                
+                # Following LeRobot's approach: build header with expanded column names first
+                features = meta_info.get("_features_metadata", meta_info.get("features", {}))
+                header = ["timestamp"]
+                column_mapping = {}  # Maps original column to expanded column names
+                
+                # Build header following LeRobot's method with source prefixes
+                for column_name in df.columns:
+                    if column_name == "timestamp":
+                        continue
+                        
+                    feature_info = features.get(column_name, {})
+                    shape = feature_info.get("shape", [])
+                    
+                    # Get dimension size (LeRobot approach)
+                    dim_size = shape[0] if shape else 1
+                    
+                    # Determine source prefix for clear action vs state distinction
+                    if column_name.startswith("action"):
+                        source_prefix = "action"
+                    elif column_name.startswith("observation.state"):
+                        source_prefix = "state"
+                    else:
+                        source_prefix = "other"
+                    
+                    # Extract feature names following LeRobot's logic (lines 261-266)
+                    if "names" in feature_info and feature_info["names"]:
+                        column_names = feature_info["names"]
+                        # Handle nested names structure like LeRobot does
+                        while not isinstance(column_names, list):
+                            if isinstance(column_names, dict):
+                                column_names = list(column_names.values())[0]
+                            else:
+                                break
+                        # Ensure we have the right number of names
+                        if isinstance(column_names, list):
+                            # Add source prefix to distinguish action vs state
+                            column_names = [f"{source_prefix}.{name}" for name in column_names[:dim_size]]
+                        else:
+                            column_names = [f"{source_prefix}.{column_name}_{i}" for i in range(dim_size)]
+                    else:
+                        # Default numbered naming with source prefix
+                        column_names = [f"{source_prefix}.{column_name}_{i}" for i in range(dim_size)]
+                    
+                    column_mapping[column_name] = column_names
+                    header.extend(column_names)
+                    
+                    logger.info(f"🔧 Column {column_name}: shape={shape}, names={column_names}")
+                
+                # Process data following LeRobot's np.hstack approach (lines 290-295)
+                expanded_data = []
+                
                 for _, row in df.iterrows():
-                    point = {"time": row.get("timestamp", 0)}
-                    # Add all selected telemetry fields
-                    for col in df.columns:
-                        if col != "timestamp":
-                            point[col] = row[col] if pd.notna(row[col]) else 0
-                    telemetry_data.append(point)
+                    # Start with timestamp (following LeRobot's structure)
+                    point_values = [row.get("timestamp", 0)]
+                    
+                    # Process each original column and expand it
+                    for column_name in df.columns:
+                        if column_name == "timestamp":
+                            continue
+                            
+                        value = row[column_name]
+                        column_names = column_mapping.get(column_name, [column_name])
+                        
+                        # Handle array values following LeRobot's np.vstack logic
+                        if isinstance(value, (list, tuple, np.ndarray)):
+                            # Ensure we have enough values for all expected columns
+                            value_array = np.array(value) if not isinstance(value, np.ndarray) else value
+                            for i, col_name in enumerate(column_names):
+                                if i < len(value_array):
+                                    point_values.append(float(value_array[i]) if pd.notna(value_array[i]) else 0.0)
+                                else:
+                                    point_values.append(0.0)
+                        else:
+                            # Scalar value - use for all column names (usually just one)
+                            scalar_val = float(value) if pd.notna(value) else 0.0
+                            for _ in column_names:
+                                point_values.append(scalar_val)
+                    
+                    # Create point dict with proper column names
+                    point = {}
+                    for i, col_name in enumerate(header):
+                        if i < len(point_values):
+                            if col_name == "timestamp":
+                                point["time"] = point_values[i]
+                                point["timestamp"] = point_values[i]
+                            else:
+                                point[col_name] = point_values[i]
+                        else:
+                            point[col_name] = 0.0
+                    
+                    expanded_data.append(point)
+                
+                telemetry_data = expanded_data
+                logger.info(f"🔧 Generated {len(telemetry_data)} telemetry points with columns: {header[:10]}...")  # Show first 10 columns
                     
         except Exception as e:
-            logger.debug(f"Could not fetch telemetry for {repo_id}/{episode_id}: {e}")
+            logger.error(f"Could not fetch telemetry for {repo_id}/{episode_id}: {e}")
+            logger.error(f"Exception details: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
         
         return telemetry_data
     
     def _select_telemetry_columns(self, meta_info: Dict[str, Any], 
                                   requested_features: Optional[List[str]] = None) -> List[str]:
         """Select optimal columns for telemetry based on LeRobot filtering approach"""
-        features = meta_info.get("features", {})
-        selected_columns = ["timestamp"]  # Always include timestamp
+        # Use the preserved full features metadata, not the simplified keys
+        features = meta_info.get("_features_metadata", meta_info.get("features", {}))
+        selected_columns = []
         
-        # Filter columns like LeRobot does: only 1D numeric data
+        # Follow LeRobot's exact approach: select columns with specific dtypes
         for feature_name, feature_info in features.items():
             dtype = feature_info.get("dtype")
             shape = feature_info.get("shape", [])
             
-            # Only include 1D numeric features (like LeRobot visualization)
-            if dtype in ["float32", "int32"] and len(shape) <= 1:
+            # Include float32 and int32 columns (following LeRobot's filter)
+            if dtype in ["float32", "int32"]:
+                # Exclude high-dimensional features (images, etc.) like LeRobot does
+                if len(shape) > 1:
+                    logger.debug(f"Excluding {feature_name} due to high dimensionality: {shape}")
+                    continue
+                    
                 # If specific features requested, filter to those
                 if requested_features:
                     if any(req in feature_name for req in requested_features):
                         selected_columns.append(feature_name)
                 else:
-                    # Include state and action features by default
-                    if any(category in feature_name for category in ["observation.state", "action"]):
-                        selected_columns.append(feature_name)
+                    # Include all 1D numeric features (LeRobot includes all valid ones)
+                    selected_columns.append(feature_name)
+        
+        # Remove timestamp from selected columns if present (we'll add it separately)
+        if "timestamp" in selected_columns:
+            selected_columns.remove("timestamp")
         
         return selected_columns
     
@@ -599,6 +730,51 @@ class HuggingFaceService:
             bytes_value /= 1024
         return f"{bytes_value:.1f} TB"
     
+    def _estimate_video_file_size(self, repo_id: str, video_key: str, episode_id: int, meta_info: Dict[str, Any]) -> int:
+        """Estimate video file size based on resolution, fps, and duration"""
+        try:
+            # Get video metadata
+            features = meta_info.get("features", {})
+            video_feature = features.get(video_key, {})
+            shape = video_feature.get("shape", [])
+            
+            if len(shape) < 2:
+                # No valid shape data, use minimal estimation
+                return 1_000_000  # 1MB default for unknown videos
+            
+            width = shape[1]
+            height = shape[0]
+            fps = meta_info.get("fps", 30)
+            total_frames = meta_info.get("total_frames", 0)
+            
+            # Calculate duration from available data
+            if total_frames > 0:
+                duration = total_frames / fps
+            else:
+                # Fallback to reasonable episode duration
+                duration = 30  # 30 seconds default
+            
+            # Dynamic bitrate estimation based on resolution and codec
+            pixels = width * height
+            video_info = video_feature.get("info", {})
+            codec = video_info.get("video.codec", "h264")
+            
+            # Base bitrate calculation (bits per pixel per second)
+            bits_per_pixel = 0.1 if codec == "h265" else 0.15  # H.265 is more efficient
+            estimated_bitrate_bps = int(pixels * bits_per_pixel * fps)
+            
+            # Apply reasonable bounds
+            estimated_bitrate_bps = max(500_000, min(estimated_bitrate_bps, 10_000_000))
+            
+            # Calculate file size: (bitrate in bits/sec * duration in seconds) / 8
+            estimated_size = int((estimated_bitrate_bps * duration) / 8)
+            return max(estimated_size, 100_000)  # Minimum 100KB
+            
+        except Exception as e:
+            logger.debug(f"Could not estimate file size for {video_key}: {e}")
+            # Return proportional fallback based on available data
+            return 2_000_000  # 2MB reasonable default
+    
     def get_enhanced_video_urls(self, repo_id: str, episode_id: int) -> List[Dict[str, Any]]:
         """Get enhanced video URLs with metadata following LeRobot's approach"""
         try:
@@ -634,6 +810,21 @@ class HuggingFaceService:
                         shape = video_feature.get("shape", [])
                         video_info = video_feature.get("info", {})
                         
+                        # Calculate enhanced metadata
+                        width = shape[1] if len(shape) > 1 else 640
+                        height = shape[0] if len(shape) > 0 else 480
+                        fps = meta_info.get("fps", 30)
+                        is_depth = video_info.get("video.is_depth_map", False)
+                        
+                        # Estimate file size and bitrate
+                        file_size_bytes = self._estimate_video_file_size(repo_id, video_key, episode_id, meta_info)
+                        duration_seconds = meta_info.get("total_frames", 1000) / fps
+                        bitrate_bps = (file_size_bytes * 8) / duration_seconds if duration_seconds > 0 else 0
+                        bitrate_mbps = bitrate_bps / (1024 * 1024)  # Convert to Mbps
+                        
+                        # Determine container format from video info
+                        container_format = video_info.get("video.container", "mp4")
+                        
                         enhanced_video_urls.append({
                             "camera_id": video_key,
                             "camera_name": camera_name,
@@ -641,19 +832,28 @@ class HuggingFaceService:
                             "direct_access": True,  # Indicates this is a direct HF URL
                             "metadata": {
                                 "resolution": {
-                                    "width": shape[1] if len(shape) > 1 else 640,
-                                    "height": shape[0] if len(shape) > 0 else 480,
-                                    "channels": shape[2] if len(shape) > 2 else 3
+                                    "width": width,
+                                    "height": height,
+                                    "channels": shape[2] if len(shape) > 2 else 3,
+                                    "formatted": f"{width}×{height}"
                                 },
-                                "fps": meta_info.get("fps", 30),
+                                "fps": fps,
                                 "codec": video_info.get("video.codec", "h264"),
                                 "pixel_format": video_info.get("video.pix_fmt", "yuv420p"),
-                                "is_depth": video_info.get("video.is_depth_map", False)
+                                "container_format": container_format,
+                                "is_depth": is_depth,
+                                "file_size_bytes": file_size_bytes,
+                                "file_size_formatted": self._format_bytes(file_size_bytes),
+                                "bitrate_bps": int(bitrate_bps),
+                                "bitrate_mbps": round(bitrate_mbps, 1),
+                                "duration_seconds": round(duration_seconds, 2)
                             },
                             "streaming_info": {
                                 "supports_range_requests": True,  # HF supports HTTP range
                                 "recommended_preload": "metadata",  # Browser optimization
-                                "cors_enabled": True
+                                "cors_enabled": True,
+                                "quality_adaptive": False,  # Static quality for now
+                                "seek_support": True
                             }
                         })
                         

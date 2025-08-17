@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react"
 import { type DragStartEvent, type DragEndEvent, type DragOverEvent } from "@dnd-kit/core"
+import { type Dataset } from "@/services/schemas/domain.schema"
 
 interface Collection {
   id: string
@@ -9,14 +10,6 @@ interface Collection {
   description: string
   color: string
   datasetIds: string[]
-}
-
-interface Dataset {
-  id: string
-  name: string
-  description: string
-  fileSize: number
-  frameCount: number
 }
 
 interface UseDatasetsPageReturn {

@@ -176,7 +176,14 @@ function CollectionView({
                               {
                                 label: "View Dataset",
                                 icon: <Eye className="h-4 w-4" />,
-                                onClick: () => router.push(`/datasets/${dataset.id}`),
+                                onClick: () => {
+                                  const [owner, datasetName] = dataset.id.split('/')
+                                  if (owner && datasetName) {
+                                    router.push(`/datasets/${encodeURIComponent(owner)}/${encodeURIComponent(datasetName)}`)
+                                  } else {
+                                    console.error('Invalid dataset ID format:', dataset.id)
+                                  }
+                                },
                               },
                               {
                                 label: "Remove from Collection",

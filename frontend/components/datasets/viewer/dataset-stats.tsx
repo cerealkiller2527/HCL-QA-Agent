@@ -5,11 +5,14 @@ import { Badge } from "@/components/ui/badge"
 import { Clock, Camera } from "lucide-react"
 
 interface DatasetStatsProps {
-  duration: number
+  duration: number | undefined
   activeCameras: number
-  frameCount: number
-  size: number
-  tags: string[]
+  frameCount: number | undefined
+  size: number | undefined
+  tags: string[] | undefined | null
+  fps?: number
+  resolution?: string
+  bitrate?: string
   formatDuration: (seconds: number) => string
   formatFileSize: (bytes: number) => string
 }
@@ -20,9 +23,17 @@ export function DatasetStats({
   frameCount,
   size,
   tags,
+  fps = 30,
+  resolution,
+  bitrate,
   formatDuration,
   formatFileSize,
 }: DatasetStatsProps) {
+  // Safe processing of tags array
+  const safeTags = Array.isArray(tags) ? tags : []
+  const displayTags = safeTags.slice(0, 3)
+  const remainingCount = Math.max(0, safeTags.length - 3)
+
   return (
     <div className="space-y-3">
       {/* Compact Stats */}
@@ -33,7 +44,7 @@ export function DatasetStats({
               <Clock className="h-3 w-3 text-blue-500" />
               <div>
                 <p className="text-xs text-muted-foreground font-sans">Duration</p>
-                <p className="text-sm font-semibold font-mono">{formatDuration(duration)}</p>
+                <p className="text-sm font-semibold font-mono">{formatDuration(duration ?? 0)}</p>
               </div>
             </div>
           </CardContent>
@@ -54,27 +65,31 @@ export function DatasetStats({
       {/* Episode Info */}
       <Card className="layer-card">
         <CardContent className="p-3">
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-40 overflow-y-auto">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground font-sans">Frames:</span>
-              <span className="text-xs font-medium font-mono">{frameCount.toLocaleString()}</span>
+              <span className="text-xs font-medium font-mono">{(frameCount ?? 0).toLocaleString()}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground font-sans">FPS:</span>
-              <span className="text-xs font-medium font-mono">30</span>
+              <span className="text-xs font-medium font-mono">{fps}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground font-sans">Size:</span>
-              <span className="text-xs font-medium font-mono">{formatFileSize(size)}</span>
+              <span className="text-xs font-medium font-mono">{formatFileSize(size ?? 0)}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-sans">Resolution:</span>
-              <span className="text-xs font-medium font-mono">1920×1080</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-sans">Bitrate:</span>
-              <span className="text-xs font-medium font-mono">8.5 Mbps</span>
-            </div>
+            {resolution && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-sans">Resolution:</span>
+                <span className="text-xs font-medium font-mono">{resolution}</span>
+              </div>
+            )}
+            {bitrate && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-sans">Bitrate:</span>
+                <span className="text-xs font-medium font-mono">{bitrate}</span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -82,15 +97,20 @@ export function DatasetStats({
       {/* Tags */}
       <Card className="layer-card">
         <CardContent className="p-2">
-          <div className="flex flex-wrap gap-1">
-            {tags.slice(0, 2).map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-xs font-mono">
+          <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
+            {displayTags.map((tag) => (
+              <Badge 
+                key={tag} 
+                variant="secondary" 
+                className="text-xs font-mono truncate max-w-20"
+                title={tag}
+              >
                 {tag}
               </Badge>
             ))}
-            {tags.length > 2 && (
-              <Badge variant="outline" className="text-xs font-mono">
-                +{tags.length - 2}
+            {remainingCount > 0 && (
+              <Badge variant="outline" className="text-xs font-mono flex-shrink-0">
+                +{remainingCount}
               </Badge>
             )}
           </div>

@@ -4,6 +4,7 @@ import { Inter, JetBrains_Mono } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ThemeInitializer } from "@/components/theme-initializer"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { QueryProvider } from "@/services/config/QueryProvider"
 import "./globals.css"
 
 const inter = Inter({
@@ -34,11 +35,13 @@ export default function RootLayout({
       <head />
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         <ThemeInitializer />
-        <ThemeProvider defaultTheme="dark" storageKey="lerobot-theme">
-          <ErrorBoundary>
-            {children}
-          </ErrorBoundary>
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider defaultTheme="dark" storageKey="lerobot-theme">
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   )

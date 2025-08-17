@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { type Dataset } from '@/services/schemas/domain.schema'
 import {
   Plus,
   FolderPlus,
@@ -38,26 +39,33 @@ import { DatasetCard } from "@/components/datasets/dataset-card"
 import { CollectionModal } from "@/components/datasets/collections/collection-modal"
 import { CollectionList } from "@/components/datasets/collections/collection-list"
 
+// TanStack Query & Services
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { datasetsApi } from '@/services/api/datasets.api'
+import { queryKeys } from '@/services/utils/queryKeys'
+import { formatErrorForUser } from '@/services/utils/errorHandler'
+
 // Hooks & Utils
-import { useDatasets } from "@/lib/hooks/use-datasets"
 import { useDatasetsPage } from "@/components/datasets/hooks/use-datasets-page"
 import { ANIMATION } from "@/lib/constants"
 import { createStaggerAnimation } from "@/lib/utils/animations"
 
 // Draggable Dataset Component
+interface DraggableDatasetProps {
+  dataset: Dataset
+  isSelectionMode: boolean
+  selectedDatasets: Set<string>
+  toggleDatasetSelection: (id: string) => void
+  handleDeleteDataset: (id: string) => void
+}
+
 function DraggableDataset({
   dataset,
   isSelectionMode,
   selectedDatasets,
   toggleDatasetSelection,
   handleDeleteDataset,
-}: {
-  dataset: any
-  isSelectionMode: boolean
-  selectedDatasets: Set<string>
-  toggleDatasetSelection: (id: string) => void
-  handleDeleteDataset: (id: string) => void
-}) {
+}: DraggableDatasetProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: dataset.id,
     disabled: isSelectionMode,
@@ -92,8 +100,21 @@ function DraggableDataset({
 }
 
 export default function DatasetsPage() {
-  // Fetch datasets from API
-  const { data: datasets, loading, error, refetch } = useDatasets()
+  const queryClient = useQueryClient()
+  
+  // Fetch datasets using TanStack Query
+  const { 
+    data: datasetsResponse, 
+    isLoading, 
+    error, 
+    refetch 
+  } = useQuery({
+    queryKey: queryKeys.datasets.list({}),
+    queryFn: () => datasetsApi.fetchDatasets(),
+  })
+  
+  const datasets = datasetsResponse?.data || []
+  const loading = isLoading
   
   // Use the datasets page hook for state management
   const {
@@ -108,6 +129,7 @@ export default function DatasetsPage() {
     showDeleteDialog,
     datasetToDelete,
     showMassDeleteDialog,
+    uncategorizedDatasets,
     displayedDatasets,
     draggedDataset,
     setCollections,
@@ -136,76 +158,114 @@ export default function DatasetsPage() {
     })
   )
 
+  // Delete mutation with TanStack Query
+  const deleteMutation = useMutation({
+    mutationFn: (datasetId: string) => datasetsApi.deleteDataset(datasetId),
+    onMutate: async (datasetId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.datasets.lists() })
+      
+      // Snapshot the previous value
+      const previousDatasets = queryClient.getQueryData(queryKeys.datasets.list({}))
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData(queryKeys.datasets.list({}), (old: unknown) => {
+        if (!old || typeof old !== 'object') return old
+        const typedOld = old as { data: Dataset[] }
+        return {
+          ...typedOld,
+          data: typedOld.data.filter((dataset: Dataset) => dataset.id !== datasetId)
+        }
+      })
+      
+      return { previousDatasets }
+    },
+    onError: (err, datasetId, context) => {
+      // Rollback on error
+      if (context?.previousDatasets) {
+        queryClient.setQueryData(queryKeys.datasets.list({}), context.previousDatasets)
+      }
+      alert(`Failed to delete dataset: ${formatErrorForUser(err)}`)
+    },
+    onSuccess: (_, datasetId) => {
+      // Remove from collections
+      setCollections((prev) =>
+        prev.map((collection) => ({
+          ...collection,
+          datasetIds: collection.datasetIds.filter((id) => id !== datasetId),
+        }))
+      )
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: queryKeys.datasets.lists() })
+    },
+  })
+  
   // Delete confirmation handlers
   const confirmDeleteDataset = async () => {
     if (datasetToDelete) {
-      try {
-        // Import the API client
-        const { datasetsApi } = await import('@/lib/api/datasets.api')
-        
-        // Delete from HuggingFace
-        await datasetsApi.deleteDataset(datasetToDelete)
-        
-        // Remove from collections
-        setCollections((prev) =>
-          prev.map((collection) => ({
-            ...collection,
-            datasetIds: collection.datasetIds.filter((id) => id !== datasetToDelete),
-          }))
-        )
-        
-        // Refresh the datasets list
-        refetch()
-        
-        console.log(`Successfully deleted dataset: ${datasetToDelete}`)
-      } catch (error) {
-        console.error(`Failed to delete dataset: ${error}`)
-        alert(`Failed to delete dataset. You may not have permission to delete this dataset.`)
-      }
+      deleteMutation.mutate(datasetToDelete)
     }
     setDatasetToDelete(null)
     setShowDeleteDialog(false)
   }
 
-  const confirmMassDelete = async () => {
-    try {
-      // Import the API client
-      const { datasetsApi } = await import('@/lib/api/datasets.api')
-      
-      // Delete all selected datasets from HuggingFace
-      const deletePromises = Array.from(selectedDatasets).map(id => 
-        datasetsApi.deleteDataset(id).catch(err => {
-          console.error(`Failed to delete ${id}:`, err)
-          return false
-        })
+  // Mass delete mutation
+  const massDeleteMutation = useMutation({
+    mutationFn: async (datasetIds: string[]) => {
+      const results = await Promise.allSettled(
+        datasetIds.map(id => datasetsApi.deleteDataset(id))
       )
       
-      const results = await Promise.all(deletePromises)
-      const successCount = results.filter(r => r === true).length
+      const successful = results.filter(r => r.status === 'fulfilled').length
+      const failed = results.filter(r => r.status === 'rejected').length
       
-      if (successCount > 0) {
-        // Remove from collections
-        setCollections((prev) =>
-          prev.map((collection) => ({
-            ...collection,
-            datasetIds: collection.datasetIds.filter((id) => !selectedDatasets.has(id)),
-          }))
-        )
-        
-        // Refresh the datasets list
-        refetch()
-        
-        console.log(`Successfully deleted ${successCount} datasets`)
-      }
+      return { successful, failed, total: datasetIds.length }
+    },
+    onMutate: async (datasetIds) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.datasets.lists() })
+      const previousDatasets = queryClient.getQueryData(queryKeys.datasets.list({}))
       
-      if (successCount < selectedDatasets.size) {
-        alert(`Only ${successCount} out of ${selectedDatasets.size} datasets were deleted. You may not have permission to delete some datasets.`)
+      // Optimistically remove all selected datasets
+      queryClient.setQueryData(queryKeys.datasets.list({}), (old: unknown) => {
+        if (!old || typeof old !== 'object') return old
+        const typedOld = old as { data: Dataset[] }
+        return {
+          ...typedOld,
+          data: typedOld.data.filter((dataset: Dataset) => !datasetIds.includes(dataset.id))
+        }
+      })
+      
+      return { previousDatasets }
+    },
+    onError: (err, datasetIds, context) => {
+      if (context?.previousDatasets) {
+        queryClient.setQueryData(queryKeys.datasets.list({}), context.previousDatasets)
       }
-    } catch (error) {
-      console.error(`Failed to delete datasets:`, error)
-      alert(`Failed to delete datasets. Please try again.`)
-    }
-    
+      alert(`Failed to delete datasets: ${formatErrorForUser(err)}`)
+    },
+    onSuccess: (result, datasetIds) => {
+      // Remove from collections
+      setCollections((prev) =>
+        prev.map((collection) => ({
+          ...collection,
+          datasetIds: collection.datasetIds.filter((id) => !selectedDatasets.has(id)),
+        }))
+      )
+      
+      if (result.failed > 0) {
+        alert(`${result.successful} out of ${result.total} datasets deleted successfully. ${result.failed} failed.`)
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.datasets.lists() })
+    },
+  })
+  
+  const confirmMassDelete = async () => {
+    const datasetIds = Array.from(selectedDatasets)
+    massDeleteMutation.mutate(datasetIds)
     clearSelection()
     setShowMassDeleteDialog(false)
   }
@@ -329,7 +389,7 @@ export default function DatasetsPage() {
               <AlertCircle className="h-8 w-8 text-red-500" />
             </div>
             <h3 className="text-title mb-2">Failed to load datasets</h3>
-            <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">{error}</p>
+            <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">{formatErrorForUser(error)}</p>
             <Button variant="outline" onClick={() => refetch()}>
               Try Again
             </Button>
@@ -421,14 +481,14 @@ export default function DatasetsPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Multiple Datasets</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete {selectedDatasets.size} dataset{selectedDatasets.size !== 1 ? "s" : ""}?
+                Are you sure you want to delete {selectedDatasets.size} dataset{selectedDatasets.size !== 1 ? 's' : ''}?
                 This action cannot be undone and will permanently remove all associated data.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={confirmMassDelete} className="bg-red-600 hover:bg-red-700">
-                Delete {selectedDatasets.size} Dataset{selectedDatasets.size !== 1 ? "s" : ""}
+                Delete {selectedDatasets.size} Dataset{selectedDatasets.size !== 1 ? 's' : ''}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

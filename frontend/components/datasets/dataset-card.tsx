@@ -19,12 +19,11 @@ import {
   Trash2,
   Globe,
   Scale,
-  FileText,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatDate } from "@/lib/utils/dataset-utils"
 import { ANIMATION } from "@/lib/constants"
-import { Dataset } from "@/lib/api/schemas/dataset.schema"
+import { type Dataset } from "@/services/schemas/domain.schema"
 
 const statusConfig = {
   ready: { icon: CheckCircle, color: "text-green-500", bg: "bg-green-500/10", label: "Ready" },
@@ -37,7 +36,15 @@ const robotTypeConfig = {
   arm: { label: "Robotic Arm", color: "bg-blue-500/10 text-blue-500" },
   mobile: { label: "Mobile Robot", color: "bg-green-500/10 text-green-500" },
   humanoid: { label: "Humanoid", color: "bg-purple-500/10 text-purple-500" },
-  so101: { label: "SO-101", color: "bg-orange-500/10 text-orange-500" },
+  so100: { label: "SO-100", color: "bg-orange-500/10 text-orange-500" },
+  so101: { label: "SO-101", color: "bg-orange-600/10 text-orange-600" },
+  bimanual: { label: "Bimanual", color: "bg-indigo-500/10 text-indigo-500" },
+  aloha: { label: "ALOHA", color: "bg-pink-500/10 text-pink-500" },
+  koch: { label: "Koch", color: "bg-cyan-500/10 text-cyan-500" },
+  lekiwi: { label: "LeKiwi", color: "bg-emerald-500/10 text-emerald-500" },
+  viperx: { label: "ViperX", color: "bg-violet-500/10 text-violet-500" },
+  stretch3: { label: "Stretch3", color: "bg-teal-500/10 text-teal-500" },
+  hope_jr: { label: "HOPE Jr", color: "bg-rose-500/10 text-rose-500" },
   custom: { label: "Custom", color: "bg-muted text-muted-foreground" },
 }
 
@@ -84,7 +91,13 @@ export function DatasetCard({
     if (isSelectionMode && onSelect) {
       onSelect()
     } else if (!isSelectionMode) {
-      router.push(`/datasets/${dataset.id}`)
+      // Ensure dataset.id is in owner/dataset-name format and properly URL encode
+      const [owner, datasetName] = dataset.id.split('/')
+      if (owner && datasetName) {
+        router.push(`/datasets/${encodeURIComponent(owner)}/${encodeURIComponent(datasetName)}`)
+      } else {
+        console.error('Invalid dataset ID format:', dataset.id)
+      }
     }
   }
 
